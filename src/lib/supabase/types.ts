@@ -63,6 +63,47 @@ export interface MarginSummary {
   breakEvenGuests: number
 }
 
+export const ALLERGENS = [
+  { key: 'glutine',       label: 'Glutine',               emoji: '🌾' },
+  { key: 'crostacei',    label: 'Crostacei',             emoji: '🦞' },
+  { key: 'uova',         label: 'Uova',                  emoji: '🥚' },
+  { key: 'pesce',        label: 'Pesce',                 emoji: '🐟' },
+  { key: 'arachidi',     label: 'Arachidi',              emoji: '🥜' },
+  { key: 'soia',         label: 'Soia',                  emoji: '🫘' },
+  { key: 'latte',        label: 'Latte/Lattosio',        emoji: '🥛' },
+  { key: 'frutta_guscio',label: 'Frutta a guscio',       emoji: '🌰' },
+  { key: 'sedano',       label: 'Sedano',                emoji: '🌿' },
+  { key: 'senape',       label: 'Senape',                emoji: '🌱' },
+  { key: 'sesamo',       label: 'Sesamo',                emoji: '🫙' },
+  { key: 'anidride',     label: 'Solfiti/Anidride',      emoji: '🍷' },
+  { key: 'lupini',       label: 'Lupini',                emoji: '🌼' },
+  { key: 'molluschi',    label: 'Molluschi',             emoji: '🦑' },
+] as const
+
+export type AllergenKey = typeof ALLERGENS[number]['key']
+
+export interface DishAllergen {
+  id: string
+  dish_name: string
+  category: string | null
+  glutine: boolean
+  crostacei: boolean
+  uova: boolean
+  pesce: boolean
+  arachidi: boolean
+  soia: boolean
+  latte: boolean
+  frutta_guscio: boolean
+  sedano: boolean
+  senape: boolean
+  sesamo: boolean
+  anidride: boolean
+  lupini: boolean
+  molluschi: boolean
+  note_allergeni: string | null
+  updated_at: string
+}
+
 export type Database = {
   public: {
     Tables: {

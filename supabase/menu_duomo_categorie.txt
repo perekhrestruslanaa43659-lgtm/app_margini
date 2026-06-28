@@ -1,0 +1,441 @@
+====================================================================
+MENU DM MILANO DUOMO — RIORGANIZZATO PER CATEGORIA
+Fonte: products_20260601_20260621
+====================================================================
+
+--------------------------------------------------------------------
+BIRRE MEDIE (0.4L)
+--------------------------------------------------------------------
+0.4 Super Chiara
+0.4 Sexy IPA
+0.4 Honey IPA
+0.4 Iper Weiss
+0.4 Ultra Pils
+0.4 Bella Rossa
+0.4 Summer IPA
+0.4 Imperiale
+0.4 Black Stout
+0.4 Extra Bitter
+0.4 West Coast IPA
+0.4 Magnus
+0.4 Panache
+0.4 Radler
+0.4 Super Blanche
+0.4 + Che Rossa
+0.4 'O Sole Mio
+0.4 Zingi Ale
+0.4 Cocoa IPA
+0.4 Regina
+--- ALCOOL FREE ---
+0.4 Chiara Alcool Free
+0.4 Summer Alcool Free
+
+--------------------------------------------------------------------
+BIRRE PICCOLE (0.2L)
+--------------------------------------------------------------------
+0.2 Super Chiara
+0.2 Sexy IPA
+0.2 Honey IPA
+0.2 Iper Weiss
+0.2 Ultra Pils
+0.2 Bella Rossa
+0.2 Summer IPA
+0.2 Imperiale
+0.2 Black Stout
+0.2 Extra Bitter
+0.2 West Coast IPA
+0.2 Magnus
+0.2 Panache
+0.2 Radler
+0.2 Super Blanche
+0.2 + Che Rossa
+0.2 Zingi Ale
+0.2 Cocoa IPA
+0.2 O Sole Mio
+--- ALCOOL FREE ---
+0.2 Summer Alcool Free
+
+--------------------------------------------------------------------
+BOTTIGLIE DI BIRRA
+--------------------------------------------------------------------
+Sexy IPA Bottiglia
+Bella Rossa Bottiglia
+Summer IPA Bottiglia
+Extra Bitter Bottiglia
+Ultra Pils Bottiglia
+Super Blanche Bottiglia
+Zingi Ale Bottiglia
+SC Gluten Free (senza glutine)
+
+--------------------------------------------------------------------
+CARAFFE
+--------------------------------------------------------------------
+Caraffa Super Chiara
+Caraffa Honey IPA
+Caraffa Bella Rossa
+Caraffa Sexy IPA
+Caraffa Summer IPA
+Caraffa Imperiale
+Caraffa Extra Bitter
+Caraffa Ultra Pils
+Caraffa West Coast IPA
+Caraffa + Che Rossa
+Caraffa Spritz
+
+--------------------------------------------------------------------
+BEER TOUR & SPILLATORI
+--------------------------------------------------------------------
+Beer Tour Componibile
+Giro di Malto
+Giro di Luppoli
+Giro di Aromi
+Comanda Colore
+--- SPILLATORI ---
+Spill Super Chiara
+Spill Bella Rossa
+Spill Honey IPA
+Spill Imperiale
+Spill Iper Weiss
+Spill Sexy IPA
+Spill Ultra Pils
+Spill Black Stout
+Spill Regina
+
+--------------------------------------------------------------------
+VINI
+--------------------------------------------------------------------
+--- CALICI ---
+Calice Dolcetto
+Calice Traminer
+Calice Cannonau
+Calice Prosecco
+Calice Rosato
+Calice Vermentino
+IS Vermentino Calice
+--- BOTTIGLIE ---
+IS Vermentino Bottiglia
+Dolcetto Bottiglia
+Traminer Bottiglia
+Cannonau Bottiglia
+Rosato Bottiglia
+Prosecco Premium Bottiglia
+
+--------------------------------------------------------------------
+COCKTAILS
+--------------------------------------------------------------------
+--- SPRITZ ---
+Spritz Aperol
+Spritz Campari
+Spritz Hugo
+Spritz Spill
+Casanova Spritz
+--- LONG DRINK ---
+Mojito
+Gin Tonic
+Gin Lemon
+Negroni
+Negroni Sbagliato
+Moscow Mule
+Cuba Libre
+Sex on the Beach
+Vodka Lemon
+Vodka Tonic
+Vodka e Red Bull
+Vodka e Red Bull Sugar Free
+Rum Cooler
+Americano
+Bitter Bull
+Lungo Addio
+Jager e Red Bull
+Riviera
+Whisky e Cola
+--- SHOTS ---
+Tequila Sale e Limone
+Shot Belvedere
+--- ANALCOLICI ---
+Clorofillo
+Golden Spritz
+
+--------------------------------------------------------------------
+AMARI & SUPERALCOLICI
+--------------------------------------------------------------------
+--- AMARI ---
+Amaro Doppio Malto (house)
+L'Amaro DM Bottiglia
+Amaro del Capo
+Braulio
+Montenegro
+Jagermeister
+Anima Nera
+--- LIQUORI ---
+Limoncello
+Mirto
+Sambuca
+Baileys
+--- RUM ---
+Kraken
+Zacapa 23Y
+Pampero Anniversario
+--- WHISKY ---
+Johnnie Walker Red
+Talisker
+Lagavulin
+--- GRAPPA ---
+Grappa Poli Classica
+Grappa Barrique
+Grappa Poli Moscato
+--- CAFFE' SPECIALI ---
+Irlandese (Caffe' Irlandese)
+Capadolce (Caffe' Dolce)
+
+--------------------------------------------------------------------
+BIBITE & SOFT DRINK
+--------------------------------------------------------------------
+Coca Cola VAP
+Coca Zero VAP
+Coca Zero Zero VAP
+Cola / Cola Zero
+Fanta VAP
+Sprite VAP
+Aranciata
+Limonata
+The Pesca / The Limone
+Tonica
+Red Bull
+Red Bull Zero (Sugar Free)
+Pop Corn Mug
+--- ACQUE ---
+Acqua Naturale (vetro)
+Acqua Frizzante (vetro)
+Acqua Naturale PET
+Acqua Gassata PET
+Acqua Panna PET
+Acqua Naturale Microfiltrata
+Acqua Frizzante Microfiltrata
+
+--------------------------------------------------------------------
+CAFFE' & CAFFETTERIA
+--------------------------------------------------------------------
+Caffe'
+Caffe' Macchiato
+Caffe' Corretto
+Caffe' Doppio
+Caffe' Americano
+Caffe' Vetro
+Caffe' Ginseng
+Caffe' Orzo
+Caffe' Latte
+Caffe' Imperiale
+Caffe' Gourmand
+Cappuccino
+Latte Macchiato
+Macchiatone
+Decaffeinato
+Ginseng Vetro
+Spremuta
+
+--------------------------------------------------------------------
+FOOD — BURGER
+--------------------------------------------------------------------
+Doppio Smash Bacon e Cheddar
+Doppio Smash Pecorino e Pomodoro
+Triplo Smash Bacon e Cheddar
+Triplo Smash Pecorino e Pomodoro
+Il Troppo Buono
+Maxi Il Troppo Buono
+Bacon e Provola
+Maxi Bacon e Provola
+'Nduja e Bella Lodi
+Maxi 'Nduja e Bella Lodi
+Super BBQ
+Maxi Super BBQ
+Pulled Pork All Italiana
+Tartare e Bella Lodi Burger
+Maxi Tartare e Bella Lodi Burger
+Burger Carbonara Ole
+Maxi Carbonara Ole
+Fish&Chips Burger
+Maxi Fish&Chips Burger
+Pollo Fritto Burger
+Maxi Pollo Fritto Burger
+Che Pollo
+Vegetale e Quale Burger
+Stra Burger
+Super Pork
+Super Classico Burger
+Il Manzo Triplo
+Manzo Singolo
+Doppio Medaglione No Meat
+--- PRANZO ---
+Il Contadino
+Burger Classico Pranzo
+Doppio Medaglione Pranzo
+Manzo e Patate Spicchio (Promo)
+Tartare Pistacchio e Bella Lodi
+
+--------------------------------------------------------------------
+FOOD — BRACE & GRIGLIA
+--------------------------------------------------------------------
+Gran Tagliata
+Gran Tagliata Speciale
+Mini Gran Tagliata
+Mini Tagliata Speciale
+La Gigante
+Tagliata di Pollo
+Tagliata di Pollo BBQ
+Mini Tagliata di Pollo
+Mini T. di Pollo BBQ
+Tre di Pollo
+Galletto Mediterraneo
+Galletto Piccante
+Costine di Maiale
+Cosce in Crosta
+Brace Mista 1Px
+Brace Cuberoll 1Px
+Brace Singola
+Burrata e Verdure alla Brace
+Arrosticini Abruzzesi
+--- PRANZO ---
+Tagliata di Pollo Alla Brace Pranzo
+
+--------------------------------------------------------------------
+FOOD — PIZZE
+--------------------------------------------------------------------
+Margherita
+Crudo e Piccadilly
+Burrata e 'Nduja
+Mortadella e Fiordilatte
+Pizza Ortolana
+Slice Margherita
+Slice Rossa
+--- PRANZO ---
+Margherita E' Mia Pranzo
+Focaccia Contorno
+--- APERITIVO ---
+Aperitivo 1 Pax
+Aperitivo 2 Pax
+
+--------------------------------------------------------------------
+FOOD — PASTE & PRIMI
+--------------------------------------------------------------------
+Tagliatelle al Ragu
+Tagliatelle Pomodoro e Raspadura
+Fusilli Pesto Rosso
+Gnocchi e Gratinati Bella Lodi
+Gnocchi Bella Lodi e Pepe
+Parmigiana
+
+--------------------------------------------------------------------
+FOOD — STARTER & FRITTI
+--------------------------------------------------------------------
+Siamo Fritti
+Gnocco Fritto
+Spicchi di Focaccia
+Focaccia Barese
+Chips Bella Lodi
+Anelli di Cipolla
+Mozzarelle in Carrozza
+Rondelle di Melanzana
+Alette di Pollo
+Tagliata di Pollo Panato
+Spiedini di Pollo Panati
+Antipasto Tricolore
+Caprese di Burrata e Pomodori
+Arancini (4 pz)
+Arrosticini di Pollo
+Caponata di Verdure
+Tartare Pistacchio e Bella Lodi
+
+--------------------------------------------------------------------
+FOOD — INSALATE
+--------------------------------------------------------------------
+Orto Fresco Insalata
+Manzo e Burrata
+Ins Tagliata di Pollo e Pomodoro
+Ins. Pollo Fritto e Pomodoro
+Caponata e Crudite
+--- PRANZO ---
+Bella Lodi e BBQ Bianca
+
+--------------------------------------------------------------------
+FOOD — CONTORNI
+--------------------------------------------------------------------
+Patate a Fiammifero
+Patate a Spicchio
+Patate Chips
+Verdure Grigliate
+Fagiolini
+
+--------------------------------------------------------------------
+FOOD — DESSERT
+--------------------------------------------------------------------
+Birramisu' (signature DM)
+Mini Birramisu'
+Torta Caprese
+Cheesecake Frutti di Bosco
+Mini Cheesecake Frutti di Bosco
+Cheesecake Nutella
+Mini Cheesecake Nutella
+Cannolo Singolo
+Mini Cannoli
+Cannolo Scomposto
+Mini Cannolo Scomposto
+Gnocco Fritto e Nutella
+Coppa Fiordilatte e Nutella
+Coppa Baby (menu bambini)
+Mini Coppa Gelato Nutella
+Mini Coppa Gelato Frutti di Bosco
+Coppa Birra e Caramello Salato
+Caffe' Gourmand
+Nut - Gourmand
+Bosc - Gourmand
+
+--------------------------------------------------------------------
+MENU' & COPERTI
+--------------------------------------------------------------------
+Servizio (coperto €2,50)
+Servizio Drink
+Servizio Pranzo
+Coperto Baby
+Menu Pranzo Tutto Compreso
+Menu Dipendenti
+Menu' Baby
+Zero Scuse
+Noleggio Sala
+
+====================================================================
+ADD ON — COMMENTI (varianti operative, non voci di menu)
+USATI IN CASSA PER MODIFICHE ALL'ORDINE — NON VENDIBILI SEPARATAMENTE
+====================================================================
+
+--- VARIANTI FOOD ---
+NO GLUTEN FREE
+NO INSALATA / NO FRITTI / NO CHIPS / NO GNOCCO
+ADD BACON / ADD CHEDDAR / ADD UOVO / ADD PROVOLONE / ADD JALAPEÑOS
+ADD VERDURE / ADD CAPONATA / ADD CIPOLLA / ADD FUNGHI / ADD AVOCADO
+ADD DRESSING / ADD SALSA BBQ / ADD MAIONESE DM / ADD SENAPE / ADD KETCHUP
+ADD PANE EXTRA / ADD BURGER EXTRA PATTY
+NO PANE / NO SALSA / NO CIPOLLA / NO POMODORO / NO INSALATA
+ADD CHIPS BELLA LODI / ADD PATATE / ADD VERDURE GRIGLIATE / ADD FAGIOLINI
+TAKE AWAY / DA ASPORTO
+
+--- VARIANTI BEVANDE ---
+NO GHIACCIO / CON GHIACCIO
+ADD LIMONE / ADD LIME / ADD MENTA
+CON ZUCCHERO / SENZA ZUCCHERO / LIGHT
+ADD SODA / ADD TONICA
+DOPPIO ALCOL
+CON PAGLIA / SENZA PAGLIA
+
+--- COMMENTI LIBERI ---
+NOTE ALLERGIE
+NOTA ORDINE
+SPECIALE COMPLEANNO / ANNIVERSARIO
+
+====================================================================
+NOTE OPERATIVE
+- Prezzi da impostare nel catalogo dell'app (tutti a 0 in questo export)
+- IVA 10% su food e birre, 22% su vini/cocktails/amari
+- I COMMENTI non devono entrare nel catalogo dell'app
+- Le voci "Promo" e "Pranzo" possono essere disabilitate per eventi serali
+====================================================================
