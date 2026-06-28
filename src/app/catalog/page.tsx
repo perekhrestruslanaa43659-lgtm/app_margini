@@ -41,7 +41,9 @@ function CatalogPageInner() {
   const [addMode, setAddMode] = useState(false)
   const [newItem, setNewItem] = useState<EditState>(emptyEdit())
   const [deleteId, setDeleteId] = useState<string | null>(null)
+  const [inlinePrice, setInlinePrice] = useState<{ id: string; value: string } | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
+  const priceInputRef = useRef<HTMLInputElement>(null)
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = supabase as any
@@ -95,6 +97,19 @@ function CatalogPageInner() {
     await sb.from('catalog_items').delete().eq('id', id)
     setDeleteId(null)
     fetchItems()
+  }
+
+  function startInlinePrice(item: CatalogItem) {
+    setInlinePrice({ id: item.id, value: String(item.unit_price) })
+    setTimeout(() => priceInputRef.current?.select(), 30)
+  }
+
+  async function saveInlinePrice() {
+    if (!inlinePrice) return
+    const price = parseFloat(inlinePrice.value.replace(',', '.')) || 0
+    await sb.from('catalog_items').update({ unit_price: price }).eq('id', inlinePrice.id)
+    setItems((prev) => prev.map((it) => it.id === inlinePrice.id ? { ...it, unit_price: price } : it))
+    setInlinePrice(null)
   }
 
   function startEdit(item: CatalogItem) {
@@ -275,7 +290,31 @@ function CatalogPageInner() {
                         {it.type === 'ricavo' ? 'Ricavo' : 'Costo'}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-right font-medium text-slate-700">{formatCurrency(it.unit_price)}</td>
+                    <td className="px-4 py-3 text-right font-medium text-slate-700">
+                      {inlinePrice?.id === it.id ? (
+                        <input
+                          ref={priceInputRef}
+                          type="number"
+                          step="0.01"
+                          className="input py-1 text-right w-28 text-sm"
+                          value={inlinePrice.value}
+                          onChange={(e) => setInlinePrice({ id: it.id, value: e.target.value })}
+                          onBlur={saveInlinePrice}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') saveInlinePrice()
+                            if (e.key === 'Escape') setInlinePrice(null)
+                          }}
+                        />
+                      ) : (
+                        <span
+                          className="cursor-pointer hover:bg-blue-50 hover:text-blue-700 px-2 py-1 rounded-lg transition-colors"
+                          onClick={() => startInlinePrice(it)}
+                          title="Clicca per modificare"
+                        >
+                          {formatCurrency(it.unit_price)}
+                        </span>
+                      )}
+                    </td>
                     <td className="px-4 py-3 text-right text-slate-500">{it.vat_rate}%</td>
                     <td className="px-4 py-3">
                       <div className="flex justify-end gap-2">
