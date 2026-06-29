@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { CalendarDays, LayoutDashboard, BookOpen, Calculator, Home, Menu, X, ShieldCheck, FlaskConical } from 'lucide-react'
+import { CalendarDays, LayoutDashboard, BookOpen, Calculator, Home, Menu, X, ShieldCheck, FlaskConical, UtensilsCrossed } from 'lucide-react'
 import { useState } from 'react'
 
 const nav = [
@@ -12,6 +12,7 @@ const nav = [
   { href: '/catalog', label: 'Catalogo Voci', icon: BookOpen },
   { href: '/allergens', label: 'Allergeni', icon: ShieldCheck },
   { href: '/recipes', label: 'Distinta Base', icon: FlaskConical },
+  { href: '/distinta-base/calcolo', label: 'Food Cost', icon: UtensilsCrossed },
   { href: '/calculator', label: 'Calcolatrice', icon: Calculator },
 ]
 
