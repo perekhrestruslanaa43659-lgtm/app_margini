@@ -370,19 +370,13 @@ export default function CalcoloFoodCost() {
                           )}
                         </td>
                         <td className="py-1.5 px-2">
-                          {row.fromDB ? (
-                            <span className={`text-xs block text-right ${missing ? 'text-amber-400' : 'text-slate-500'}`}>
-                              {missing ? '—' : fmt(row.cost_per_unit)}
-                            </span>
-                          ) : (
-                            <input
-                              type="number" min="0" step="0.01"
-                              className="input py-0.5 text-xs text-right"
-                              value={row.cost_per_unit === 0 ? '' : row.cost_per_unit}
-                              placeholder="0,00"
-                              onChange={(e) => updateRow(row._key, 'cost_per_unit', parseFloat(e.target.value) || 0)}
-                            />
-                          )}
+                          <input
+                            type="number" min="0" step="0.01"
+                            className={`input py-0.5 text-xs text-right ${missing ? 'border-amber-300 bg-amber-50' : ''}`}
+                            value={row.cost_per_unit === 0 ? '' : row.cost_per_unit}
+                            placeholder="0,00"
+                            onChange={(e) => updateRow(row._key, 'cost_per_unit', parseFloat(e.target.value) || 0)}
+                          />
                         </td>
                         <td className="py-1.5 px-2 text-right text-xs font-semibold text-slate-800">
                           {missing ? <span className="text-amber-400">—</span> : fmt(rowTotal)}
