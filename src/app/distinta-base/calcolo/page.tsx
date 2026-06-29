@@ -1,32 +1,34 @@
 'use client'
 
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react'
-import { Search, X, Plus, RotateCcw, ChefHat } from 'lucide-react'
-import { CATALOG, type Ingredient } from '@/lib/catalog'
+import { Search, X, Plus, RotateCcw, ChefHat, BookOpen, Pencil } from 'lucide-react'
+import { CATALOG, type Ingredient as CatalogIngredient } from '@/lib/catalog'
+import { createClient } from '@/lib/supabase/client'
+
+interface DBIngredient {
+  id: string
+  name: string
+  unit: string
+  cost_per_unit: number
+}
 
 interface RecipeRow {
   _key: string
-  ingredient: Ingredient
+  name: string
   quantity: number
+  unit: string
+  cost_per_unit: number
+  fromDB: boolean
 }
 
 function fmt(n: number) {
   return n.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €'
 }
 
-function pct(cost: number, price: number) {
+function calcPct(cost: number, price: number) {
   if (!price) return null
   return ((cost / price) * 100).toFixed(1) + '%'
 }
-
-const MAIN_CATEGORIES = [
-  'STARTER', 'BURGER 🍔', 'BURGER', 'SMASH BURGER 🍔',
-  'BRACE 🔥 🥩', 'BRACE', 'PIZZE', 'PASTE', 'INSALATE 🥬', 'INSALATE',
-  'CONTORNI 🥗', 'DESSERT 🍰', 'DESSERT',
-  'BIRRE 0.4 🍺', 'BIRRE 0.2 🍻',
-  'COCKTAILS 🍸', 'AMARI', 'VINI', 'BIBITE 🥤', 'BIBITE',
-  "CAFFE'", 'CAFFE\\', 'CAFFETTERIA', 'STRANE COPPIE',
-]
 
 const SKIP_CATALOG = new Set([
   'COMMENTI', 'VARIANTI FOOD +', 'VARIANTI FOOD -', 'VARIANTI BEVERAGE',
@@ -36,6 +38,15 @@ const SKIP_CATALOG = new Set([
   'COLAZIONI SAN SIRO PUB', 'MENU DIPENDENTI FOOD', 'CARAFFE 🍺',
   'BEER TOUR 🍻', 'MENU\\', "MENU'", 'BAR',
 ])
+
+const MAIN_CATEGORIES = [
+  'STARTER', 'BURGER 🍔', 'BURGER', 'SMASH BURGER 🍔',
+  'BRACE 🔥 🥩', 'BRACE', 'PIZZE', 'PASTE', 'INSALATE 🥬', 'INSALATE',
+  'CONTORNI 🥗', 'DESSERT 🍰', 'DESSERT',
+  'BIRRE 0.4 🍺', 'BIRRE 0.2 🍻',
+  'COCKTAILS 🍸', 'AMARI', 'VINI', 'BIBITE 🥤', 'BIBITE',
+  "CAFFE'", 'CAFFE\\', 'CAFFETTERIA', 'STRANE COPPIE',
+]
 
 const VISIBLE = CATALOG.filter((c) => !SKIP_CATALOG.has(c.categoria))
 
@@ -55,7 +66,10 @@ export default function CalcoloFoodCost() {
   const [query, setQuery] = useState('')
   const [activeCategory, setActiveCategory] = useState<string | null>(null)
   const [dropdownOpen, setDropdownOpen] = useState(false)
+  const [loadingRecipe, setLoadingRecipe] = useState(false)
+  const [recipeStatus, setRecipeStatus] = useState<'idle' | 'loaded' | 'not_found'>('idle')
   const searchRef = useRef<HTMLDivElement>(null)
+  const sb = createClient() as any // eslint-disable-line @typescript-eslint/no-explicit-any
 
   useEffect(() => {
     function onClickOutside(e: MouseEvent) {
@@ -81,7 +95,7 @@ export default function CalcoloFoodCost() {
   }, [query, activeCategory])
 
   const grouped = useMemo(() => {
-    const map = new Map<string, Ingredient[]>()
+    const map = new Map<string, CatalogIngredient[]>()
     for (const item of catalogList) {
       const arr = map.get(item.categoria) ?? []
       arr.push(item)
@@ -90,17 +104,57 @@ export default function CalcoloFoodCost() {
     return map
   }, [catalogList])
 
-  function addIngredient(ing: Ingredient) {
+  async function loadRecipeFromDB(name: string) {
+    setLoadingRecipe(true)
+    setRecipeStatus('idle')
+    const { data } = await sb
+      .from('recipe_items')
+      .select('quantity, ingredient:ingredients(id, name, unit, cost_per_unit)')
+      .eq('dish_name', name)
+    setLoadingRecipe(false)
+
+    if (!data || data.length === 0) {
+      setRecipeStatus('not_found')
+      return
+    }
+
+    const loaded: RecipeRow[] = data.map((r: { quantity: number; ingredient: DBIngredient }) => ({
+      _key: Math.random().toString(36).slice(2),
+      name: r.ingredient.name,
+      quantity: r.quantity,
+      unit: r.ingredient.unit,
+      cost_per_unit: r.ingredient.cost_per_unit,
+      fromDB: true,
+    }))
+    setRows(loaded)
+    setRecipeStatus('loaded')
+  }
+
+  function addFromCatalog(ing: CatalogIngredient) {
     setRows((prev) => [
       ...prev,
-      { _key: Math.random().toString(36).slice(2), ingredient: ing, quantity: 1 },
+      {
+        _key: Math.random().toString(36).slice(2),
+        name: ing.prodotto,
+        quantity: 1,
+        unit: ing.ub,
+        cost_per_unit: ing.pvMedio,
+        fromDB: false,
+      },
     ])
     setQuery('')
     setDropdownOpen(false)
   }
 
-  function updateQty(key: string, qty: number) {
-    setRows((prev) => prev.map((r) => r._key === key ? { ...r, quantity: qty } : r))
+  function addManualRow() {
+    setRows((prev) => [
+      ...prev,
+      { _key: Math.random().toString(36).slice(2), name: '', quantity: 1, unit: 'pz', cost_per_unit: 0, fromDB: false },
+    ])
+  }
+
+  function updateRow(key: string, field: keyof RecipeRow, value: string | number | boolean) {
+    setRows((prev) => prev.map((r) => r._key === key ? { ...r, [field]: value } : r))
   }
 
   function removeRow(key: string) {
@@ -113,18 +167,19 @@ export default function CalcoloFoodCost() {
     setSellingPrice('')
     setQuery('')
     setActiveCategory(null)
+    setRecipeStatus('idle')
   }, [])
 
-  const totalCost = rows.reduce((sum, r) => sum + r.quantity * r.ingredient.pvMedio, 0)
+  const totalCost = rows.reduce((sum, r) => sum + r.quantity * r.cost_per_unit, 0)
   const price = parseFloat(sellingPrice.replace(',', '.')) || 0
-  const foodCostPct = pct(totalCost, price)
+  const foodCostPct = calcPct(totalCost, price)
   const pctColor = !foodCostPct ? ''
     : parseFloat(foodCostPct) <= 28 ? 'text-emerald-600'
     : parseFloat(foodCostPct) <= 35 ? 'text-amber-500'
     : 'text-red-600'
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6">
+    <div className="max-w-6xl mx-auto space-y-5">
 
       {/* Header */}
       <div className="flex items-center justify-between">
@@ -134,7 +189,7 @@ export default function CalcoloFoodCost() {
           </div>
           <div>
             <h1 className="text-xl font-bold text-slate-800">Calcolo Food Cost</h1>
-            <p className="text-xs text-slate-400">Seleziona ingredienti dal catalogo e calcola il costo</p>
+            <p className="text-xs text-slate-400">Seleziona un piatto o costruisci la ricetta manualmente</p>
           </div>
         </div>
         <button onClick={reset} className="btn-secondary flex items-center gap-1.5 text-xs">
@@ -142,18 +197,41 @@ export default function CalcoloFoodCost() {
         </button>
       </div>
 
-      {/* Nome piatto */}
+      {/* Nome piatto + carica distinta */}
       <div className="card">
-        <label className="label">Nome piatto (opzionale)</label>
-        <input
-          className="input"
-          placeholder="es. Siamo Fritti, Gran Tagliata…"
-          value={dishName}
-          onChange={(e) => setDishName(e.target.value)}
-        />
+        <div className="flex gap-3 items-end">
+          <div className="flex-1">
+            <label className="label">Nome piatto</label>
+            <input
+              className="input"
+              placeholder="es. Siamo Fritti, Gran Tagliata…"
+              value={dishName}
+              onChange={(e) => { setDishName(e.target.value); setRecipeStatus('idle') }}
+            />
+          </div>
+          <button
+            className="btn-primary flex items-center gap-1.5 text-xs py-2 shrink-0"
+            disabled={!dishName.trim() || loadingRecipe}
+            onClick={() => loadRecipeFromDB(dishName.trim())}
+          >
+            <BookOpen size={13} />
+            {loadingRecipe ? 'Carico…' : 'Carica distinta da DB'}
+          </button>
+        </div>
+
+        {recipeStatus === 'loaded' && (
+          <div className="mt-2 text-xs text-emerald-600 bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-2 flex items-center gap-2">
+            ✓ Distinta base caricata da Supabase — puoi modificare le quantità o aggiungere altri ingredienti
+          </div>
+        )}
+        {recipeStatus === 'not_found' && (
+          <div className="mt-2 text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 flex items-center gap-2">
+            ⚠ Nessuna distinta trovata per &ldquo;{dishName}&rdquo; — inserisci gli ingredienti manualmente dal catalogo
+          </div>
+        )}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
 
         {/* ── COLONNA SINISTRA: Catalogo ── */}
         <div className="space-y-3">
@@ -164,16 +242,13 @@ export default function CalcoloFoodCost() {
                 <Search size={14} className="absolute left-3 top-2.5 text-slate-300" />
                 <input
                   className="input pl-8"
-                  placeholder="Digita per cercare un prodotto…"
+                  placeholder="Digita per cercare…"
                   value={query}
                   onChange={(e) => { setQuery(e.target.value); setDropdownOpen(true) }}
                   onFocus={() => query.trim() && setDropdownOpen(true)}
                 />
                 {query && (
-                  <button
-                    className="absolute right-3 top-2.5 text-slate-300 hover:text-slate-500"
-                    onClick={() => { setQuery(''); setDropdownOpen(false) }}
-                  >
+                  <button className="absolute right-3 top-2.5 text-slate-300 hover:text-slate-500" onClick={() => { setQuery(''); setDropdownOpen(false) }}>
                     <X size={14} />
                   </button>
                 )}
@@ -184,7 +259,7 @@ export default function CalcoloFoodCost() {
                     <button
                       key={ing.codice}
                       type="button"
-                      onMouseDown={(e) => { e.preventDefault(); addIngredient(ing) }}
+                      onMouseDown={(e) => { e.preventDefault(); addFromCatalog(ing) }}
                       className="w-full text-left px-4 py-2.5 hover:bg-blue-50 text-sm border-b border-slate-50 last:border-0 flex items-center justify-between gap-4"
                     >
                       <div>
@@ -204,16 +279,12 @@ export default function CalcoloFoodCost() {
             </div>
           </div>
 
-          {/* Filtri categoria */}
+          {/* Filtri */}
           <div className="card p-3">
             <div className="flex flex-wrap gap-1.5">
               <button
                 onClick={() => setActiveCategory(null)}
-                className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
-                  activeCategory === null
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                }`}
+                className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${activeCategory === null ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
               >
                 Tutti
               </button>
@@ -221,11 +292,7 @@ export default function CalcoloFoodCost() {
                 <button
                   key={cat}
                   onClick={() => setActiveCategory(activeCategory === cat ? null : cat)}
-                  className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
-                    activeCategory === cat
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                  }`}
+                  className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${activeCategory === cat ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
                 >
                   {cat}
                 </button>
@@ -235,21 +302,21 @@ export default function CalcoloFoodCost() {
 
           {/* Lista catalogo */}
           {!query.trim() && (
-            <div className="card p-0 overflow-hidden max-h-[520px] overflow-y-auto">
+            <div className="card p-0 overflow-hidden max-h-[480px] overflow-y-auto">
               {ALL_CATS.filter((cat) => !activeCategory || cat === activeCategory).map((cat) => {
                 const items = grouped.get(cat)
                 if (!items || items.length === 0) return null
                 return (
                   <div key={cat}>
-                    <div className="px-4 py-2 bg-slate-50 border-b border-slate-100 sticky top-0">
+                    <div className="px-4 py-2 bg-slate-50 border-b border-slate-100 sticky top-0 z-10">
                       <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">{cat}</span>
-                      <span className="ml-2 text-[10px] text-slate-400">{items.length} prodotti</span>
+                      <span className="ml-2 text-[10px] text-slate-400">{items.length}</span>
                     </div>
                     {items.map((ing) => (
                       <button
                         key={ing.codice}
                         type="button"
-                        onClick={() => addIngredient(ing)}
+                        onClick={() => addFromCatalog(ing)}
                         className="w-full text-left px-4 py-2.5 hover:bg-blue-50 border-b border-slate-50 last:border-0 flex items-center justify-between gap-3 group transition-colors"
                       >
                         <div className="flex items-center gap-2 min-w-0">
@@ -270,16 +337,22 @@ export default function CalcoloFoodCost() {
         </div>
 
         {/* ── COLONNA DESTRA: Ricetta ── */}
-        <div className="space-y-4">
+        <div className="space-y-3">
           <div className="card p-0 overflow-hidden">
-            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+            <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
               <h2 className="text-sm font-semibold text-slate-700">
                 Ingredienti ricetta
                 {dishName && <span className="ml-2 text-slate-400 font-normal">— {dishName}</span>}
               </h2>
-              {rows.length > 0 && (
-                <span className="text-xs text-slate-400">{rows.length} {rows.length === 1 ? 'riga' : 'righe'}</span>
-              )}
+              <div className="flex items-center gap-2">
+                {rows.length > 0 && <span className="text-xs text-slate-400">{rows.length} righe</span>}
+                <button
+                  onClick={addManualRow}
+                  className="btn-secondary flex items-center gap-1 text-xs py-1 px-2"
+                >
+                  <Pencil size={11} /> Riga manuale
+                </button>
+              </div>
             </div>
 
             <div className="overflow-x-auto">
@@ -287,9 +360,9 @@ export default function CalcoloFoodCost() {
                 <thead>
                   <tr className="text-xs text-slate-400 bg-slate-50 border-b border-slate-100">
                     <th className="text-left py-2 px-3 font-medium">Ingrediente</th>
-                    <th className="text-center py-2 px-2 font-medium w-20">Qtà</th>
+                    <th className="text-center py-2 px-2 font-medium w-16">Qtà</th>
                     <th className="text-center py-2 px-2 font-medium w-12">Ud</th>
-                    <th className="text-right py-2 px-2 font-medium w-20">Costo</th>
+                    <th className="text-right py-2 px-2 font-medium w-20">Costo/ud</th>
                     <th className="text-right py-2 px-2 font-medium w-20">Totale</th>
                     <th className="w-8" />
                   </tr>
@@ -299,43 +372,76 @@ export default function CalcoloFoodCost() {
                     <tr>
                       <td colSpan={6} className="py-10 text-center text-slate-400 text-xs">
                         <Plus size={20} className="text-slate-200 mx-auto mb-2" />
-                        Clicca un prodotto dal catalogo per aggiungerlo
+                        Carica la distinta da DB oppure clicca un prodotto dal catalogo
                       </td>
                     </tr>
                   )}
                   {rows.map((row) => {
-                    const rowTotal = row.quantity * row.ingredient.pvMedio
-                    const missing = row.ingredient.pvMedio === 0
+                    const rowTotal = row.quantity * row.cost_per_unit
+                    const missing = row.cost_per_unit === 0
                     return (
-                      <tr key={row._key} className="border-b border-slate-50 hover:bg-slate-50 transition-colors">
-                        <td className="py-2 px-3">
-                          <div className="text-xs font-medium text-slate-700 leading-tight">{row.ingredient.prodotto}</div>
-                          {missing && <div className="text-[10px] text-amber-500">⚠ costo 0</div>}
+                      <tr key={row._key} className={`border-b border-slate-50 transition-colors ${row.fromDB ? 'hover:bg-emerald-50/40' : 'hover:bg-blue-50/40'}`}>
+                        <td className="py-1.5 px-3">
+                          {row.fromDB ? (
+                            <div>
+                              <div className="text-xs font-medium text-slate-700">{row.name}</div>
+                              {missing && <div className="text-[10px] text-amber-500">⚠ costo 0 — aggiorna in Distinta Base</div>}
+                            </div>
+                          ) : (
+                            <input
+                              className="input py-0.5 text-xs"
+                              placeholder="Nome ingrediente"
+                              value={row.name}
+                              onChange={(e) => updateRow(row._key, 'name', e.target.value)}
+                            />
+                          )}
                         </td>
-                        <td className="py-2 px-2">
+                        <td className="py-1.5 px-2">
                           <input
-                            type="number"
-                            min="0"
-                            step="0.01"
-                            className="input py-1 text-xs text-center w-16 mx-auto block"
+                            type="number" min="0" step="0.001"
+                            className="input py-0.5 text-xs text-center w-14 mx-auto block"
                             value={row.quantity === 0 ? '' : row.quantity}
                             placeholder="0"
-                            onChange={(e) => updateQty(row._key, parseFloat(e.target.value) || 0)}
+                            onChange={(e) => updateRow(row._key, 'quantity', parseFloat(e.target.value) || 0)}
                           />
                         </td>
-                        <td className="py-2 px-2 text-center text-slate-400 text-xs">{row.ingredient.ub}</td>
-                        <td className="py-2 px-2 text-right text-xs text-slate-500">
-                          {missing ? <span className="text-amber-400">—</span> : fmt(row.ingredient.pvMedio)}
+                        <td className="py-1.5 px-2">
+                          {row.fromDB ? (
+                            <span className="text-xs text-slate-400 block text-center">{row.unit}</span>
+                          ) : (
+                            <select
+                              className="input py-0.5 text-xs text-center"
+                              value={row.unit}
+                              onChange={(e) => updateRow(row._key, 'unit', e.target.value)}
+                            >
+                              <option>pz</option>
+                              <option>kg</option>
+                              <option>L</option>
+                              <option>g</option>
+                              <option>ml</option>
+                            </select>
+                          )}
                         </td>
-                        <td className="py-2 px-2 text-right text-xs font-semibold text-slate-800">
+                        <td className="py-1.5 px-2">
+                          {row.fromDB ? (
+                            <span className={`text-xs block text-right ${missing ? 'text-amber-400' : 'text-slate-500'}`}>
+                              {missing ? '—' : fmt(row.cost_per_unit)}
+                            </span>
+                          ) : (
+                            <input
+                              type="number" min="0" step="0.01"
+                              className="input py-0.5 text-xs text-right"
+                              value={row.cost_per_unit === 0 ? '' : row.cost_per_unit}
+                              placeholder="0,00"
+                              onChange={(e) => updateRow(row._key, 'cost_per_unit', parseFloat(e.target.value) || 0)}
+                            />
+                          )}
+                        </td>
+                        <td className="py-1.5 px-2 text-right text-xs font-semibold text-slate-800">
                           {missing ? <span className="text-amber-400">—</span> : fmt(rowTotal)}
                         </td>
-                        <td className="py-2 px-2">
-                          <button
-                            type="button"
-                            onClick={() => removeRow(row._key)}
-                            className="text-slate-300 hover:text-red-500 transition-colors mx-auto block"
-                          >
+                        <td className="py-1.5 px-2">
+                          <button type="button" onClick={() => removeRow(row._key)} className="text-slate-300 hover:text-red-500 transition-colors mx-auto block">
                             <X size={13} />
                           </button>
                         </td>
@@ -348,9 +454,9 @@ export default function CalcoloFoodCost() {
 
             {rows.length > 0 && (
               <div className="border-t border-slate-100 px-4 py-4 space-y-3">
-                {rows.some((r) => r.ingredient.pvMedio === 0) && (
+                {rows.some((r) => r.cost_per_unit === 0 && r.name) && (
                   <div className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
-                    ⚠ Alcuni ingredienti hanno costo 0 — totale potrebbe essere incompleto.
+                    ⚠ Alcuni ingredienti hanno costo 0 — il totale potrebbe essere incompleto.
                   </div>
                 )}
 
@@ -366,9 +472,7 @@ export default function CalcoloFoodCost() {
                       <span className="absolute left-3 top-2 text-slate-400 text-xs">€</span>
                       <input
                         className="input pl-6 text-sm"
-                        type="number"
-                        min="0"
-                        step="0.01"
+                        type="number" min="0" step="0.01"
                         placeholder="0,00"
                         value={sellingPrice}
                         onChange={(e) => setSellingPrice(e.target.value)}
