@@ -2,7 +2,6 @@
 
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react'
 import { Search, X, Plus, RotateCcw, ChefHat, BookOpen, Pencil } from 'lucide-react'
-import { CATALOG, type Ingredient as CatalogIngredient } from '@/lib/catalog'
 import { createClient } from '@/lib/supabase/client'
 
 interface DBIngredient {
@@ -30,46 +29,33 @@ function calcPct(cost: number, price: number) {
   return ((cost / price) * 100).toFixed(1) + '%'
 }
 
-const SKIP_CATALOG = new Set([
-  'COMMENTI', 'VARIANTI FOOD +', 'VARIANTI FOOD -', 'VARIANTI BEVERAGE',
-  "VARIANTI CAFFE'", 'VARIANTI CAFFE\\', 'VARIANTI SALSE +', 'VARIANTI SALSE -',
-  'VARIANTI CONTORNI', 'SMAIL LOYALTY', 'MERCHANDISING 👕', 'RICAVI',
-  'NOLEGGIO OMBRELLONI', 'POP CORN', 'COPERTI_10', 'SOFT DRINK', 'GELATI',
-  'COLAZIONI SAN SIRO PUB', 'MENU DIPENDENTI FOOD', 'CARAFFE 🍺',
-  'BEER TOUR 🍻', 'MENU\\', "MENU'", 'BAR',
-])
-
-const MAIN_CATEGORIES = [
-  'STARTER', 'BURGER 🍔', 'BURGER', 'SMASH BURGER 🍔',
-  'BRACE 🔥 🥩', 'BRACE', 'PIZZE', 'PASTE', 'INSALATE 🥬', 'INSALATE',
-  'CONTORNI 🥗', 'DESSERT 🍰', 'DESSERT',
-  'BIRRE 0.4 🍺', 'BIRRE 0.2 🍻',
-  'COCKTAILS 🍸', 'AMARI', 'VINI', 'BIBITE 🥤', 'BIBITE',
-  "CAFFE'", 'CAFFE\\', 'CAFFETTERIA', 'STRANE COPPIE',
-]
-
-const VISIBLE = CATALOG.filter((c) => !SKIP_CATALOG.has(c.categoria))
-
-const ALL_CATS = Array.from(new Set(VISIBLE.map((c) => c.categoria))).sort((a, b) => {
-  const ia = MAIN_CATEGORIES.indexOf(a)
-  const ib = MAIN_CATEGORIES.indexOf(b)
-  if (ia !== -1 && ib !== -1) return ia - ib
-  if (ia !== -1) return -1
-  if (ib !== -1) return 1
-  return a.localeCompare(b, 'it')
-})
-
 export default function CalcoloFoodCost() {
   const [dishName, setDishName] = useState('')
   const [rows, setRows] = useState<RecipeRow[]>([])
   const [sellingPrice, setSellingPrice] = useState('')
   const [query, setQuery] = useState('')
-  const [activeCategory, setActiveCategory] = useState<string | null>(null)
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const [loadingRecipe, setLoadingRecipe] = useState(false)
   const [recipeStatus, setRecipeStatus] = useState<'idle' | 'loaded' | 'not_found'>('idle')
+  const [ingredients, setIngredients] = useState<DBIngredient[]>([])
+  const [loadingIngredients, setLoadingIngredients] = useState(true)
   const searchRef = useRef<HTMLDivElement>(null)
-  const sb = createClient() as any // eslint-disable-line @typescript-eslint/no-explicit-any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = createClient() as any
+
+  // Carica ingredienti da Supabase all'avvio
+  useEffect(() => {
+    async function fetchIngredients() {
+      setLoadingIngredients(true)
+      const { data } = await sb
+        .from('ingredients')
+        .select('id, name, unit, cost_per_unit')
+        .order('name')
+      setIngredients(data ?? [])
+      setLoadingIngredients(false)
+    }
+    fetchIngredients()
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     function onClickOutside(e: MouseEvent) {
@@ -83,26 +69,15 @@ export default function CalcoloFoodCost() {
 
   const searchResults = useMemo(() =>
     query.trim().length >= 1
-      ? VISIBLE.filter((c) => c.prodotto.toLowerCase().includes(query.toLowerCase())).slice(0, 12)
+      ? ingredients.filter((i) => i.name.toLowerCase().includes(query.toLowerCase())).slice(0, 12)
       : [],
-    [query]
+    [query, ingredients]
   )
 
   const catalogList = useMemo(() => {
     if (query.trim()) return []
-    if (activeCategory) return VISIBLE.filter((c) => c.categoria === activeCategory)
-    return VISIBLE
-  }, [query, activeCategory])
-
-  const grouped = useMemo(() => {
-    const map = new Map<string, CatalogIngredient[]>()
-    for (const item of catalogList) {
-      const arr = map.get(item.categoria) ?? []
-      arr.push(item)
-      map.set(item.categoria, arr)
-    }
-    return map
-  }, [catalogList])
+    return ingredients
+  }, [query, ingredients])
 
   async function loadRecipeFromDB(name: string) {
     setLoadingRecipe(true)
@@ -130,15 +105,15 @@ export default function CalcoloFoodCost() {
     setRecipeStatus('loaded')
   }
 
-  function addFromCatalog(ing: CatalogIngredient) {
+  function addIngredient(ing: DBIngredient) {
     setRows((prev) => [
       ...prev,
       {
         _key: Math.random().toString(36).slice(2),
-        name: ing.prodotto,
+        name: ing.name,
         quantity: 1,
-        unit: ing.ub,
-        cost_per_unit: ing.pvMedio,
+        unit: ing.unit,
+        cost_per_unit: ing.cost_per_unit,
         fromDB: false,
       },
     ])
@@ -166,7 +141,6 @@ export default function CalcoloFoodCost() {
     setDishName('')
     setSellingPrice('')
     setQuery('')
-    setActiveCategory(null)
     setRecipeStatus('idle')
   }, [])
 
@@ -189,7 +163,7 @@ export default function CalcoloFoodCost() {
           </div>
           <div>
             <h1 className="text-xl font-bold text-slate-800">Calcolo Food Cost</h1>
-            <p className="text-xs text-slate-400">Seleziona un piatto o costruisci la ricetta manualmente</p>
+            <p className="text-xs text-slate-400">Seleziona ingredienti dal catalogo o carica la distinta dal DB</p>
           </div>
         </div>
         <button onClick={reset} className="btn-secondary flex items-center gap-1.5 text-xs">
@@ -233,16 +207,21 @@ export default function CalcoloFoodCost() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
 
-        {/* ── COLONNA SINISTRA: Catalogo ── */}
+        {/* ── COLONNA SINISTRA: Catalogo ingredienti da Supabase ── */}
         <div className="space-y-3">
           <div className="card">
-            <label className="label">Cerca nel catalogo</label>
+            <div className="flex items-center justify-between mb-2">
+              <label className="label mb-0">Catalogo ingredienti</label>
+              {!loadingIngredients && (
+                <span className="text-[10px] text-slate-400">{ingredients.length} ingredienti</span>
+              )}
+            </div>
             <div ref={searchRef} className="relative">
               <div className="relative">
                 <Search size={14} className="absolute left-3 top-2.5 text-slate-300" />
                 <input
                   className="input pl-8"
-                  placeholder="Digita per cercare…"
+                  placeholder="Cerca ingrediente…"
                   value={query}
                   onChange={(e) => { setQuery(e.target.value); setDropdownOpen(true) }}
                   onFocus={() => query.trim() && setDropdownOpen(true)}
@@ -257,83 +236,51 @@ export default function CalcoloFoodCost() {
                 <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-xl max-h-64 overflow-y-auto">
                   {searchResults.map((ing) => (
                     <button
-                      key={ing.codice}
+                      key={ing.id}
                       type="button"
-                      onMouseDown={(e) => { e.preventDefault(); addFromCatalog(ing) }}
+                      onMouseDown={(e) => { e.preventDefault(); addIngredient(ing) }}
                       className="w-full text-left px-4 py-2.5 hover:bg-blue-50 text-sm border-b border-slate-50 last:border-0 flex items-center justify-between gap-4"
                     >
-                      <div>
-                        <span className="font-medium text-slate-700">{ing.prodotto}</span>
-                        <span className="ml-2 text-[10px] text-slate-400 uppercase">{ing.categoria}</span>
-                      </div>
-                      <span className="text-slate-500 text-xs shrink-0">{fmt(ing.pvMedio)}</span>
+                      <span className="font-medium text-slate-700">{ing.name}</span>
+                      <span className="text-slate-500 text-xs shrink-0">{fmt(ing.cost_per_unit)}/{ing.unit}</span>
                     </button>
                   ))}
                 </div>
               )}
               {dropdownOpen && query.trim().length >= 1 && searchResults.length === 0 && (
                 <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-xl px-4 py-3 text-sm text-slate-400">
-                  Nessun prodotto trovato per &ldquo;{query}&rdquo;
+                  Nessun ingrediente trovato per &ldquo;{query}&rdquo;
                 </div>
               )}
             </div>
           </div>
 
-          {/* Filtri */}
-          <div className="card p-3">
-            <div className="flex flex-wrap gap-1.5">
-              <button
-                onClick={() => setActiveCategory(null)}
-                className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${activeCategory === null ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
-              >
-                Tutti
-              </button>
-              {ALL_CATS.map((cat) => (
+          {/* Lista completa ingredienti */}
+          <div className="card p-0 overflow-hidden max-h-[480px] overflow-y-auto">
+            {loadingIngredients ? (
+              <div className="py-10 text-center text-slate-400 text-xs">Caricamento ingredienti…</div>
+            ) : catalogList.length === 0 ? (
+              <div className="py-10 text-center text-slate-400 text-xs">Nessun ingrediente trovato</div>
+            ) : (
+              catalogList.map((ing) => (
                 <button
-                  key={cat}
-                  onClick={() => setActiveCategory(activeCategory === cat ? null : cat)}
-                  className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${activeCategory === cat ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+                  key={ing.id}
+                  type="button"
+                  onClick={() => addIngredient(ing)}
+                  className="w-full text-left px-4 py-2.5 hover:bg-blue-50 border-b border-slate-50 last:border-0 flex items-center justify-between gap-3 group transition-colors"
                 >
-                  {cat}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Lista catalogo */}
-          {!query.trim() && (
-            <div className="card p-0 overflow-hidden max-h-[480px] overflow-y-auto">
-              {ALL_CATS.filter((cat) => !activeCategory || cat === activeCategory).map((cat) => {
-                const items = grouped.get(cat)
-                if (!items || items.length === 0) return null
-                return (
-                  <div key={cat}>
-                    <div className="px-4 py-2 bg-slate-50 border-b border-slate-100 sticky top-0 z-10">
-                      <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">{cat}</span>
-                      <span className="ml-2 text-[10px] text-slate-400">{items.length}</span>
-                    </div>
-                    {items.map((ing) => (
-                      <button
-                        key={ing.codice}
-                        type="button"
-                        onClick={() => addFromCatalog(ing)}
-                        className="w-full text-left px-4 py-2.5 hover:bg-blue-50 border-b border-slate-50 last:border-0 flex items-center justify-between gap-3 group transition-colors"
-                      >
-                        <div className="flex items-center gap-2 min-w-0">
-                          <Plus size={12} className="text-slate-300 group-hover:text-blue-500 shrink-0 transition-colors" />
-                          <span className="text-sm text-slate-700 truncate">{ing.prodotto}</span>
-                        </div>
-                        <div className="text-right shrink-0">
-                          <span className="text-xs font-medium text-slate-600">{fmt(ing.pvMedio)}</span>
-                          <span className="ml-1 text-[10px] text-slate-400">/{ing.ub}</span>
-                        </div>
-                      </button>
-                    ))}
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Plus size={12} className="text-slate-300 group-hover:text-blue-500 shrink-0 transition-colors" />
+                    <span className="text-sm text-slate-700 truncate">{ing.name}</span>
                   </div>
-                )
-              })}
-            </div>
-          )}
+                  <div className="text-right shrink-0">
+                    <span className="text-xs font-medium text-slate-600">{fmt(ing.cost_per_unit)}</span>
+                    <span className="ml-1 text-[10px] text-slate-400">/{ing.unit}</span>
+                  </div>
+                </button>
+              ))
+            )}
+          </div>
         </div>
 
         {/* ── COLONNA DESTRA: Ricetta ── */}
@@ -372,7 +319,7 @@ export default function CalcoloFoodCost() {
                     <tr>
                       <td colSpan={6} className="py-10 text-center text-slate-400 text-xs">
                         <Plus size={20} className="text-slate-200 mx-auto mb-2" />
-                        Carica la distinta da DB oppure clicca un prodotto dal catalogo
+                        Carica la distinta da DB oppure clicca un ingrediente dal catalogo
                       </td>
                     </tr>
                   )}
