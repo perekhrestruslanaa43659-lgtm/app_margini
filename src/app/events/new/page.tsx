@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { ChevronRight, ChevronLeft, Check } from 'lucide-react'
+import { ChevronRight, ChevronLeft, Check, Save } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { isSupabaseConfigured } from '@/lib/supabase/config'
 import type { Event, EventItem, CatalogItem, ItemType } from '@/lib/supabase/types'
@@ -39,34 +39,152 @@ function newDraftItem(type: ItemType): DraftItem {
 
 function NewEventPageInner() {
   const router = useRouter()
-  const supabase = createClient()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const supabase = createClient() as any
   const [step, setStep] = useState(0)
   const [saving, setSaving] = useState(false)
+  const [autoSaving, setAutoSaving] = useState(false)
+  const [savedEventId, setSavedEventId] = useState<string | null>(null)
+  const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  // Step 1
+  // Step 0
   const [name, setName] = useState('')
   const [clientName, setClientName] = useState('')
+  const [clientEmail, setClientEmail] = useState('')
+  const [clientPhone, setClientPhone] = useState('')
   const [eventDate, setEventDate] = useState('')
   const [location, setLocation] = useState('')
   const [guestsCount, setGuestsCount] = useState<number | ''>('')
   const [notes, setNotes] = useState('')
 
-  // Step 2
+  // Step 1
   const [revenues, setRevenues] = useState<DraftItem[]>([newDraftItem('ricavo')])
   const [costs, setCosts] = useState<DraftItem[]>([newDraftItem('costo')])
   const [catalogModal, setCatalogModal] = useState<{ open: boolean; type: ItemType }>({ open: false, type: 'ricavo' })
 
-  // Step 3
+  // Step 2
   const [scenarios, setScenarios] = useState<ScenarioDraft[]>([
     { name: 'Base', discount_pct: 0, notes: '' },
   ])
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   const allItems = useMemo(() => [...revenues, ...costs], [revenues, costs])
   const summary = useMemo(
     () => computeMargin(allItems as unknown as EventItem[], Number(guestsCount) || 1),
     [allItems, guestsCount]
   )
+
+  // Crea bozza su Supabase (prima volta) o aggiorna (volte successive)
+  async function persistDraft(eventIdOverride?: string): Promise<string | null> {
+    const targetId = eventIdOverride ?? savedEventId
+    const eventPayload = {
+      name: name.trim() || 'Bozza',
+      client_name: clientName || null,
+      client_email: clientEmail || null,
+      client_phone: clientPhone || null,
+      event_date: eventDate || null,
+      location: location || null,
+      guests_count: guestsCount !== '' ? Number(guestsCount) : null,
+      status: 'bozza' as const,
+      notes: notes || null,
+    }
+
+    try {
+      let evId = targetId
+
+      if (!evId) {
+        // Prima volta: INSERT
+        const { data: ev, error } = await supabase
+          .from('events')
+          .insert(eventPayload)
+          .select()
+          .single()
+        if (error || !ev) throw error
+        evId = (ev as Event).id
+        setSavedEventId(evId)
+      } else {
+        // Aggiornamento: UPDATE
+        await supabase.from('events').update(eventPayload).eq('id', evId)
+      }
+
+      // Sincronizza event_items: elimina e reinserisce
+      const validItems = allItems.filter((it) => it.name.trim())
+      await supabase.from('event_items').delete().eq('event_id', evId)
+      if (validItems.length > 0) {
+        await supabase.from('event_items').insert(
+          validItems.map((it) => ({
+            event_id: evId,
+            type: it.type,
+            category: it.category,
+            name: it.name,
+            quantity: it.quantity,
+            unit_price: it.unit_price,
+            vat_rate: it.vat_rate,
+            notes: it.notes,
+          }))
+        )
+      }
+
+      return evId
+    } catch (err) {
+      console.error('persistDraft error', err)
+      return null
+    }
+  }
+
+  // Salvataggio automatico con debounce 1.5s
+  function scheduleAutoSave() {
+    if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current)
+    autoSaveTimer.current = setTimeout(async () => {
+      if (!savedEventId) return // non ancora creato, aspetta il primo "Avanti"
+      setAutoSaving(true)
+      await persistDraft()
+      setAutoSaving(false)
+    }, 1500)
+  }
+
+  // Avanzamento step: al passaggio dallo step 0 → 1 crea la bozza
+  async function goNext() {
+    if (step === 0) {
+      if (!name.trim()) { alert('Il nome evento è obbligatorio'); return }
+      setSaving(true)
+      await persistDraft()
+      setSaving(false)
+    }
+    setStep((s) => s + 1)
+  }
+
+  async function autoAddCost(dishName: string, quantity: number) {
+    const { data: recipeLines } = await supabase
+      .from('recipe_items')
+      .select('quantity, ingredient:ingredients(cost_per_unit)')
+      .eq('dish_name', dishName)
+
+    const foodCost = recipeLines && recipeLines.length > 0
+      ? recipeLines.reduce((sum: number, r: { quantity: number; ingredient: { cost_per_unit: number } | null }) =>
+          sum + r.quantity * (r.ingredient?.cost_per_unit ?? 0), 0)
+      : 0
+
+    setCosts((prev) => {
+      const existing = prev.find((c) => c.name === dishName)
+      if (existing) {
+        return prev.map((c) => c.name === dishName
+          ? { ...c, quantity, unit_price: foodCost }
+          : c)
+      }
+      const newCost: DraftItem = {
+        _key: Math.random().toString(36).slice(2),
+        type: 'costo',
+        category: 'Food',
+        name: dishName,
+        quantity,
+        unit_price: foodCost,
+        vat_rate: 10,
+        notes: foodCost > 0 ? 'Food cost da distinta base' : 'Inserire costo manualmente',
+      }
+      const filtered = prev.filter((c) => c.name.trim() !== '')
+      return [...filtered, newCost]
+    })
+  }
 
   function importCatalog(type: ItemType, items: CatalogItem[]) {
     const mapped: DraftItem[] = items.map((it) => ({
@@ -97,57 +215,27 @@ function NewEventPageInner() {
   }
 
   async function save(status: 'bozza' | 'confermato') {
-    if (!name.trim()) { alert('Il nome evento è obbligatorio'); setStep(0); return }
     setSaving(true)
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const sb = supabase as any
-      const { data: ev, error } = await sb
-        .from('events')
-        .insert({
-          name: name.trim(),
-          client_name: clientName || null,
-          event_date: eventDate || null,
-          location: location || null,
-          guests_count: guestsCount !== '' ? Number(guestsCount) : null,
-          status,
-          notes: notes || null,
-        })
-        .select()
-        .single()
+      const evId = await persistDraft()
+      if (!evId) throw new Error('Salvataggio fallito')
 
-      if (error || !ev) throw error
-
-      const evTyped = ev as Event
-
-      // Insert items
-      const validItems = allItems.filter((it) => it.name.trim())
-      if (validItems.length > 0) {
-        await sb.from('event_items').insert(
-          validItems.map((it) => ({
-            event_id: evTyped.id,
-            type: it.type,
-            category: it.category,
-            name: it.name,
-            quantity: it.quantity,
-            unit_price: it.unit_price,
-            vat_rate: it.vat_rate,
-            notes: it.notes,
-          }))
-        )
+      if (status === 'confermato') {
+        await supabase.from('events').update({ status: 'confermato' }).eq('id', evId)
       }
 
-      // Insert scenarios
+      // Scenari: elimina e reinserisce
+      await supabase.from('margin_scenarios').delete().eq('event_id', evId)
       for (const sc of scenarios) {
-        await sb.from('margin_scenarios').insert({
-          event_id: evTyped.id,
+        await supabase.from('margin_scenarios').insert({
+          event_id: evId,
           name: sc.name,
           discount_pct: sc.discount_pct,
           notes: sc.notes || null,
         })
       }
 
-      router.push(`/events/${evTyped.id}`)
+      router.push(`/events/${evId}`)
     } catch (err) {
       console.error(err)
       alert('Errore durante il salvataggio')
@@ -162,7 +250,17 @@ function NewEventPageInner() {
     <div className="max-w-5xl mx-auto">
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-xl font-bold text-slate-800">Nuovo Evento</h1>
+        <div className="flex items-center justify-between">
+          <h1 className="text-xl font-bold text-slate-800">Nuovo Evento</h1>
+          {autoSaving && (
+            <span className="flex items-center gap-1.5 text-xs text-slate-400">
+              <Save size={12} className="animate-pulse" /> Salvataggio automatico...
+            </span>
+          )}
+          {savedEventId && !autoSaving && (
+            <span className="text-xs text-emerald-500">✓ Bozza salvata</span>
+          )}
+        </div>
         {/* Steps */}
         <div className="flex items-center gap-2 mt-3">
           {STEPS.map((label, i) => (
@@ -170,7 +268,7 @@ function NewEventPageInner() {
               <button
                 onClick={() => i < step && setStep(i)}
                 className={`flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full transition-colors
-                  ${i === step ? 'bg-blue-600 text-white' : i < step ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-400'}`}
+                  ${i === step ? 'bg-blue-600 text-white' : i < step ? 'bg-emerald-100 text-emerald-700 cursor-pointer' : 'bg-slate-100 text-slate-400'}`}
               >
                 {i < step ? <Check size={12} /> : null}
                 {label}
@@ -195,11 +293,19 @@ function NewEventPageInner() {
                 </div>
                 <div>
                   <label className="label">Cliente</label>
-                  <input className="input" placeholder="Nome cliente" value={clientName} onChange={(e) => setClientName(e.target.value)} />
+                  <input className="input" placeholder="Nome e cognome cliente" value={clientName} onChange={(e) => setClientName(e.target.value)} />
                 </div>
                 <div>
                   <label className="label">Data evento</label>
                   <input type="date" className="input" value={eventDate} onChange={(e) => setEventDate(e.target.value)} />
+                </div>
+                <div>
+                  <label className="label">Email cliente</label>
+                  <input type="email" className="input" placeholder="cliente@email.com" value={clientEmail} onChange={(e) => setClientEmail(e.target.value)} />
+                </div>
+                <div>
+                  <label className="label">Telefono cliente</label>
+                  <input type="tel" className="input" placeholder="+39 333 000 0000" value={clientPhone} onChange={(e) => setClientPhone(e.target.value)} />
                 </div>
                 <div>
                   <label className="label">Location</label>
@@ -224,13 +330,23 @@ function NewEventPageInner() {
               <ItemsTable
                 type="ricavo"
                 items={revenues}
-                onChange={setRevenues}
+                onChange={(updated) => {
+                  setRevenues(updated)
+                  updated.forEach((r) => {
+                    if (!r.name.trim()) return
+                    setCosts((prev) => prev.map((c) =>
+                      c.name === r.name ? { ...c, quantity: r.quantity } : c
+                    ))
+                  })
+                  scheduleAutoSave()
+                }}
                 onImportFromCatalog={() => setCatalogModal({ open: true, type: 'ricavo' })}
+                onProductSelected={(n, qty) => autoAddCost(n, qty)}
               />
               <ItemsTable
                 type="costo"
                 items={costs}
-                onChange={setCosts}
+                onChange={(updated) => { setCosts(updated); scheduleAutoSave() }}
                 onImportFromCatalog={() => setCatalogModal({ open: true, type: 'costo' })}
               />
             </div>
@@ -267,7 +383,6 @@ function NewEventPageInner() {
               </div>
               <button className="btn-secondary mt-3 text-xs" onClick={addScenario}>+ Aggiungi scenario</button>
 
-              {/* Comparison table */}
               {scenarios.length > 1 && (
                 <div className="mt-6 overflow-x-auto">
                   <h3 className="text-sm font-semibold text-slate-600 mb-2">Confronto scenari</h3>
@@ -341,10 +456,10 @@ function NewEventPageInner() {
               </button>
               <button
                 className="btn-primary flex items-center gap-2"
-                onClick={() => setStep((s) => s + 1)}
-                disabled={!canNext}
+                onClick={goNext}
+                disabled={!canNext || saving}
               >
-                Avanti <ChevronRight size={16} />
+                {saving ? 'Salvataggio...' : <><span>Avanti</span> <ChevronRight size={16} /></>}
               </button>
             </div>
           )}

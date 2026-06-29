@@ -3,7 +3,7 @@
 import { useEffect, useState, useMemo } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Download, FileSpreadsheet, Plus, Trash2 } from 'lucide-react'
+import { ArrowLeft, Download, FileSpreadsheet, Plus, Trash2, Mail, MessageCircle } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { isSupabaseConfigured } from '@/lib/supabase/config'
 import type { Event, EventItem, MarginScenario, EventStatus, CatalogItem, ItemType } from '@/lib/supabase/types'
@@ -97,12 +97,53 @@ function EventDetailPageInner() {
     setSavingNote(false)
   }
 
+  async function autoAddCost(dishName: string, quantity: number) {
+    const { data: recipeLines } = await sb
+      .from('recipe_items')
+      .select('quantity, ingredient:ingredients(cost_per_unit)')
+      .eq('dish_name', dishName)
+
+    const foodCost = recipeLines && recipeLines.length > 0
+      ? recipeLines.reduce((sum: number, r: { quantity: number; ingredient: { cost_per_unit: number } | null }) =>
+          sum + r.quantity * (r.ingredient?.cost_per_unit ?? 0), 0)
+      : 0
+
+    setItems((prev) => {
+      const existingCost = prev.find((c) => c.type === 'costo' && c.name === dishName)
+      if (existingCost) {
+        return prev.map((c) => c.type === 'costo' && c.name === dishName
+          ? { ...c, quantity, unit_price: foodCost }
+          : c)
+      }
+      const newCost: DraftItem = {
+        _key: Math.random().toString(36).slice(2),
+        type: 'costo',
+        category: 'Food',
+        name: dishName,
+        quantity,
+        unit_price: foodCost,
+        vat_rate: 10,
+        notes: foodCost > 0 ? 'Food cost da distinta base' : 'Inserire costo manualmente',
+      }
+      const filtered = prev.filter((c) => !(c.type === 'costo' && c.name.trim() === ''))
+      return [...filtered, newCost]
+    })
+  }
+
   function handleRevenueChange(updated: DraftItem[]) {
-    setItems([...updated, ...costs])
+    setItems((prev) => {
+      const currentCosts = prev.filter((i) => i.type === 'costo')
+      // Sincronizza quantità costi con ricavi
+      const syncedCosts = currentCosts.map((c) => {
+        const matchingRev = updated.find((r) => r.name === c.name)
+        return matchingRev ? { ...c, quantity: matchingRev.quantity } : c
+      })
+      return [...updated, ...syncedCosts]
+    })
   }
 
   function handleCostChange(updated: DraftItem[]) {
-    setItems([...revenues, ...updated])
+    setItems((prev) => [...prev.filter((i) => i.type === 'ricavo'), ...updated])
   }
 
   function importCatalog(type: ItemType, catalogItems: CatalogItem[]) {
@@ -158,6 +199,26 @@ function EventDetailPageInner() {
     window.open(`/events/${id}/export?format=excel`, '_blank')
   }
 
+  function buildMessageText() {
+    const date = event?.event_date ? new Date(event.event_date).toLocaleDateString('it-IT', { day: '2-digit', month: 'long', year: 'numeric' }) : '—'
+    const guests = event?.guests_count ? `${event.guests_count} ospiti` : ''
+    const location = event?.location ? `\n📍 ${event.location}` : ''
+    const totale = summary.totalRevenue > 0 ? `\n💰 Totale preventivo: ${formatCurrency(summary.totalRevenue)}` : ''
+    return `Gentile ${event?.client_name || 'Cliente'},\n\nle confermiamo i dettagli del suo evento:\n\n📅 ${event?.name}\n🗓 ${date}${guests ? ` · ${guests}` : ''}${location}${totale}\n\nSiamo a disposizione per qualsiasi informazione.\n\nCordiali saluti,\nDoppio Malto`
+  }
+
+  function sendEmail() {
+    const subject = encodeURIComponent(`Preventivo evento: ${event?.name ?? ''}`)
+    const body = encodeURIComponent(buildMessageText())
+    const to = event?.client_email ? encodeURIComponent(event.client_email) : ''
+    window.open(`mailto:${to}?subject=${subject}&body=${body}`)
+  }
+
+  function sendWhatsApp() {
+    const text = encodeURIComponent(buildMessageText())
+    window.open(`https://wa.me/?text=${text}`, '_blank')
+  }
+
   if (loading) return <div className="card text-center text-slate-400 py-16">Caricamento...</div>
   if (!event) return <div className="card text-center text-slate-400 py-16">Evento non trovato</div>
 
@@ -172,12 +233,14 @@ function EventDetailPageInner() {
           <h1 className="text-xl font-bold text-slate-800">{event.name}</h1>
           <div className="flex flex-wrap items-center gap-2 mt-1 text-sm text-slate-500">
             {event.client_name && <span>{event.client_name}</span>}
+            {event.client_email && <a href={`mailto:${event.client_email}`} className="text-blue-500 hover:underline">· {event.client_email}</a>}
+            {event.client_phone && <a href={`tel:${event.client_phone}`} className="hover:underline">· {event.client_phone}</a>}
             {event.event_date && <span>· {event.event_date}</span>}
             {event.location && <span>· {event.location}</span>}
             {event.guests_count && <span>· {event.guests_count} ospiti</span>}
           </div>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 flex-wrap">
           <select
             className="input w-36"
             value={event.status}
@@ -185,6 +248,20 @@ function EventDetailPageInner() {
           >
             {STATUS_OPTIONS.map((s) => <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>)}
           </select>
+          <button
+            onClick={sendEmail}
+            title="Invia email al cliente"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-blue-50 hover:border-blue-300 hover:text-blue-700 text-sm font-medium transition-colors"
+          >
+            <Mail size={15} /> Email
+          </button>
+          <button
+            onClick={sendWhatsApp}
+            title="Invia WhatsApp al cliente"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-emerald-50 hover:border-emerald-300 hover:text-emerald-700 text-sm font-medium transition-colors"
+          >
+            <MessageCircle size={15} /> WhatsApp
+          </button>
           <MarginBadge pct={summary.marginPct} />
         </div>
       </div>
@@ -214,6 +291,7 @@ function EventDetailPageInner() {
                 items={revenues as DraftItem[]}
                 onChange={handleRevenueChange as (items: DraftItem[]) => void}
                 onImportFromCatalog={() => setCatalogModal({ open: true, type: 'ricavo' })}
+                onProductSelected={(n, qty) => autoAddCost(n, qty)}
               />
               <ItemsTable
                 type="costo"

@@ -5,6 +5,8 @@ export interface Event {
   id: string
   name: string
   client_name: string | null
+  client_email: string | null
+  client_phone: string | null
   event_date: string | null
   location: string | null
   guests_count: number | null
@@ -102,6 +104,24 @@ export interface DishAllergen {
   molluschi: boolean
   note_allergeni: string | null
   updated_at: string
+}
+
+export interface Ingredient {
+  id: string
+  name: string
+  unit: string
+  cost_per_unit: number
+  supplier: string | null
+  notes: string | null
+  created_at: string
+}
+
+export interface RecipeItem {
+  id: string
+  dish_name: string
+  ingredient_id: string
+  quantity: number
+  ingredient?: Ingredient
 }
 
 export type Database = {

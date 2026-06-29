@@ -56,8 +56,12 @@ function AllergensPageInner() {
       }))
 
     if (toInsert.length > 0) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (supabase as any).from('dish_allergens').insert(toInsert)
+      const BATCH = 50
+      for (let i = 0; i < toInsert.length; i += BATCH) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { error } = await (supabase as any).from('dish_allergens').insert(toInsert.slice(i, i + BATCH))
+        if (error) { console.error('Import error batch', i, error); break }
+      }
     }
     await fetchRows()
     setImporting(false)
