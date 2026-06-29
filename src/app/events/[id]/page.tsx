@@ -26,9 +26,8 @@ const STATUS_OPTIONS: EventStatus[] = ['bozza', 'confermato', 'concluso', 'annul
 
 function EventDetailPageInner() {
   const { id } = useParams<{ id: string }>()
-  const supabase = createClient()
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const sb = supabase as any
+  const sb = createClient() as any
   const [tab, setTab] = useState<Tab>('preventivo')
   const [event, setEvent] = useState<Event | null>(null)
   const [items, setItems] = useState<DraftItem[]>([])
@@ -71,7 +70,6 @@ function EventDetailPageInner() {
   }
 
   async function saveItems() {
-    // Delete all and re-insert
     await sb.from('event_items').delete().eq('event_id', id)
     const validItems = items.filter((it) => it.name.trim())
     if (validItems.length > 0) {
@@ -133,7 +131,6 @@ function EventDetailPageInner() {
   function handleRevenueChange(updated: DraftItem[]) {
     setItems((prev) => {
       const currentCosts = prev.filter((i) => i.type === 'costo')
-      // Sincronizza quantità costi con ricavi
       const syncedCosts = currentCosts.map((c) => {
         const matchingRev = updated.find((r) => r.name === c.name)
         return matchingRev ? { ...c, quantity: matchingRev.quantity } : c
@@ -157,8 +154,11 @@ function EventDetailPageInner() {
       vat_rate: it.vat_rate,
       notes: it.notes,
     }))
-    if (type === 'ricavo') setItems((prev) => [...mapped, ...prev.filter((i) => i.type !== 'ricavo'), ...prev.filter((i) => i.type === 'costo')])
-    else setItems((prev) => [...prev.filter((i) => i.type === 'ricavo'), ...prev.filter((i) => i.type === 'costo'), ...mapped])
+    if (type === 'ricavo') {
+      setItems((prev) => [...mapped, ...prev.filter((i) => i.type === 'costo')])
+    } else {
+      setItems((prev) => [...prev.filter((i) => i.type === 'ricavo'), ...mapped])
+    }
   }
 
   async function addScenario() {
@@ -191,11 +191,11 @@ function EventDetailPageInner() {
     [scenarios, items, event]
   )
 
-  async function exportPDF() {
+  function exportPDF() {
     window.open(`/events/${id}/export?format=pdf`, '_blank')
   }
 
-  async function exportExcel() {
+  function exportExcel() {
     window.open(`/events/${id}/export?format=excel`, '_blank')
   }
 

@@ -13,7 +13,6 @@ function formatCost(n: number) {
   return n.toLocaleString('it-IT', { style: 'currency', currency: 'EUR', minimumFractionDigits: 2 })
 }
 
-// Calcola costo porzione da quantità + costo per unità
 function calcLineCost(qty: number, unit: string, costPerUnit: number) {
   if (unit === 'g') return (qty / 1000) * costPerUnit
   if (unit === 'ml') return (qty / 1000) * costPerUnit
@@ -62,7 +61,6 @@ function RecipesPageInner() {
     setLoading(false)
   }
 
-  // ── Ingrediente anagrafica ──────────────────────────────────
   async function saveIngredient() {
     if (!newIng.name.trim()) return
     setAddingIng(true)
@@ -92,7 +90,6 @@ function RecipesPageInner() {
     setRecipes((prev) => prev.filter((r) => r.ingredient_id !== id))
   }
 
-  // ── Righe ricetta ───────────────────────────────────────────
   async function addRecipeLine(dishName: string) {
     if (!newLine.ingredient_id || !newLine.quantity) return
     const { data, error } = await sb.from('recipe_items').insert({
@@ -112,7 +109,6 @@ function RecipesPageInner() {
     setRecipes((prev) => prev.filter((r) => r.id !== id))
   }
 
-  // ── Calcoli ─────────────────────────────────────────────────
   function dishCost(dishName: string) {
     return recipes
       .filter((r) => r.dish_name === dishName)
@@ -170,7 +166,6 @@ function RecipesPageInner() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-        {/* ── COLONNA SINISTRA: Anagrafica Ingredienti ── */}
         <div className="lg:col-span-1 space-y-4">
           <div className="card">
             <h2 className="font-semibold text-slate-700 mb-3 flex items-center gap-2 text-sm">
@@ -178,7 +173,6 @@ function RecipesPageInner() {
               Ingredienti ({ingredients.length})
             </h2>
 
-            {/* Aggiungi ingrediente */}
             <div className="space-y-2 mb-4 pb-4 border-b border-slate-100">
               <input
                 className="input text-sm"
@@ -215,13 +209,11 @@ function RecipesPageInner() {
               </button>
             </div>
 
-            {/* Cerca ingrediente */}
             <div className="relative mb-2">
               <Search className="absolute left-3 top-2.5 text-slate-400" size={13} />
               <input className="input pl-8 text-sm" placeholder="Cerca..." value={ingSearch} onChange={(e) => setIngSearch(e.target.value)} />
             </div>
 
-            {/* Lista ingredienti */}
             <div className="space-y-1 max-h-96 overflow-y-auto">
               {filteredIngredients.length === 0 && (
                 <p className="text-center text-slate-400 text-xs py-4">Nessun ingrediente</p>
@@ -254,10 +246,7 @@ function RecipesPageInner() {
           </div>
         </div>
 
-        {/* ── COLONNA DESTRA: Ricette per piatto ── */}
         <div className="lg:col-span-2 space-y-3">
-
-          {/* Cerca piatto + filtro categoria */}
           <div className="flex gap-2">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-2.5 text-slate-400" size={14} />
@@ -279,13 +268,11 @@ function RecipesPageInner() {
 
           <p className="text-xs text-slate-400">{filteredDishes.length} piatti · {dishesWithRecipe.size} con ricetta</p>
 
-          {/* Piatti raggruppati per categoria */}
           {Array.from(groupedDishes.entries()).map(([cat, catDishes]) => {
             const isCatCollapsed = collapsedCats.has(cat)
             const catWithRecipe = catDishes.filter((d) => dishesWithRecipe.has(d.name)).length
             return (
             <div key={cat}>
-              {/* Intestazione categoria – click per collassare */}
               <button
                 className="flex items-center gap-2 mt-4 mb-2 w-full text-left group"
                 onClick={() => setCollapsedCats((prev) => {
@@ -308,7 +295,6 @@ function RecipesPageInner() {
 
                 return (
                   <div key={dish} className={`card mb-2 transition-all ${hasRecipe ? 'border-l-4 border-l-purple-400' : ''}`}>
-                    {/* Header piatto */}
                     <button
                       className="w-full flex items-center justify-between text-left"
                       onClick={() => setExpandedDish(isOpen ? null : dish)}
@@ -333,7 +319,6 @@ function RecipesPageInner() {
                       </div>
                     </button>
 
-                    {/* Dettaglio ingredienti */}
                     {isOpen && (
                       <div className="mt-4 pt-4 border-t border-slate-100">
                         {lines.length > 0 && (

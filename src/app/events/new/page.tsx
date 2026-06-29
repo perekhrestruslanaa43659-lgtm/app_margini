@@ -39,15 +39,13 @@ function newDraftItem(type: ItemType): DraftItem {
 
 function NewEventPageInner() {
   const router = useRouter()
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const supabase = createClient() as any
+  const supabase = createClient() as any // eslint-disable-line @typescript-eslint/no-explicit-any
   const [step, setStep] = useState(0)
   const [saving, setSaving] = useState(false)
   const [autoSaving, setAutoSaving] = useState(false)
   const [savedEventId, setSavedEventId] = useState<string | null>(null)
   const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  // Step 0
   const [name, setName] = useState('')
   const [clientName, setClientName] = useState('')
   const [clientEmail, setClientEmail] = useState('')
@@ -57,12 +55,10 @@ function NewEventPageInner() {
   const [guestsCount, setGuestsCount] = useState<number | ''>('')
   const [notes, setNotes] = useState('')
 
-  // Step 1
   const [revenues, setRevenues] = useState<DraftItem[]>([newDraftItem('ricavo')])
   const [costs, setCosts] = useState<DraftItem[]>([newDraftItem('costo')])
   const [catalogModal, setCatalogModal] = useState<{ open: boolean; type: ItemType }>({ open: false, type: 'ricavo' })
 
-  // Step 2
   const [scenarios, setScenarios] = useState<ScenarioDraft[]>([
     { name: 'Base', discount_pct: 0, notes: '' },
   ])
@@ -73,7 +69,6 @@ function NewEventPageInner() {
     [allItems, guestsCount]
   )
 
-  // Crea bozza su Supabase (prima volta) o aggiorna (volte successive)
   async function persistDraft(eventIdOverride?: string): Promise<string | null> {
     const targetId = eventIdOverride ?? savedEventId
     const eventPayload = {
@@ -92,7 +87,6 @@ function NewEventPageInner() {
       let evId = targetId
 
       if (!evId) {
-        // Prima volta: INSERT
         const { data: ev, error } = await supabase
           .from('events')
           .insert(eventPayload)
@@ -102,11 +96,9 @@ function NewEventPageInner() {
         evId = (ev as Event).id
         setSavedEventId(evId)
       } else {
-        // Aggiornamento: UPDATE
         await supabase.from('events').update(eventPayload).eq('id', evId)
       }
 
-      // Sincronizza event_items: elimina e reinserisce
       const validItems = allItems.filter((it) => it.name.trim())
       await supabase.from('event_items').delete().eq('event_id', evId)
       if (validItems.length > 0) {
@@ -131,18 +123,16 @@ function NewEventPageInner() {
     }
   }
 
-  // Salvataggio automatico con debounce 1.5s
   function scheduleAutoSave() {
     if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current)
     autoSaveTimer.current = setTimeout(async () => {
-      if (!savedEventId) return // non ancora creato, aspetta il primo "Avanti"
+      if (!savedEventId) return
       setAutoSaving(true)
       await persistDraft()
       setAutoSaving(false)
     }, 1500)
   }
 
-  // Avanzamento step: al passaggio dallo step 0 → 1 crea la bozza
   async function goNext() {
     if (step === 0) {
       if (!name.trim()) { alert('Il nome evento è obbligatorio'); return }

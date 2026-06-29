@@ -35,7 +35,6 @@ function newItem(type: ItemType): DraftItem {
   }
 }
 
-// Autocomplete per nome voce con ricerca nel catalogo
 function CatalogAutocomplete({
   value,
   catalogItems,
@@ -112,8 +111,7 @@ export function ItemsTable({ type, items, onChange, onImportFromCatalog, onProdu
   const [catalogItems, setCatalogItems] = useState<CatalogItem[]>([])
 
   useEffect(() => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const sb = createClient() as any
+    const sb = createClient() as any // eslint-disable-line @typescript-eslint/no-explicit-any
     sb.from('catalog_items').select('*').eq('type', type).order('category').order('name')
       .then(({ data }: { data: CatalogItem[] | null }) => setCatalogItems(data ?? []))
   }, [type])
