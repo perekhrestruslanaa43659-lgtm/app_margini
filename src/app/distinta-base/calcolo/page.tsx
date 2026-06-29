@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { Search, X, Plus, RotateCcw, ChefHat } from 'lucide-react'
-import type { Ingredient } from '@/app/api/ingredients/route'
+import type { Ingredient } from '@/lib/catalog'
 
 interface RecipeRow {
   _key: string
