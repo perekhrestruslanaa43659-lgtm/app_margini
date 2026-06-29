@@ -36,6 +36,7 @@ function CatalogPageInner() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState<'' | ItemType>('')
+  const [categoryFilter, setCategoryFilter] = useState<string>('')
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editState, setEditState] = useState<EditState>(emptyEdit())
   const [addMode, setAddMode] = useState(false)
@@ -58,10 +59,13 @@ function CatalogPageInner() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { fetchItems() }, [])
 
+  const availableCategories = Array.from(new Set(items.map((it) => it.category ?? '').filter(Boolean))).sort()
+
   const filtered = items.filter((it) => {
     const q = search.toLowerCase()
     if (q && !it.name.toLowerCase().includes(q) && !(it.category ?? '').toLowerCase().includes(q)) return false
     if (typeFilter && it.type !== typeFilter) return false
+    if (categoryFilter && it.category !== categoryFilter) return false
     return true
   })
 
@@ -181,16 +185,37 @@ function CatalogPageInner() {
       </div>
 
       {/* Filters */}
-      <div className="card mb-4 flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-2.5 text-slate-400" size={15} />
-          <input className="input pl-9" placeholder="Cerca voce..." value={search} onChange={(e) => setSearch(e.target.value)} />
+      <div className="card mb-4 flex flex-col gap-3">
+        <div className="flex flex-col sm:flex-row gap-3">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-2.5 text-slate-400" size={15} />
+            <input className="input pl-9" placeholder="Cerca voce..." value={search} onChange={(e) => setSearch(e.target.value)} />
+          </div>
+          <select className="input sm:w-40" value={typeFilter} onChange={(e) => setTypeFilter(e.target.value as '' | ItemType)}>
+            <option value="">Tutti i tipi</option>
+            <option value="ricavo">Ricavi</option>
+            <option value="costo">Costi</option>
+          </select>
         </div>
-        <select className="input sm:w-40" value={typeFilter} onChange={(e) => setTypeFilter(e.target.value as '' | ItemType)}>
-          <option value="">Tutti i tipi</option>
-          <option value="ricavo">Ricavi</option>
-          <option value="costo">Costi</option>
-        </select>
+        {availableCategories.length > 0 && (
+          <div className="flex flex-wrap gap-1.5">
+            <button
+              onClick={() => setCategoryFilter('')}
+              className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${categoryFilter === '' ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+            >
+              Tutti
+            </button>
+            {availableCategories.map((cat) => (
+              <button
+                key={cat}
+                onClick={() => setCategoryFilter(categoryFilter === cat ? '' : cat)}
+                className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${categoryFilter === cat ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Table */}
