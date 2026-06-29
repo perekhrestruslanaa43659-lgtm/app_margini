@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { Search, X, Plus, RotateCcw, ChefHat } from 'lucide-react'
-import type { Ingredient } from '@/lib/catalog'
+import { CATALOG, type Ingredient } from '@/lib/catalog'
 
 interface RecipeRow {
   _key: string
@@ -20,23 +20,12 @@ function pct(cost: number, price: number) {
 }
 
 export default function CalcoloFoodCost() {
-  const [catalog, setCatalog] = useState<Ingredient[]>([])
-  const [loading, setLoading] = useState(true)
-
   const [dishName, setDishName] = useState('')
   const [rows, setRows] = useState<RecipeRow[]>([])
   const [sellingPrice, setSellingPrice] = useState('')
-
   const [query, setQuery] = useState('')
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const searchRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    fetch('/api/ingredients')
-      .then((r) => r.json())
-      .then((data) => { setCatalog(data); setLoading(false) })
-      .catch(() => setLoading(false))
-  }, [])
 
   useEffect(() => {
     function onClickOutside(e: MouseEvent) {
@@ -49,7 +38,7 @@ export default function CalcoloFoodCost() {
   }, [])
 
   const filtered = query.trim().length >= 1
-    ? catalog.filter((c) => c.prodotto.toLowerCase().includes(query.toLowerCase())).slice(0, 10)
+    ? CATALOG.filter((c) => c.prodotto.toLowerCase().includes(query.toLowerCase())).slice(0, 10)
     : []
 
   function addIngredient(ing: Ingredient) {
@@ -98,10 +87,7 @@ export default function CalcoloFoodCost() {
             <p className="text-xs text-slate-400">Costruisci la ricetta e calcola il costo reale</p>
           </div>
         </div>
-        <button
-          onClick={reset}
-          className="btn-secondary flex items-center gap-1.5 text-xs"
-        >
+        <button onClick={reset} className="btn-secondary flex items-center gap-1.5 text-xs">
           <RotateCcw size={13} /> Reset
         </button>
       </div>
@@ -125,9 +111,8 @@ export default function CalcoloFoodCost() {
             <Search size={14} className="absolute left-3 top-2.5 text-slate-300" />
             <input
               className="input pl-8"
-              placeholder={loading ? 'Caricamento catalogo…' : 'Cerca prodotto dal catalogo…'}
+              placeholder="Cerca prodotto dal catalogo…"
               value={query}
-              disabled={loading}
               onChange={(e) => { setQuery(e.target.value); setDropdownOpen(true) }}
               onFocus={() => query.trim() && setDropdownOpen(true)}
             />
@@ -155,7 +140,7 @@ export default function CalcoloFoodCost() {
             </div>
           )}
 
-          {dropdownOpen && query.trim().length >= 1 && filtered.length === 0 && !loading && (
+          {dropdownOpen && query.trim().length >= 1 && filtered.length === 0 && (
             <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-xl px-4 py-3 text-sm text-slate-400">
               Nessun prodotto trovato per &ldquo;{query}&rdquo;
             </div>
@@ -206,7 +191,7 @@ export default function CalcoloFoodCost() {
                     <td className="py-2.5 px-4">
                       <div className="font-medium text-slate-700">{row.ingredient.prodotto}</div>
                       {missing && (
-                        <div className="text-[10px] text-amber-500 mt-0.5">⚠ Costo non disponibile — inseriscilo manualmente</div>
+                        <div className="text-[10px] text-amber-500 mt-0.5">⚠ Costo non disponibile</div>
                       )}
                     </td>
                     <td className="py-2.5 px-3">
@@ -222,16 +207,10 @@ export default function CalcoloFoodCost() {
                     </td>
                     <td className="py-2.5 px-3 text-center text-slate-500 text-xs">{row.ingredient.ub}</td>
                     <td className="py-2.5 px-3 text-right text-slate-600 text-xs">
-                      {missing
-                        ? <span className="text-amber-400">0,00 €</span>
-                        : fmt(row.ingredient.pvMedio)
-                      }
+                      {missing ? <span className="text-amber-400">0,00 €</span> : fmt(row.ingredient.pvMedio)}
                     </td>
                     <td className="py-2.5 px-3 text-right font-medium text-slate-800">
-                      {missing
-                        ? <span className="text-amber-400">0,00 €</span>
-                        : fmt(rowTotal)
-                      }
+                      {missing ? <span className="text-amber-400">0,00 €</span> : fmt(rowTotal)}
                     </td>
                     <td className="py-2.5 px-3">
                       <button
@@ -249,27 +228,20 @@ export default function CalcoloFoodCost() {
           </table>
         </div>
 
-        {/* Footer */}
         {rows.length > 0 && (
           <div className="border-t border-slate-100 px-6 py-4 space-y-4">
-            {/* Missing cost warning */}
             {rows.some((r) => r.ingredient.pvMedio === 0) && (
               <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-xs text-amber-700">
                 <span className="text-base leading-none">⚠</span>
-                <span>
-                  Alcuni ingredienti hanno costo a 0 — il totale food cost potrebbe essere incompleto.
-                  Aggiorna i prezzi nel catalogo per un calcolo preciso.
-                </span>
+                <span>Alcuni ingredienti hanno costo a 0 — il totale food cost potrebbe essere incompleto.</span>
               </div>
             )}
 
-            {/* Total */}
             <div className="flex items-center justify-between">
               <span className="text-sm font-semibold text-slate-700">Totale Food Cost</span>
               <span className="text-xl font-bold text-slate-800">{fmt(totalCost)}</span>
             </div>
 
-            {/* Food cost % */}
             <div className="flex items-center gap-3">
               <div className="flex-1">
                 <label className="label">Prezzo di vendita (per calcolo food cost %)</label>
