@@ -41,9 +41,9 @@ function EventDetailPageInner() {
   async function fetchAll() {
     setLoading(true)
     const [{ data: ev }, { data: it }, { data: sc }] = await Promise.all([
-      supabase.from('events').select('*').eq('id', id).single(),
-      supabase.from('event_items').select('*').eq('event_id', id),
-      supabase.from('margin_scenarios').select('*').eq('event_id', id),
+      sb.from('events').select('*').eq('id', id).single(),
+      sb.from('event_items').select('*').eq('event_id', id),
+      sb.from('margin_scenarios').select('*').eq('event_id', id),
     ])
     const evTyped = ev as unknown as Event | null
     const itTyped = (it ?? []) as unknown as EventItem[]
