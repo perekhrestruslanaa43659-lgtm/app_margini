@@ -43,6 +43,9 @@ function RecipesPageInner() {
   const [addingLine, setAddingLine] = useState<string | null>(null)
   const [newLine, setNewLine] = useState({ ingredient_id: '', quantity: '' })
 
+  // Valori stringa temporanei per i campi costo (evita troncamento durante digitazione)
+  const [costInputs, setCostInputs] = useState<Record<string, string>>({})
+
   useEffect(() => {
     fetchAll()
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -228,10 +231,16 @@ function RecipesPageInner() {
                     type="text"
                     inputMode="decimal"
                     className="input text-xs text-right w-20 py-1"
-                    value={ing.cost_per_unit === 0 ? '' : String(ing.cost_per_unit)}
+                    value={costInputs[ing.id] !== undefined ? costInputs[ing.id] : (ing.cost_per_unit === 0 ? '' : String(ing.cost_per_unit))}
                     placeholder="0"
-                    onChange={(e) => setIngredients((prev) => prev.map((i) => i.id === ing.id ? { ...i, cost_per_unit: parseFloat(e.target.value.replace(',', '.')) || 0 } : i))}
-                    onBlur={(e) => updateIngCost(ing.id, e.target.value)}
+                    onChange={(e) => setCostInputs((prev) => ({ ...prev, [ing.id]: e.target.value }))}
+                    onBlur={(e) => {
+                      const val = e.target.value.replace(',', '.')
+                      const num = parseFloat(val) || 0
+                      setIngredients((prev) => prev.map((i) => i.id === ing.id ? { ...i, cost_per_unit: num } : i))
+                      setCostInputs((prev) => { const n = { ...prev }; delete n[ing.id]; return n })
+                      updateIngCost(ing.id, val)
+                    }}
                     title={`€ per ${ing.unit}`}
                   />
                   <span className="text-[10px] text-slate-400">/{ing.unit}</span>
