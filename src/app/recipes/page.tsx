@@ -338,7 +338,7 @@ function RecipesPageInner() {
                                 return (
                                   <tr key={line.id} className="group">
                                     <td className="py-1.5 text-slate-700 font-medium">{ing?.name ?? '—'}</td>
-                                    <td className="py-1.5 text-right text-slate-500">{line.quantity} {ing?.unit}</td>
+                                    <td className="py-1.5 text-right text-slate-500">{parseFloat(String(line.quantity))} {ing?.unit}</td>
                                     <td className="py-1.5 text-right text-slate-600">{formatCost(lineCost)}</td>
                                     <td className="py-1.5 text-right">
                                       <button
