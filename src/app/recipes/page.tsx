@@ -225,11 +225,12 @@ function RecipesPageInner() {
                     <p className="text-[10px] text-slate-400">{ing.unit}</p>
                   </div>
                   <input
-                    type="number"
-                    step="0.01"
+                    type="text"
+                    inputMode="decimal"
                     className="input text-xs text-right w-20 py-1"
-                    value={ing.cost_per_unit}
-                    onChange={(e) => setIngredients((prev) => prev.map((i) => i.id === ing.id ? { ...i, cost_per_unit: parseFloat(e.target.value) || 0 } : i))}
+                    value={ing.cost_per_unit === 0 ? '' : String(ing.cost_per_unit)}
+                    placeholder="0"
+                    onChange={(e) => setIngredients((prev) => prev.map((i) => i.id === ing.id ? { ...i, cost_per_unit: parseFloat(e.target.value.replace(',', '.')) || 0 } : i))}
                     onBlur={(e) => updateIngCost(ing.id, e.target.value)}
                     title={`€ per ${ing.unit}`}
                   />
