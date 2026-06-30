@@ -150,6 +150,14 @@ function RecipesPageInner() {
     return map
   }, [filteredDishes])
 
+  // Chiudi tutte le categorie al caricamento iniziale
+  useEffect(() => {
+    if (dishes.length > 0) {
+      const cats = new Set(dishes.map((d) => d.category ?? '—'))
+      setCollapsedCats(cats)
+    }
+  }, [dishes])
+
   const filteredIngredients = useMemo(() =>
     ingredients.filter((i) => i.name.toLowerCase().includes(ingSearch.toLowerCase())),
     [ingredients, ingSearch]
