@@ -46,6 +46,10 @@ function RecipesPageInner() {
   // Valori stringa temporanei per i campi costo (evita troncamento durante digitazione)
   const [costInputs, setCostInputs] = useState<Record<string, string>>({})
 
+  // Ricerca ingrediente nel form aggiunta riga ricetta
+  const [ingLineSearch, setIngLineSearch] = useState('')
+  const [ingLineDropdown, setIngLineDropdown] = useState(false)
+
   useEffect(() => {
     fetchAll()
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -372,31 +376,59 @@ function RecipesPageInner() {
 
                         {addingLine === dish ? (
                           <div className="flex gap-2 items-center mt-2">
-                            <select
-                              className="input text-xs flex-1"
-                              value={newLine.ingredient_id}
-                              onChange={(e) => setNewLine((p) => ({ ...p, ingredient_id: e.target.value }))}
-                            >
-                              <option value="">Seleziona ingrediente...</option>
-                              {ingredients.map((i) => (
-                                <option key={i.id} value={i.id}>
-                                  {i.name} ({i.unit}) — {formatCost(i.cost_per_unit)}/{i.unit}
-                                </option>
-                              ))}
-                            </select>
+                            <div className="relative flex-1">
+                              <input
+                                type="text"
+                                className="input text-xs w-full"
+                                placeholder="Cerca ingrediente..."
+                                value={ingLineSearch}
+                                onChange={(e) => {
+                                  setIngLineSearch(e.target.value)
+                                  setIngLineDropdown(true)
+                                  if (!e.target.value) setNewLine((p) => ({ ...p, ingredient_id: '' }))
+                                }}
+                                onFocus={() => setIngLineDropdown(true)}
+                                onBlur={() => setTimeout(() => setIngLineDropdown(false), 150)}
+                              />
+                              {ingLineDropdown && ingLineSearch.trim().length >= 1 && (
+                                <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-xl max-h-48 overflow-y-auto">
+                                  {ingredients
+                                    .filter((i) => i.name.toLowerCase().includes(ingLineSearch.toLowerCase()))
+                                    .slice(0, 10)
+                                    .map((i) => (
+                                      <button
+                                        key={i.id}
+                                        type="button"
+                                        className="w-full text-left px-3 py-2 hover:bg-blue-50 text-xs border-b border-slate-50 last:border-0 flex justify-between gap-2"
+                                        onMouseDown={() => {
+                                          setNewLine((p) => ({ ...p, ingredient_id: i.id }))
+                                          setIngLineSearch(i.name)
+                                          setIngLineDropdown(false)
+                                        }}
+                                      >
+                                        <span className="font-medium text-slate-700">{i.name}</span>
+                                        <span className="text-slate-400 shrink-0">{i.unit}</span>
+                                      </button>
+                                    ))}
+                                  {ingredients.filter((i) => i.name.toLowerCase().includes(ingLineSearch.toLowerCase())).length === 0 && (
+                                    <div className="px-3 py-2 text-xs text-slate-400">Nessun risultato</div>
+                                  )}
+                                </div>
+                              )}
+                            </div>
                             <input
-                              type="number"
-                              step="0.01"
+                              type="text"
+                              inputMode="decimal"
                               className="input text-xs w-24 text-right"
                               placeholder="Quantità"
                               value={newLine.quantity}
                               onChange={(e) => setNewLine((p) => ({ ...p, quantity: e.target.value }))}
                               onKeyDown={(e) => e.key === 'Enter' && addRecipeLine(dish)}
                             />
-                            <button className="btn-primary text-xs px-3 py-1.5" onClick={() => addRecipeLine(dish)}>
+                            <button className="btn-primary text-xs px-3 py-1.5" onClick={() => { addRecipeLine(dish); setIngLineSearch('') }}>
                               Aggiungi
                             </button>
-                            <button className="text-slate-400 hover:text-slate-600 text-xs" onClick={() => setAddingLine(null)}>
+                            <button className="text-slate-400 hover:text-slate-600 text-xs" onClick={() => { setAddingLine(null); setIngLineSearch('') }}>
                               Annulla
                             </button>
                           </div>
