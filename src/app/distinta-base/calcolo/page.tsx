@@ -48,6 +48,8 @@ export default function CalcoloFoodCost() {
   const [recipeStatus, setRecipeStatus] = useState<'idle' | 'loaded' | 'not_found'>('idle')
   const [ingredients, setIngredients] = useState<DBIngredient[]>([])
   const [loadingIngredients, setLoadingIngredients] = useState(true)
+  const [qtyInputs, setQtyInputs] = useState<Record<string, string>>({})
+  const [costInputs, setCostInputs] = useState<Record<string, string>>({})
   const searchRef = useRef<HTMLDivElement>(null)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = createClient() as any
@@ -417,11 +419,17 @@ export default function CalcoloFoodCost() {
                         </td>
                         <td className="py-1.5 px-2">
                           <input
-                            type="number" min="0" step="0.001"
+                            type="text"
+                            inputMode="decimal"
                             className="input py-0.5 text-xs text-center w-14 mx-auto block"
-                            value={row.quantity === 0 ? '' : row.quantity}
+                            value={qtyInputs[row._key] !== undefined ? qtyInputs[row._key] : (row.quantity === 0 ? '' : String(row.quantity))}
                             placeholder="0"
-                            onChange={(e) => updateRow(row._key, 'quantity', parseFloat(e.target.value) || 0)}
+                            onChange={(e) => setQtyInputs((p) => ({ ...p, [row._key]: e.target.value }))}
+                            onBlur={(e) => {
+                              const val = parseFloat(e.target.value.replace(',', '.')) || 0
+                              updateRow(row._key, 'quantity', val)
+                              setQtyInputs((p) => { const n = { ...p }; delete n[row._key]; return n })
+                            }}
                           />
                         </td>
                         <td className="py-1.5 px-2">
@@ -443,11 +451,17 @@ export default function CalcoloFoodCost() {
                         </td>
                         <td className="py-1.5 px-2">
                           <input
-                            type="number" min="0" step="0.01"
+                            type="text"
+                            inputMode="decimal"
                             className={`input py-0.5 text-xs text-right ${missing ? 'border-amber-300 bg-amber-50' : ''}`}
-                            value={row.cost_per_unit === 0 ? '' : row.cost_per_unit}
+                            value={costInputs[row._key] !== undefined ? costInputs[row._key] : (row.cost_per_unit === 0 ? '' : String(row.cost_per_unit))}
                             placeholder="0,00"
-                            onChange={(e) => updateRow(row._key, 'cost_per_unit', parseFloat(e.target.value) || 0)}
+                            onChange={(e) => setCostInputs((p) => ({ ...p, [row._key]: e.target.value }))}
+                            onBlur={(e) => {
+                              const val = parseFloat(e.target.value.replace(',', '.')) || 0
+                              updateRow(row._key, 'cost_per_unit', val)
+                              setCostInputs((p) => { const n = { ...p }; delete n[row._key]; return n })
+                            }}
                           />
                         </td>
                         <td className="py-1.5 px-2 text-right text-xs font-semibold text-slate-800">
