@@ -3,7 +3,7 @@
 import { useEffect, useState, useMemo } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Download, FileSpreadsheet, Plus, Trash2, Mail, MessageCircle, CalendarDays } from 'lucide-react'
+import { ArrowLeft, Download, FileSpreadsheet, Plus, Trash2, Mail, MessageCircle, CalendarDays, Zap } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { isSupabaseConfigured } from '@/lib/supabase/config'
 import type { Event, EventItem, MarginScenario, EventStatus, CatalogItem, ItemType } from '@/lib/supabase/types'
@@ -37,6 +37,7 @@ function EventDetailPageInner() {
   const [loading, setLoading] = useState(true)
   const [catalogModal, setCatalogModal] = useState<{ open: boolean; type: ItemType }>({ open: false, type: 'ricavo' })
   const [savingScenario, setSavingScenario] = useState(false)
+  const [calcingCosts, setCalcingCosts] = useState(false)
 
   async function fetchAll() {
     setLoading(true)
@@ -126,6 +127,36 @@ function EventDetailPageInner() {
       const filtered = prev.filter((c) => !(c.type === 'costo' && c.name.trim() === ''))
       return [...filtered, newCost]
     })
+  }
+
+  async function calcAllFoodCosts() {
+    const revs = items.filter((i) => i.type === 'ricavo' && i.name.trim())
+    if (revs.length === 0) return
+    setCalcingCosts(true)
+    const dishNames = revs.map((r) => r.name)
+    const { data } = await sb
+      .from('recipe_items')
+      .select('dish_name, quantity, ingredient:ingredients(cost_per_unit)')
+      .in('dish_name', dishNames)
+
+    const costByDish: Record<string, number> = {}
+    for (const r of (data ?? []) as { dish_name: string; quantity: number; ingredient: { cost_per_unit: number } | null }[]) {
+      costByDish[r.dish_name] = (costByDish[r.dish_name] ?? 0) + r.quantity * (r.ingredient?.cost_per_unit ?? 0)
+    }
+
+    const newCosts: DraftItem[] = revs.map((r) => ({
+      _key: Math.random().toString(36).slice(2),
+      type: 'costo' as ItemType,
+      category: 'Food',
+      name: r.name,
+      quantity: r.quantity,
+      unit_price: costByDish[r.name] ?? 0,
+      vat_rate: 10,
+      notes: costByDish[r.name] ? 'Food cost da distinta base' : 'Inserire costo manualmente',
+    }))
+
+    setItems((prev) => [...prev.filter((i) => i.type === 'ricavo'), ...newCosts])
+    setCalcingCosts(false)
   }
 
   function handleRevenueChange(updated: DraftItem[]) {
@@ -298,6 +329,24 @@ function EventDetailPageInner() {
                 onImportFromCatalog={() => setCatalogModal({ open: true, type: 'ricavo' })}
                 onProductSelected={(n, qty) => autoAddCost(n, qty)}
               />
+              {/* Auto food cost button */}
+              {revenues.some((r) => r.name.trim()) && (
+                <div className="mb-3 flex items-center gap-3 bg-blue-50 border border-blue-200 rounded-xl px-4 py-2.5">
+                  <div className="flex-1">
+                    <p className="text-xs font-medium text-blue-700">Calcola food cost dalla distinta base</p>
+                    <p className="text-[11px] text-blue-500 mt-0.5">Sostituisce i costi attuali con quelli calcolati dagli ingredienti</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={calcAllFoodCosts}
+                    disabled={calcingCosts}
+                    className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium px-3 py-1.5 rounded-lg transition-colors shrink-0"
+                  >
+                    <Zap size={13} />
+                    {calcingCosts ? 'Calcolo...' : 'Calcola costi'}
+                  </button>
+                </div>
+              )}
               <ItemsTable
                 type="costo"
                 items={costs as DraftItem[]}
