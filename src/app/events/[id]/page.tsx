@@ -12,6 +12,7 @@ import { MarginBadge } from '@/components/ui/MarginBadge'
 import { MarginSummaryPanel } from '@/components/events/MarginSummaryPanel'
 import { ItemsTable } from '@/components/events/ItemsTable'
 import { CatalogImportModal } from '@/components/events/CatalogImportModal'
+import { EmailModal } from '@/components/events/EmailModal'
 import { SetupBanner } from '@/components/ui/SetupBanner'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 
@@ -38,6 +39,7 @@ function EventDetailPageInner() {
   const [catalogModal, setCatalogModal] = useState<{ open: boolean; type: ItemType }>({ open: false, type: 'ricavo' })
   const [savingScenario, setSavingScenario] = useState(false)
   const [calcingCosts, setCalcingCosts] = useState(false)
+  const [emailModalOpen, setEmailModalOpen] = useState(false)
 
   async function fetchAll() {
     setLoading(true)
@@ -239,10 +241,7 @@ function EventDetailPageInner() {
   }
 
   function sendEmail() {
-    const subject = encodeURIComponent(`Preventivo evento: ${event?.name ?? ''}`)
-    const body = encodeURIComponent(buildMessageText())
-    const to = event?.client_email ? encodeURIComponent(event.client_email) : ''
-    window.open(`mailto:${to}?subject=${subject}&body=${body}`)
+    setEmailModalOpen(true)
   }
 
   function sendWhatsApp() {
@@ -519,6 +518,18 @@ function EventDetailPageInner() {
         type={catalogModal.type}
         onImport={(items) => importCatalog(catalogModal.type, items)}
         onClose={() => setCatalogModal((p) => ({ ...p, open: false }))}
+      />
+
+      <EmailModal
+        open={emailModalOpen}
+        onClose={() => setEmailModalOpen(false)}
+        eventName={event.name}
+        clientName={event.client_name ?? null}
+        clientEmail={event.client_email ?? null}
+        eventDate={event.event_date ?? null}
+        location={event.location ?? null}
+        guestsCount={event.guests_count ?? null}
+        totalRevenue={summary.totalRevenue}
       />
     </div>
   )
