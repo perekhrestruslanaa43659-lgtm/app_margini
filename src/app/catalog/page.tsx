@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useRef } from 'react'
-import { Plus, Trash2, Upload, Search, Edit2, Check, X } from 'lucide-react'
+import { Plus, Trash2, Upload, Search, Edit2, Check, X, BookOpen } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { isSupabaseConfigured } from '@/lib/supabase/config'
 import type { CatalogItem, ItemType } from '@/lib/supabase/types'
@@ -164,9 +164,14 @@ function CatalogPageInner() {
     <div className="max-w-5xl mx-auto">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-        <div>
-          <h1 className="text-xl font-bold text-slate-800">Catalogo Voci</h1>
-          <p className="text-sm text-slate-500">{items.length} voci in libreria</p>
+        <div className="flex items-center gap-3">
+          <div className="w-11 h-11 bg-amber-100 rounded-xl flex items-center justify-center shrink-0">
+            <BookOpen className="text-amber-600" size={20} />
+          </div>
+          <div>
+            <h1 className="text-xl font-bold text-slate-800">Catalogo Voci</h1>
+            <p className="text-sm text-slate-500">{items.length} voci in libreria</p>
+          </div>
         </div>
         <div className="flex gap-2">
           <button className="btn-secondary flex items-center gap-2" onClick={() => fileRef.current?.click()}>
@@ -180,8 +185,8 @@ function CatalogPageInner() {
       </div>
 
       {/* CSV format hint */}
-      <div className="card mb-4 text-xs text-slate-500 py-2 px-4">
-        Formato CSV: <code className="bg-slate-100 px-1.5 py-0.5 rounded">type,category,name,unit_price,vat_rate,notes</code>
+      <div className="mb-4 text-xs text-slate-400 bg-slate-50 border border-slate-200 rounded-xl py-2 px-4">
+        Formato CSV: <code className="bg-white border border-slate-200 px-1.5 py-0.5 rounded-lg text-slate-600">type,category,name,unit_price,vat_rate,notes</code>
       </div>
 
       {/* Filters */}
@@ -311,7 +316,7 @@ function CatalogPageInner() {
                     </td>
                     <td className="px-4 py-3 text-slate-500">{it.category ?? '—'}</td>
                     <td className="px-4 py-3">
-                      <span className={`badge ${it.type === 'ricavo' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${it.type === 'ricavo' ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200' : 'bg-red-50 text-red-700 ring-1 ring-red-200'}`}>
                         {it.type === 'ricavo' ? 'Ricavo' : 'Costo'}
                       </span>
                     </td>

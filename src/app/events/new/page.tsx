@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { ChevronRight, ChevronLeft, Check, Save } from 'lucide-react'
+import { ChevronRight, ChevronLeft, Check, Save, CalendarPlus } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { isSupabaseConfigured } from '@/lib/supabase/config'
 import type { Event, EventItem, CatalogItem, ItemType } from '@/lib/supabase/types'
@@ -241,7 +241,12 @@ function NewEventPageInner() {
       {/* Header */}
       <div className="mb-6">
         <div className="flex items-center justify-between">
-          <h1 className="text-xl font-bold text-slate-800">Nuovo Evento</h1>
+          <div className="flex items-center gap-3">
+            <div className="w-11 h-11 bg-emerald-100 rounded-xl flex items-center justify-center shrink-0">
+              <CalendarPlus className="text-emerald-600" size={20} />
+            </div>
+            <h1 className="text-xl font-bold text-slate-800">Nuovo Evento</h1>
+          </div>
           {autoSaving && (
             <span className="flex items-center gap-1.5 text-xs text-slate-400">
               <Save size={12} className="animate-pulse" /> Salvataggio automatico...

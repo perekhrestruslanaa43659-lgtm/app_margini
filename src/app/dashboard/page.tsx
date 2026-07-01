@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useMemo } from 'react'
-import { CalendarDays, TrendingUp, Euro, CheckCircle } from 'lucide-react'
+import { CalendarDays, TrendingUp, Euro, CheckCircle, LayoutDashboard } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { isSupabaseConfigured } from '@/lib/supabase/config'
 import type { Event, EventItem } from '@/lib/supabase/types'
@@ -126,9 +126,14 @@ function DashboardPageInner() {
     <div className="max-w-6xl mx-auto">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-        <div>
-          <h1 className="text-xl font-bold text-slate-800">Dashboard Margini</h1>
-          <p className="text-sm text-slate-500">Panoramica globale delle performance</p>
+        <div className="flex items-center gap-3">
+          <div className="w-11 h-11 bg-violet-100 rounded-xl flex items-center justify-center shrink-0">
+            <LayoutDashboard className="text-violet-600" size={20} />
+          </div>
+          <div>
+            <h1 className="text-xl font-bold text-slate-800">Dashboard Margini</h1>
+            <p className="text-sm text-slate-500">Panoramica globale delle performance</p>
+          </div>
         </div>
         <div className="flex gap-1 bg-white rounded-xl p-1 border border-slate-100">
           {(['month', 'quarter', 'year'] as PeriodFilter[]).map((p) => (

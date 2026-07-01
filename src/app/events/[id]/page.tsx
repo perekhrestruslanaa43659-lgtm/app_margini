@@ -3,7 +3,7 @@
 import { useEffect, useState, useMemo } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Download, FileSpreadsheet, Plus, Trash2, Mail, MessageCircle } from 'lucide-react'
+import { ArrowLeft, Download, FileSpreadsheet, Plus, Trash2, Mail, MessageCircle, CalendarDays } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { isSupabaseConfigured } from '@/lib/supabase/config'
 import type { Event, EventItem, MarginScenario, EventStatus, CatalogItem, ItemType } from '@/lib/supabase/types'
@@ -227,10 +227,15 @@ function EventDetailPageInner() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-start gap-4 mb-6">
         <div className="flex-1">
-          <Link href="/events" className="text-sm text-slate-400 hover:text-slate-600 flex items-center gap-1 mb-2">
+          <Link href="/events" className="text-sm text-slate-400 hover:text-slate-600 flex items-center gap-1 mb-3">
             <ArrowLeft size={14} /> Lista eventi
           </Link>
-          <h1 className="text-xl font-bold text-slate-800">{event.name}</h1>
+          <div className="flex items-center gap-3 mb-1">
+            <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center shrink-0">
+              <CalendarDays className="text-blue-600" size={18} />
+            </div>
+            <h1 className="text-xl font-bold text-slate-800">{event.name}</h1>
+          </div>
           <div className="flex flex-wrap items-center gap-2 mt-1 text-sm text-slate-500">
             {event.client_name && <span>{event.client_name}</span>}
             {event.client_email && <a href={`mailto:${event.client_email}`} className="text-blue-500 hover:underline">· {event.client_email}</a>}
