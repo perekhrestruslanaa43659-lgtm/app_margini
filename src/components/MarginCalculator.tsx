@@ -20,11 +20,11 @@ function newRow(type: ItemType): Row {
 
 export function MarginCalculator() {
   const [rows, setRows] = useState<Row[]>([newRow('ricavo'), newRow('costo')])
-  const [guests, setGuests] = useState<number>(1)
+  const [guests, setGuests] = useState<number | ''>(1)
   const [discount, setDiscount] = useState<number>(0)
 
   const summary = useMemo(
-    () => computeMargin(rows as unknown as EventItem[], guests, discount),
+    () => computeMargin(rows as unknown as EventItem[], guests || 1, discount),
     [rows, guests, discount]
   )
 
@@ -113,7 +113,7 @@ export function MarginCalculator() {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t border-slate-100">
           <div>
             <label className="label">N° ospiti</label>
-            <input type="number" min="1" className="input" value={guests} onChange={(e) => setGuests(parseInt(e.target.value) || 1)} />
+            <input type="number" min="1" className="input" value={guests} onChange={(e) => setGuests(e.target.value === '' ? '' : parseInt(e.target.value) || 1)} />
           </div>
           <div>
             <label className="label flex items-center justify-between">
