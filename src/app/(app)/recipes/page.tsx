@@ -42,6 +42,10 @@ function RecipesPageInner() {
   const [newLine, setNewLine] = useState({ ingredient_id: '', quantity: '' })
 
   const [costInputs, setCostInputs] = useState<Record<string, string>>({})
+  const [qtyInputs, setQtyInputs] = useState<Record<string, string>>({})
+  const [unitInputs, setUnitInputs] = useState<Record<string, string>>({})
+  const [editIngSearch, setEditIngSearch] = useState<Record<string, string>>({})
+  const [editIngDropdown, setEditIngDropdown] = useState<string | null>(null)
 
   const [ingLineSearch, setIngLineSearch] = useState('')
   const [ingLineDropdown, setIngLineDropdown] = useState(false)
@@ -112,11 +116,42 @@ function RecipesPageInner() {
     setRecipes((prev) => prev.filter((r) => r.id !== id))
   }
 
+  async function updateRecipeQty(id: string, raw: string) {
+    const val = parseFloat(raw.replace(',', '.'))
+    if (isNaN(val) || val <= 0) return
+    await sb.from('recipe_items').update({ quantity: val }).eq('id', id)
+    setRecipes((prev) => prev.map((r) => r.id === id ? { ...r, quantity: val } : r))
+  }
+
+  async function updateRecipeIngredient(lineId: string, newIngredientId: string) {
+    const ing = ingredients.find((i) => i.id === newIngredientId)
+    if (!ing) return
+    const { data, error } = await sb.from('recipe_items')
+      .update({ ingredient_id: newIngredientId })
+      .eq('id', lineId)
+      .select('*, ingredient:ingredients(*)')
+      .single()
+    if (!error && data) {
+      setRecipes((prev) => prev.map((r) => r.id === lineId ? (data as RecipeItem) : r))
+    }
+  }
+
+  async function updateRecipeUnit(lineId: string, newUnit: string, ingredientId: string) {
+    await sb.from('ingredients').update({ unit: newUnit }).eq('id', ingredientId)
+    setIngredients((prev) => prev.map((i) => i.id === ingredientId ? { ...i, unit: newUnit } : i))
+    setRecipes((prev) => prev.map((r) => {
+      if (r.id !== lineId) return r
+      const ing = r.ingredient as Ingredient | undefined
+      if (!ing) return r
+      return { ...r, ingredient: { ...ing, unit: newUnit } }
+    }))
+  }
+
   function dishCost(dishName: string) {
     return recipes
       .filter((r) => r.dish_name === dishName)
       .reduce((sum, r) => {
-        const ing = r.ingredient as Ingredient | undefined
+        const ing = ingredients.find((i) => i.id === r.ingredient_id) ?? (r.ingredient as Ingredient | undefined)
         if (!ing) return sum
         return sum + calcLineCost(r.quantity, ing.unit, ing.cost_per_unit)
       }, 0)
@@ -289,6 +324,7 @@ function RecipesPageInner() {
                       value={costInputs[ing.id] !== undefined ? costInputs[ing.id] : (ing.cost_per_unit === 0 ? '' : String(ing.cost_per_unit))}
                       placeholder="0"
                       onChange={(e) => setCostInputs((prev) => ({ ...prev, [ing.id]: e.target.value }))}
+                      onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur() }}
                       onBlur={(e) => {
                         const val = e.target.value.replace(',', '.')
                         const num = parseFloat(val) || 0
@@ -430,14 +466,87 @@ function RecipesPageInner() {
                                     </thead>
                                     <tbody className="divide-y divide-slate-50">
                                       {lines.map((line) => {
-                                        const ing = line.ingredient as Ingredient | undefined
+                                        const ing = ingredients.find((i) => i.id === line.ingredient_id) ?? (line.ingredient as Ingredient | undefined)
                                         const lineCost = ing ? calcLineCost(line.quantity, ing.unit, ing.cost_per_unit) : 0
+                                        const isEditingIng = editIngDropdown === line.id
+                                        const currentIngSearch = editIngSearch[line.id] !== undefined ? editIngSearch[line.id] : (ing?.name ?? '')
                                         return (
                                           <tr key={line.id} className="group">
-                                            <td className="py-2 text-slate-700 font-medium">{ing?.name ?? '—'}</td>
-                                            <td className="py-2 text-right text-slate-500">
-                                              {parseFloat(String(line.quantity))}
-                                              <span className="ml-1 text-[10px] bg-slate-100 text-slate-400 px-1 py-0.5 rounded">{ing?.unit}</span>
+                                            {/* Colonna ingrediente — dropdown search */}
+                                            <td className="py-2 pr-2">
+                                              <div className="relative">
+                                                <input
+                                                  type="text"
+                                                  className="w-full h-7 px-2 rounded-lg border border-slate-200 text-xs text-slate-700 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
+                                                  value={currentIngSearch}
+                                                  onChange={(e) => {
+                                                    setEditIngSearch((prev) => ({ ...prev, [line.id]: e.target.value }))
+                                                    setEditIngDropdown(line.id)
+                                                  }}
+                                                  onFocus={() => {
+                                                    setEditIngSearch((prev) => ({ ...prev, [line.id]: ing?.name ?? '' }))
+                                                    setEditIngDropdown(line.id)
+                                                  }}
+                                                  onBlur={() => setTimeout(() => {
+                                                    setEditIngDropdown(null)
+                                                    setEditIngSearch((prev) => { const n = { ...prev }; delete n[line.id]; return n })
+                                                  }, 150)}
+                                                />
+                                                {isEditingIng && currentIngSearch.trim().length >= 1 && (
+                                                  <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-xl max-h-48 overflow-y-auto">
+                                                    {ingredients
+                                                      .filter((i) => i.name.toLowerCase().includes(currentIngSearch.toLowerCase()))
+                                                      .slice(0, 10)
+                                                      .map((i) => (
+                                                        <button
+                                                          key={i.id}
+                                                          type="button"
+                                                          className="w-full text-left px-3 py-2 hover:bg-blue-50 text-xs border-b border-slate-50 last:border-0 flex justify-between gap-2"
+                                                          onMouseDown={() => {
+                                                            updateRecipeIngredient(line.id, i.id)
+                                                            setEditIngSearch((prev) => { const n = { ...prev }; delete n[line.id]; return n })
+                                                            setEditIngDropdown(null)
+                                                          }}
+                                                        >
+                                                          <span className="font-medium text-slate-700">{i.name}</span>
+                                                          <span className="text-slate-400 shrink-0 bg-slate-100 px-1.5 py-0.5 rounded text-[10px]">{i.unit}</span>
+                                                        </button>
+                                                      ))}
+                                                    {ingredients.filter((i) => i.name.toLowerCase().includes(currentIngSearch.toLowerCase())).length === 0 && (
+                                                      <div className="px-3 py-3 text-xs text-slate-400 text-center">Nessun risultato</div>
+                                                    )}
+                                                  </div>
+                                                )}
+                                              </div>
+                                            </td>
+                                            {/* Colonna quantità + unità */}
+                                            <td className="py-2 text-right">
+                                              <div className="inline-flex items-center gap-1 justify-end">
+                                                <input
+                                                  type="text"
+                                                  inputMode="decimal"
+                                                  className="w-16 h-7 px-2 rounded-lg border border-slate-200 text-xs text-right text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
+                                                  value={qtyInputs[line.id] !== undefined ? qtyInputs[line.id] : String(parseFloat(String(line.quantity)))}
+                                                  onChange={(e) => setQtyInputs((prev) => ({ ...prev, [line.id]: e.target.value }))}
+                                                  onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur() }}
+                                                  onBlur={(e) => {
+                                                    const raw = e.target.value
+                                                    setQtyInputs((prev) => { const n = { ...prev }; delete n[line.id]; return n })
+                                                    updateRecipeQty(line.id, raw)
+                                                  }}
+                                                />
+                                                <select
+                                                  className="h-7 px-1 rounded-lg border border-slate-200 text-[10px] text-slate-500 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
+                                                  value={unitInputs[line.id] !== undefined ? unitInputs[line.id] : (ing?.unit ?? 'pz')}
+                                                  onChange={(e) => {
+                                                    const u = e.target.value
+                                                    setUnitInputs((prev) => ({ ...prev, [line.id]: u }))
+                                                    if (ing?.id) updateRecipeUnit(line.id, u, ing.id)
+                                                  }}
+                                                >
+                                                  {UNITS.map((u) => <option key={u}>{u}</option>)}
+                                                </select>
+                                              </div>
                                             </td>
                                             <td className="py-2 text-right text-slate-600 font-medium">{formatCost(lineCost)}</td>
                                             <td className="py-2 text-right">

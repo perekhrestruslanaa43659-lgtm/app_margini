@@ -10,6 +10,11 @@ const transporter = nodemailer.createTransport({
 })
 
 export async function POST(req: NextRequest) {
+  const authHeader = req.headers.get('authorization')
+  if (!authHeader) {
+    return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 })
+  }
+
   try {
     const { to, subject, body } = await req.json()
 

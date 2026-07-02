@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { X, Sparkles, Send, Loader2, Mail, RefreshCw } from 'lucide-react'
+import { createClient } from '@/lib/supabase/client'
 import type { GenerateEmailRequest } from '@/app/api/generate-email/route'
 
 type Style = GenerateEmailRequest['style']
@@ -49,13 +50,20 @@ export function EmailModal({
     }
   }, [open, clientEmail])
 
+  async function getAuthHeader(): Promise<Record<string, string>> {
+    const supabase = createClient()
+    const { data: { session } } = await supabase.auth.getSession()
+    return session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}
+  }
+
   async function generate() {
     setGenerating(true)
     setSendResult('idle')
     try {
+      const authHeaders = await getAuthHeader()
       const res = await fetch('/api/generate-email', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...authHeaders },
         body: JSON.stringify({
           eventName, clientName, clientEmail,
           eventDate, location, guestsCount,
@@ -78,9 +86,10 @@ export function EmailModal({
     setSending(true)
     setSendResult('idle')
     try {
+      const authHeaders = await getAuthHeader()
       const res = await fetch('/api/send-email', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...authHeaders },
         body: JSON.stringify({ to, subject, body }),
       })
       const data = await res.json()

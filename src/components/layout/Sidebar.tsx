@@ -1,9 +1,10 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
-import { CalendarDays, LayoutDashboard, BookOpen, Calculator, Home, Menu, X, ShieldCheck, FlaskConical, UtensilsCrossed } from 'lucide-react'
+import { usePathname, useRouter } from 'next/navigation'
+import { CalendarDays, LayoutDashboard, BookOpen, Calculator, Home, Menu, X, ShieldCheck, FlaskConical, UtensilsCrossed, LogOut } from 'lucide-react'
 import { useState } from 'react'
+import { createClient } from '@/lib/supabase/client'
 
 const nav = [
   { href: '/', label: 'Home', icon: Home },
@@ -18,7 +19,15 @@ const nav = [
 
 export function Sidebar() {
   const pathname = usePathname()
+  const router = useRouter()
   const [open, setOpen] = useState(false)
+
+  async function handleLogout() {
+    const supabase = createClient()
+    await supabase.auth.signOut()
+    router.push('/login')
+    router.refresh()
+  }
 
   return (
     <>
@@ -78,8 +87,15 @@ export function Sidebar() {
           })}
         </nav>
 
-        <div className="px-6 py-4 border-t border-slate-700 text-xs text-slate-500">
-          v1.0.0 · {new Date().getFullYear()}
+        <div className="px-3 py-4 border-t border-slate-700 space-y-1">
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-400 hover:bg-slate-700 hover:text-white transition-colors"
+          >
+            <LogOut size={18} />
+            Esci
+          </button>
+          <p className="text-xs text-slate-600 px-3 pt-1">v1.0.0 · {new Date().getFullYear()}</p>
         </div>
       </aside>
     </>

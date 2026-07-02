@@ -55,6 +55,11 @@ Cosa fare invece:
 `
 
 export async function POST(req: NextRequest) {
+  const authHeader = req.headers.get('authorization')
+  if (!authHeader) {
+    return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 })
+  }
+
   try {
     const body: GenerateEmailRequest = await req.json()
 
@@ -107,6 +112,7 @@ Genera SOLO il testo dell'email. Prima riga: "Oggetto: [testo]". Poi riga vuota.
     return NextResponse.json({ subject, body: bodyText })
   } catch (err) {
     console.error('generate-email error', err)
-    return NextResponse.json({ error: 'Errore generazione email' }, { status: 500 })
+    const msg = err instanceof Error ? err.message : 'Errore generazione email'
+    return NextResponse.json({ error: msg }, { status: 500 })
   }
 }
