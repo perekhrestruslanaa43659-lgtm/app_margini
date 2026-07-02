@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { Resend } from 'resend'
+import nodemailer from 'nodemailer'
 
-const resend = new Resend(process.env.RESEND_API_KEY)
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: process.env.GMAIL_USER,
+    pass: process.env.GMAIL_APP_PASSWORD,
+  },
+})
 
 export async function POST(req: NextRequest) {
   try {
@@ -11,27 +17,22 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Campi mancanti' }, { status: 400 })
     }
 
-    const from = process.env.RESEND_FROM_EMAIL
-    if (!from) {
-      return NextResponse.json({ error: 'RESEND_FROM_EMAIL non configurato' }, { status: 500 })
+    if (!process.env.GMAIL_USER || !process.env.GMAIL_APP_PASSWORD) {
+      return NextResponse.json({ error: 'GMAIL_USER o GMAIL_APP_PASSWORD non configurati' }, { status: 500 })
     }
 
-    const { data, error } = await resend.emails.send({
-      from,
-      to: [to],
+    await transporter.sendMail({
+      from: `Doppio Malto <${process.env.GMAIL_USER}>`,
+      to,
       subject,
       text: body,
       html: `<div style="font-family:Arial,sans-serif;font-size:14px;line-height:1.6;color:#1e293b;max-width:600px">${body.replace(/\n/g, '<br>')}</div>`,
     })
 
-    if (error) {
-      console.error('Resend error', error)
-      return NextResponse.json({ error: error.message }, { status: 500 })
-    }
-
-    return NextResponse.json({ success: true, id: data?.id })
+    return NextResponse.json({ success: true })
   } catch (err) {
     console.error('send-email error', err)
-    return NextResponse.json({ error: 'Errore invio email' }, { status: 500 })
+    const msg = err instanceof Error ? err.message : 'Errore invio email'
+    return NextResponse.json({ error: msg }, { status: 500 })
   }
 }
