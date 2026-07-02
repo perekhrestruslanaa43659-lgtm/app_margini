@@ -530,6 +530,7 @@ function EventDetailPageInner() {
         location={event.location ?? null}
         guestsCount={event.guests_count ?? null}
         totalRevenue={summary.totalRevenue}
+        menuItems={revenues.map((r) => r.name).filter(Boolean)}
       />
     </div>
   )

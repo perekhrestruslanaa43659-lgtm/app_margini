@@ -213,7 +213,7 @@ function RecipesPageInner() {
           <FlaskConical size={20} className="text-purple-600" />
         </div>
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">Distinta Base</h1>
+          <h1 className="text-2xl font-bold text-slate-800">Food Cost</h1>
           <p className="text-sm text-slate-500 mt-0.5">Ingredienti e food cost per porzione</p>
         </div>
       </div>

@@ -24,12 +24,13 @@ interface Props {
   location: string | null
   guestsCount: number | null
   totalRevenue: number
+  menuItems: string[]
 }
 
 export function EmailModal({
   open, onClose,
   eventName, clientName, clientEmail,
-  eventDate, location, guestsCount, totalRevenue,
+  eventDate, location, guestsCount, totalRevenue, menuItems,
 }: Props) {
   const [style, setStyle] = useState<Style>('formale')
   const [to, setTo] = useState(clientEmail ?? '')
@@ -67,7 +68,7 @@ export function EmailModal({
         body: JSON.stringify({
           eventName, clientName, clientEmail,
           eventDate, location, guestsCount,
-          totalRevenue, style,
+          totalRevenue, menuItems, style,
         } satisfies GenerateEmailRequest),
       })
       const data = await res.json()

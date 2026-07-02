@@ -11,6 +11,7 @@ export interface GenerateEmailRequest {
   location: string | null
   guestsCount: number | null
   totalRevenue: number
+  menuItems: string[]
   style: 'formale' | 'amichevole' | 'breve' | 'dettagliato'
 }
 
@@ -73,6 +74,7 @@ export async function POST(req: NextRequest) {
       body.location && `Location: ${body.location}`,
       body.guestsCount && `Ospiti previsti: ${body.guestsCount}`,
       body.totalRevenue > 0 && `Importo preventivo: ${body.totalRevenue.toLocaleString('it-IT', { minimumFractionDigits: 2, style: 'currency', currency: 'EUR' })}`,
+      body.menuItems.length > 0 && `Menu previsto:\n${body.menuItems.map((m) => `- ${m}`).join('\n')}`,
     ].filter(Boolean).join('\n')
 
     const prompt = `Sei un responsabile eventi di Doppio Malto, catering italiano specializzato in eventi con birra artigianale e cucina di qualità. Scrivi una email reale al cliente, non un template.
