@@ -85,9 +85,10 @@ function RecipesPageInner() {
   }
 
   async function updateIngCost(id: string, cost: string) {
-    const val = parseFloat(cost.replace(',', '.')) || 0
-    await sb.from('ingredients').update({ cost_per_unit: val }).eq('id', id)
-    setIngredients((prev) => prev.map((i) => i.id === id ? { ...i, cost_per_unit: val } : i))
+    const val = parseFloat(cost.replace(',', '.'))
+    const num = isNaN(val) ? 0 : val
+    await sb.from('ingredients').update({ cost_per_unit: num }).eq('id', id)
+    setIngredients((prev) => prev.map((i) => i.id === id ? { ...i, cost_per_unit: num } : i))
   }
 
   async function deleteIngredient(id: string) {
@@ -321,16 +322,17 @@ function RecipesPageInner() {
                       type="text"
                       inputMode="decimal"
                       className="w-20 h-8 px-2 rounded-lg border border-slate-200 text-xs text-right text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
-                      value={costInputs[ing.id] !== undefined ? costInputs[ing.id] : (ing.cost_per_unit === 0 ? '' : String(ing.cost_per_unit))}
+                      value={costInputs[ing.id] !== undefined ? costInputs[ing.id] : String(ing.cost_per_unit)}
                       placeholder="0"
                       onChange={(e) => setCostInputs((prev) => ({ ...prev, [ing.id]: e.target.value }))}
                       onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur() }}
                       onBlur={(e) => {
-                        const val = e.target.value.replace(',', '.')
-                        const num = parseFloat(val) || 0
+                        const raw = e.target.value.replace(',', '.')
+                        const parsed = parseFloat(raw)
+                        const num = isNaN(parsed) ? 0 : parsed
                         setIngredients((prev) => prev.map((i) => i.id === ing.id ? { ...i, cost_per_unit: num } : i))
                         setCostInputs((prev) => { const n = { ...prev }; delete n[ing.id]; return n })
-                        updateIngCost(ing.id, val)
+                        updateIngCost(ing.id, raw)
                       }}
                       title={`€ per ${ing.unit}`}
                     />
