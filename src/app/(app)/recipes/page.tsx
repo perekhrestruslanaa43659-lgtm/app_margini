@@ -24,7 +24,7 @@ function RecipesPageInner() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = supabase as any
 
-  const [dishes, setDishes] = useState<{ name: string; category: string | null }[]>([])
+  const [dishes, setDishes] = useState<{ name: string; category: string | null; unit_price: number }[]>([])
   const [ingredients, setIngredients] = useState<Ingredient[]>([])
   const [recipes, setRecipes] = useState<RecipeItem[]>([])
   const [loading, setLoading] = useState(true)
@@ -58,11 +58,11 @@ function RecipesPageInner() {
   async function fetchAll() {
     setLoading(true)
     const [{ data: catalogData }, { data: ingData }, { data: recipeData }] = await Promise.all([
-      sb.from('catalog_items').select('name, category').order('category').order('name'),
+      sb.from('catalog_items').select('name, category, unit_price').order('category').order('name'),
       sb.from('ingredients').select('*').order('name'),
       sb.from('recipe_items').select('*, ingredient:ingredients(*)').order('dish_name'),
     ])
-    setDishes((catalogData ?? []) as { name: string; category: string | null }[])
+    setDishes((catalogData ?? []) as { name: string; category: string | null; unit_price: number }[])
     setIngredients((ingData ?? []) as Ingredient[])
     setRecipes((recipeData ?? []) as RecipeItem[])
     setLoading(false)
@@ -421,6 +421,9 @@ function RecipesPageInner() {
                         const cost = dishCost(dish)
                         const isOpen = expandedDish === dish
                         const hasRecipe = lines.length > 0
+                        const salePrice = dishObj.unit_price ?? 0
+                        const marginEur = salePrice > 0 ? salePrice - cost : null
+                        const marginPct = salePrice > 0 ? ((salePrice - cost) / salePrice) * 100 : null
 
                         return (
                           <div
@@ -436,6 +439,11 @@ function RecipesPageInner() {
                                 {hasRecipe ? (
                                   <p className="text-xs text-purple-600 font-medium mt-1">
                                     Food cost: {formatCost(cost)} · {lines.length} ingredienti
+                                    {salePrice > 0 && marginPct !== null && (
+                                      <span className={`ml-2 ${marginPct >= 60 ? 'text-emerald-600' : marginPct >= 40 ? 'text-amber-500' : 'text-red-500'}`}>
+                                        · Prezzo: {formatCost(salePrice)} · Margine: {marginPct.toFixed(0)}%
+                                      </span>
+                                    )}
                                   </p>
                                 ) : (
                                   <p className="text-xs text-slate-400 mt-1">Nessuna ricetta</p>
@@ -563,10 +571,28 @@ function RecipesPageInner() {
                                         )
                                       })}
                                       <tr className="border-t border-slate-200">
-                                        <td className="pt-3 pb-1 text-xs font-semibold text-slate-600 uppercase tracking-wide" colSpan={2}>Totale food cost</td>
-                                        <td className="pt-3 pb-1 text-right font-bold text-purple-700 text-sm">{formatCost(cost)}</td>
+                                        <td className="pt-3 pb-1 text-xs font-semibold text-slate-600 uppercase tracking-wide">Totale food cost</td>
+                                        <td className="pt-3 pb-1 text-right font-bold text-purple-700 text-sm" colSpan={2}>{formatCost(cost)}</td>
                                         <td />
                                       </tr>
+                                      {salePrice > 0 && marginEur !== null && marginPct !== null && (
+                                        <tr>
+                                          <td className="pb-1 text-xs font-semibold text-slate-600 uppercase tracking-wide">Prezzo vendita</td>
+                                          <td className="pb-1 text-right font-bold text-emerald-600 text-sm" colSpan={2}>{formatCost(salePrice)}</td>
+                                          <td />
+                                        </tr>
+                                      )}
+                                      {salePrice > 0 && marginEur !== null && marginPct !== null && (
+                                        <tr className="border-t border-slate-100">
+                                          <td className="pt-2 pb-2 text-xs font-semibold text-slate-600 uppercase tracking-wide">Margine</td>
+                                          <td className="pt-2 pb-2 text-right text-sm font-bold" colSpan={2}>
+                                            <span className={marginPct >= 60 ? 'text-emerald-600' : marginPct >= 40 ? 'text-amber-500' : 'text-red-500'}>
+                                              {formatCost(marginEur)} ({marginPct.toFixed(0)}%)
+                                            </span>
+                                          </td>
+                                          <td />
+                                        </tr>
+                                      )}
                                     </tbody>
                                   </table>
                                 )}
