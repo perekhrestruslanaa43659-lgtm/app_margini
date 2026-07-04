@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef } from 'react'
 import { X, Camera, Upload, Loader2, ScanLine, ShieldCheck, CheckCircle2, AlertCircle } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import type { ScannedItem } from '@/app/api/scan-receipt/route'
@@ -157,11 +157,11 @@ export function ReceiptScanner({ open, onClose, onItemsScanned }: Props) {
                 <div className="text-sm text-blue-800 space-y-2">
                   <p className="font-semibold">Come vengono trattati i tuoi dati</p>
                   <ul className="text-xs space-y-1 text-blue-700">
-                    <li>• L'immagine viene inviata ad <strong>Anthropic Claude</strong> solo per estrarre il testo</li>
+                    <li>• L&apos;immagine viene inviata ad <strong>Anthropic Claude</strong> solo per estrarre il testo</li>
                     <li>• Anthropic <strong>non salva</strong> i dati delle API e non li usa per addestrare modelli</li>
                     <li>• La trasmissione è cifrata (HTTPS)</li>
-                    <li>• L'immagine <strong>non viene salvata</strong> nel nostro database</li>
-                    <li>• Solo i nomi articoli e prezzi vengono restituiti all'app</li>
+                    <li>• L&apos;immagine <strong>non viene salvata</strong> nel nostro database</li>
+                    <li>• Solo i nomi articoli e prezzi vengono restituiti all&apos;app</li>
                   </ul>
                 </div>
               </div>
@@ -225,6 +225,7 @@ export function ReceiptScanner({ open, onClose, onItemsScanned }: Props) {
           {step === 'scanning' && (
             <div className="p-8 text-center space-y-4">
               {preview && (
+                // eslint-disable-next-line @next/next/no-img-element
                 <img src={preview} alt="Anteprima scontrino" className="max-h-48 mx-auto rounded-xl object-contain border border-slate-200 opacity-60" />
               )}
               <div className="flex items-center justify-center gap-3 text-slate-600">
