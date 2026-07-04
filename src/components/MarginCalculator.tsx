@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useMemo, useEffect } from 'react'
-import { Plus, Trash2, TrendingUp, TrendingDown, Minus, Search, Loader2, ChevronDown, ScanLine } from 'lucide-react'
+import { Plus, Trash2, TrendingUp, TrendingDown, Minus, Search, Loader2, ChevronDown, ScanLine, RotateCcw } from 'lucide-react'
 import { computeMargin, formatCurrency, formatPct, marginColor } from '@/lib/margin'
 import { createClient } from '@/lib/supabase/client'
 import type { EventItem, ItemType } from '@/lib/supabase/types'
@@ -29,9 +29,21 @@ type CatalogDish = { name: string; unit_price: number; category: string | null }
 
 function uid() { return Math.random().toString(36).slice(2) }
 
+const STORAGE_KEY = 'margin_calculator_state'
+
+function loadSaved() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY)
+    if (!raw) return null
+    return JSON.parse(raw) as { dishRows: DishRow[]; manualRows: ManualRow[]; guests: number | ''; discount: number }
+  } catch { return null }
+}
+
 export function MarginCalculator() {
-  const [guests, setGuests] = useState<number | ''>(1)
-  const [discount, setDiscount] = useState(0)
+  const saved = typeof window !== 'undefined' ? loadSaved() : null
+
+  const [guests, setGuests] = useState<number | ''>(saved?.guests ?? 1)
+  const [discount, setDiscount] = useState(saved?.discount ?? 0)
 
   // Piatti dal catalogo
   const [catalog, setCatalog] = useState<CatalogDish[]>([])
@@ -40,9 +52,9 @@ export function MarginCalculator() {
   const [loadingCatalog, setLoadingCatalog] = useState(true)
 
   // Righe piatti selezionati
-  const [dishRows, setDishRows] = useState<DishRow[]>([])
+  const [dishRows, setDishRows] = useState<DishRow[]>(saved?.dishRows ?? [])
   // Righe manuali extra (costi fissi, extra ricavi)
-  const [manualRows, setManualRows] = useState<ManualRow[]>([])
+  const [manualRows, setManualRows] = useState<ManualRow[]>(saved?.manualRows ?? [])
 
   // Scanner scontrino
   const [scannerOpen, setScannerOpen] = useState(false)
@@ -50,6 +62,13 @@ export function MarginCalculator() {
   // Dropdown ricerca piatto
   const [search, setSearch] = useState('')
   const [showDropdown, setShowDropdown] = useState(false)
+
+  // Salva stato in localStorage ad ogni cambiamento
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ dishRows, manualRows, guests, discount }))
+    } catch { /* ignore */ }
+  }, [dishRows, manualRows, guests, discount])
 
   useEffect(() => {
     async function load() {
@@ -191,12 +210,22 @@ export function MarginCalculator() {
             {loadingCatalog
               ? <Loader2 size={13} className="animate-spin text-slate-400 ml-auto" />
               : (
-                <button
-                  onClick={() => setScannerOpen(true)}
-                  className="ml-auto flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-violet-100 text-violet-700 hover:bg-violet-200 transition font-medium"
-                >
-                  <ScanLine size={13} /> Scansiona scontrino
-                </button>
+                <div className="ml-auto flex items-center gap-2">
+                  {(dishRows.length > 0 || manualRows.length > 0) && (
+                    <button
+                      onClick={() => { if (confirm('Svuotare il calcolatore?')) { setDishRows([]); setManualRows([]); setGuests(1); setDiscount(0) } }}
+                      className="flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 transition"
+                    >
+                      <RotateCcw size={11} /> Svuota
+                    </button>
+                  )}
+                  <button
+                    onClick={() => setScannerOpen(true)}
+                    className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-violet-100 text-violet-700 hover:bg-violet-200 transition font-medium"
+                  >
+                    <ScanLine size={13} /> Scansiona scontrino
+                  </button>
+                </div>
               )
             }
           </div>
