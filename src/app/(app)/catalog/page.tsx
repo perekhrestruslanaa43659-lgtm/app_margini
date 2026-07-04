@@ -9,7 +9,6 @@ import { formatCurrency } from '@/lib/margin'
 import { ConfirmModal } from '@/components/ui/ConfirmModal'
 import { SetupBanner } from '@/components/ui/SetupBanner'
 
-const CATEGORIES = ['Food', 'Bevande', 'Staff', 'Logistica', 'Extra', 'Noleggio', 'Servizio']
 const VAT_OPTIONS = [0, 4, 10, 22]
 
 interface EditState {
@@ -44,6 +43,7 @@ function ItemRow({
   setInlinePrice,
   priceInputRef,
   setDeleteId,
+  availableCategories,
 }: {
   it: CatalogItem
   editingId: string | null
@@ -58,6 +58,7 @@ function ItemRow({
   setInlinePrice: (v: { id: string; value: string } | null) => void
   priceInputRef: React.RefObject<HTMLInputElement>
   setDeleteId: (id: string) => void
+  availableCategories: string[]
 }) {
   if (editingId === it.id) {
     return (
@@ -68,7 +69,7 @@ function ItemRow({
         <td className="px-4 py-2">
           <select className="input py-1 text-xs" value={editState.category} onChange={(e) => setEditState((p) => ({ ...p, category: e.target.value }))}>
             <option value="">—</option>
-            {CATEGORIES.map((c) => <option key={c}>{c}</option>)}
+            {availableCategories.map((c) => <option key={c}>{c}</option>)}
           </select>
         </td>
         <td className="px-4 py-2">
@@ -338,7 +339,7 @@ function CatalogPageInner() {
   const rowProps = {
     editingId, editState, setEditState, saveEdit, setEditingId,
     startEdit, startInlinePrice, saveInlinePrice, inlinePrice,
-    setInlinePrice, priceInputRef, setDeleteId,
+    setInlinePrice, priceInputRef, setDeleteId, availableCategories,
   }
 
   return (
@@ -426,7 +427,7 @@ function CatalogPageInner() {
                 <td className="px-4 py-2">
                   <select className="input py-1 text-xs" value={newItem.category} onChange={(e) => setNewItem((p) => ({ ...p, category: e.target.value }))}>
                     <option value="">—</option>
-                    {CATEGORIES.map((c) => <option key={c}>{c}</option>)}
+                    {availableCategories.map((c) => <option key={c}>{c}</option>)}
                   </select>
                 </td>
                 <td className="px-4 py-2">
