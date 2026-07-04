@@ -24,7 +24,7 @@ function RecipesPageInner() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = supabase as any
 
-  const [dishes, setDishes] = useState<{ name: string; category: string | null; unit_price: number }[]>([])
+  const [dishes, setDishes] = useState<{ name: string; category: string | null; unit_price?: number }[]>([])
   const [ingredients, setIngredients] = useState<Ingredient[]>([])
   const [recipes, setRecipes] = useState<RecipeItem[]>([])
   const [loading, setLoading] = useState(true)
@@ -62,7 +62,7 @@ function RecipesPageInner() {
       sb.from('ingredients').select('*').order('name'),
       sb.from('recipe_items').select('*, ingredient:ingredients(*)').order('dish_name'),
     ])
-    setDishes((catalogData ?? []) as { name: string; category: string | null; unit_price: number }[])
+    setDishes((catalogData ?? []) as { name: string; category: string | null; unit_price?: number }[])
     setIngredients((ingData ?? []) as Ingredient[])
     setRecipes((recipeData ?? []) as RecipeItem[])
     setLoading(false)
