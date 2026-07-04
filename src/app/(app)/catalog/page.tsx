@@ -190,12 +190,14 @@ function CatalogPageInner() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { fetchItems() }, [])
 
-  // Collapse all categories by default once items load
+  // Collapse all categories by default once items load (only on first load)
+  const [initialCollapseDone, setInitialCollapseDone] = useState(false)
   useEffect(() => {
-    if (items.length === 0) return
+    if (items.length === 0 || initialCollapseDone) return
     const cats = new Set(items.map((it) => it.category ?? '—'))
     setCollapsedCats(cats)
-  }, [items])
+    setInitialCollapseDone(true)
+  }, [items, initialCollapseDone])
 
   const availableCategories = useMemo(
     () => Array.from(new Set(items.map((it) => it.category ?? '').filter(Boolean))).sort(),
@@ -262,16 +264,17 @@ function CatalogPageInner() {
   }
 
   async function saveEdit(id: string) {
-    await sb.from('catalog_items').update({
+    const updated = {
       type: editState.type,
       category: editState.category || null,
       name: editState.name.trim(),
       unit_price: parseFloat(editState.unit_price) || 0,
       vat_rate: parseFloat(editState.vat_rate) || 22,
       notes: editState.notes || null,
-    }).eq('id', id)
+    }
+    await sb.from('catalog_items').update(updated).eq('id', id)
+    setItems((prev) => prev.map((it) => it.id === id ? { ...it, ...updated } as CatalogItem : it))
     setEditingId(null)
-    fetchItems()
   }
 
   async function deleteItem(id: string) {
