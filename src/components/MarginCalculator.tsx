@@ -1,10 +1,12 @@
 'use client'
 
 import { useState, useMemo, useEffect } from 'react'
-import { Plus, Trash2, TrendingUp, TrendingDown, Minus, Search, Loader2, ChevronDown } from 'lucide-react'
+import { Plus, Trash2, TrendingUp, TrendingDown, Minus, Search, Loader2, ChevronDown, ScanLine } from 'lucide-react'
 import { computeMargin, formatCurrency, formatPct, marginColor } from '@/lib/margin'
 import { createClient } from '@/lib/supabase/client'
 import type { EventItem, ItemType } from '@/lib/supabase/types'
+import { ReceiptScanner } from '@/components/ReceiptScanner'
+import type { ScannedItem } from '@/app/api/scan-receipt/route'
 
 interface DishRow {
   id: string
@@ -41,6 +43,9 @@ export function MarginCalculator() {
   const [dishRows, setDishRows] = useState<DishRow[]>([])
   // Righe manuali extra (costi fissi, extra ricavi)
   const [manualRows, setManualRows] = useState<ManualRow[]>([])
+
+  // Scanner scontrino
+  const [scannerOpen, setScannerOpen] = useState(false)
 
   // Dropdown ricerca piatto
   const [search, setSearch] = useState('')
@@ -91,6 +96,29 @@ export function MarginCalculator() {
     })
     setSearch('')
     setShowDropdown(false)
+  }
+
+  function handleScannedItems(scanned: ScannedItem[]) {
+    for (const item of scanned) {
+      // Cerca corrispondenza nel catalogo (case-insensitive, parziale)
+      const match = catalog.find((d) =>
+        d.name.toLowerCase().includes(item.name.toLowerCase()) ||
+        item.name.toLowerCase().includes(d.name.toLowerCase())
+      )
+      if (match) {
+        // Aggiunge come piatto del catalogo con food cost automatico
+        setDishRows((prev) => {
+          const existing = prev.find((r) => r.dishName === match.name)
+          if (existing) {
+            return prev.map((r) => r.dishName === match.name ? { ...r, quantity: r.quantity + item.quantity } : r)
+          }
+          return [...prev, { id: uid(), dishName: match.name, sellingPrice: match.unit_price, foodCost: foodCosts[match.name] ?? 0, quantity: item.quantity }]
+        })
+      } else {
+        // Aggiunge come voce ricavo manuale con il prezzo dello scontrino
+        setManualRows((prev) => [...prev, { id: uid(), type: 'ricavo', name: item.name, quantity: item.quantity, unit_price: item.unit_price, vat_rate: 10 }])
+      }
+    }
   }
 
   function updateDishQty(id: string, qty: number) {
@@ -147,6 +175,7 @@ export function MarginCalculator() {
   )
 
   return (
+    <>
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
       {/* ── Colonna sinistra: selezione piatti + extra ── */}
@@ -159,7 +188,17 @@ export function MarginCalculator() {
               <Search size={13} className="text-emerald-600" />
             </div>
             <h2 className="text-sm font-semibold text-slate-700">Piatti del menu</h2>
-            {loadingCatalog && <Loader2 size={13} className="animate-spin text-slate-400 ml-auto" />}
+            {loadingCatalog
+              ? <Loader2 size={13} className="animate-spin text-slate-400 ml-auto" />
+              : (
+                <button
+                  onClick={() => setScannerOpen(true)}
+                  className="ml-auto flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-violet-100 text-violet-700 hover:bg-violet-200 transition font-medium"
+                >
+                  <ScanLine size={13} /> Scansiona scontrino
+                </button>
+              )
+            }
           </div>
 
           <div className="px-5 py-4">
@@ -423,5 +462,12 @@ export function MarginCalculator() {
         )}
       </div>
     </div>
+
+    <ReceiptScanner
+      open={scannerOpen}
+      onClose={() => setScannerOpen(false)}
+      onItemsScanned={handleScannedItems}
+    />
+    </>
   )
 }
