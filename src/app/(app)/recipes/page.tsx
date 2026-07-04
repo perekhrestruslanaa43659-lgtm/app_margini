@@ -173,7 +173,7 @@ function RecipesPageInner() {
   )
 
   const groupedDishes = useMemo(() => {
-    const map = new Map<string, { name: string; category: string | null }[]>()
+    const map = new Map<string, { name: string; category: string | null; unit_price?: number }[]>()
     for (const d of filteredDishes) {
       const cat = d.category ?? '—'
       if (!map.has(cat)) map.set(cat, [])
