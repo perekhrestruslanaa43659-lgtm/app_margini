@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
-
 export interface ScannedItem {
   name: string
   quantity: number
@@ -10,12 +8,8 @@ export interface ScannedItem {
 }
 
 export async function POST(req: NextRequest) {
-  const authHeader = req.headers.get('authorization')
-  if (!authHeader) {
-    return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 })
-  }
-
   try {
+    const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
     const { imageBase64, mimeType } = await req.json() as { imageBase64: string; mimeType: string }
 
     if (!imageBase64 || !mimeType) {

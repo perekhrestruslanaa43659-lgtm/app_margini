@@ -181,7 +181,7 @@ export function ReceiptScanner({ open, onClose, onItemsScanned }: Props) {
                   <span className="text-xs text-slate-400">Scatta una foto</span>
                 </button>
                 <button
-                  onClick={() => { setStep('capture'); fileInputRef.current?.click() }}
+                  onClick={() => fileInputRef.current?.click()}
                   className="flex flex-col items-center gap-2 p-4 rounded-xl border-2 border-slate-200 hover:border-violet-300 hover:bg-violet-50 transition-all"
                 >
                   <Upload size={24} className="text-violet-500" />

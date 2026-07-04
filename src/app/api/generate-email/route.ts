@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
-
 export interface GenerateEmailRequest {
   eventName: string
   clientName: string | null
@@ -56,12 +54,8 @@ Cosa fare invece:
 `
 
 export async function POST(req: NextRequest) {
-  const authHeader = req.headers.get('authorization')
-  if (!authHeader) {
-    return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 })
-  }
-
   try {
+    const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
     const body: GenerateEmailRequest = await req.json()
 
     const dateStr = body.eventDate
