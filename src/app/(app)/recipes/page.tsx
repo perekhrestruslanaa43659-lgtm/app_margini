@@ -439,8 +439,9 @@ function RecipesPageInner() {
                         const isOpen = expandedDish === dish
                         const hasRecipe = lines.length > 0
                         const salePrice = dishObj.unit_price ?? 0
-                        const marginEur = salePrice > 0 ? salePrice - cost : null
-                        const marginPct = salePrice > 0 ? ((salePrice - cost) / salePrice) * 100 : null
+                        const effectiveCost = cost === 0 && salePrice > 0 ? salePrice : cost
+                        const marginEur = salePrice > 0 ? salePrice - effectiveCost : null
+                        const marginPct = salePrice > 0 ? ((salePrice - effectiveCost) / salePrice) * 100 : null
 
                         return (
                           <div

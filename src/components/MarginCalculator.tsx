@@ -183,8 +183,8 @@ export function MarginCalculator() {
     const fromDishes: EventItem[] = dishRows.flatMap((d) => [
       // Ricavo: prezzo di vendita × quantità
       { id: d.id + '_r', type: 'ricavo' as ItemType, category: 'Menu', name: d.dishName, quantity: d.quantity, unit_price: d.sellingPrice, vat_rate: 10, notes: null, event_id: '' },
-      // Costo: food cost × quantità
-      ...(d.foodCost > 0 ? [{ id: d.id + '_c', type: 'costo' as ItemType, category: 'Food Cost', name: d.dishName, quantity: d.quantity, unit_price: d.foodCost, vat_rate: 10, notes: null, event_id: '' }] : []),
+      // Costo: food cost se disponibile, altrimenti prezzo di vendita (costo stimato = prezzo)
+      { id: d.id + '_c', type: 'costo' as ItemType, category: 'Food Cost', name: d.dishName, quantity: d.quantity, unit_price: d.foodCost > 0 ? d.foodCost : d.sellingPrice, vat_rate: 10, notes: null, event_id: '' },
     ])
     const fromManual: EventItem[] = manualRows.map((r) => ({
       id: r.id, type: r.type, category: null, name: r.name, quantity: r.quantity, unit_price: r.unit_price, vat_rate: r.vat_rate, notes: null, event_id: '',
@@ -434,7 +434,12 @@ export function MarginCalculator() {
                           />
                         </td>
                         <td className="py-2 text-right text-emerald-600 font-semibold">{formatCurrency(d.sellingPrice * d.quantity)}</td>
-                        <td className="py-2 text-right text-red-500">{d.foodCost > 0 ? formatCurrency(d.foodCost * d.quantity) : <span className="text-slate-300">—</span>}</td>
+                        <td className="py-2 text-right text-red-500">
+                          {d.foodCost > 0
+                            ? formatCurrency(d.foodCost * d.quantity)
+                            : <span className="text-slate-400 text-[10px]" title="Costo stimato = prezzo vendita">≈{formatCurrency(d.sellingPrice * d.quantity)}</span>
+                          }
+                        </td>
                         <td className="py-2 text-right">
                           <span className={`font-semibold ${pct >= 40 ? 'text-emerald-600' : pct >= 20 ? 'text-amber-500' : 'text-red-500'}`}>
                             {formatCurrency(margin)}
