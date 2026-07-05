@@ -20,6 +20,7 @@ export function ReceiptScanner({ open, onClose, onItemsScanned }: Props) {
   const [preview, setPreview] = useState<string | null>(null)
   const [useCamera, setUseCamera] = useState(false)
   const [stream, setStream] = useState<MediaStream | null>(null)
+  const [scannedCount, setScannedCount] = useState(0)
 
   const fileInputRef = useRef<HTMLInputElement>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
@@ -36,6 +37,7 @@ export function ReceiptScanner({ open, onClose, onItemsScanned }: Props) {
 
   function handleClose() {
     reset()
+    setScannedCount(0)
     onClose()
   }
 
@@ -124,7 +126,8 @@ export function ReceiptScanner({ open, onClose, onItemsScanned }: Props) {
 
   function confirmItems() {
     onItemsScanned(items)
-    handleClose()
+    setScannedCount((n) => n + 1)
+    reset()
   }
 
   if (!open) return null
@@ -140,7 +143,9 @@ export function ReceiptScanner({ open, onClose, onItemsScanned }: Props) {
           </div>
           <div className="flex-1">
             <h2 className="font-semibold text-slate-800">Scanner scontrino</h2>
-            <p className="text-xs text-slate-400">Estrai automaticamente gli articoli</p>
+            <p className="text-xs text-slate-400">
+              {scannedCount > 0 ? `${scannedCount} scontrino${scannedCount > 1 ? 'i' : ''} aggiunto${scannedCount > 1 ? 'i' : ''} — carica il prossimo` : 'Estrai automaticamente gli articoli'}
+            </p>
           </div>
           <button onClick={handleClose} className="text-slate-400 hover:text-slate-600 transition-colors">
             <X size={20} />
@@ -309,7 +314,7 @@ export function ReceiptScanner({ open, onClose, onItemsScanned }: Props) {
         {/* Footer */}
         <div className="px-6 py-4 border-t border-slate-100 flex justify-between gap-3 shrink-0">
           <button onClick={handleClose} className="px-4 py-2 text-sm text-slate-500 hover:text-slate-700 rounded-xl border border-slate-200 hover:bg-slate-50 transition">
-            Annulla
+            {scannedCount > 0 ? 'Chiudi' : 'Annulla'}
           </button>
           {step === 'result' && (
             <button
@@ -317,7 +322,7 @@ export function ReceiptScanner({ open, onClose, onItemsScanned }: Props) {
               disabled={items.length === 0}
               className="px-5 py-2 bg-violet-600 hover:bg-violet-700 text-white text-sm font-medium rounded-xl transition disabled:opacity-50"
             >
-              Aggiungi {items.length} articoli alla calcolatrice
+              Aggiungi {items.length} articoli e scansiona altro
             </button>
           )}
         </div>
