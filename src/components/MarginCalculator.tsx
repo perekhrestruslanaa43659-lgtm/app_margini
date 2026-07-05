@@ -450,17 +450,26 @@ export function MarginCalculator() {
                           />
                         </td>
                         <td className="py-2 text-right text-emerald-600 font-semibold">{formatCurrency(d.sellingPrice * d.quantity)}</td>
-                        <td className="py-2 text-right text-red-500">
-                          {d.foodCost > 0
-                            ? formatCurrency(d.foodCost * d.quantity)
-                            : <span className="text-slate-400 text-[10px]" title="Costo stimato = prezzo vendita">≈{formatCurrency(d.sellingPrice * d.quantity)}</span>
-                          }
+                        <td className="py-2 text-right">
+                          <div className="flex flex-col items-end">
+                            {d.foodCost > 0
+                              ? <span className="text-red-500 font-medium">{formatCurrency(d.foodCost * d.quantity)}</span>
+                              : <span className="text-slate-400 text-[10px]" title="Costo stimato = prezzo vendita">≈{formatCurrency(d.sellingPrice * d.quantity)}</span>
+                            }
+                            {d.quantity > 1 && (
+                              <span className="text-[9px] text-slate-400">
+                                @ {d.foodCost > 0 ? formatCurrency(d.foodCost) : `≈${formatCurrency(d.sellingPrice)}`}/pz
+                              </span>
+                            )}
+                          </div>
                         </td>
                         <td className="py-2 text-right">
-                          <span className={`font-semibold ${pct >= 40 ? 'text-emerald-600' : pct >= 20 ? 'text-amber-500' : 'text-red-500'}`}>
-                            {formatCurrency(margin)}
-                          </span>
-                          <span className="ml-1 text-slate-400">({pct.toFixed(0)}%)</span>
+                          <div className="flex flex-col items-end">
+                            <span className={`font-semibold ${pct >= 40 ? 'text-emerald-600' : pct >= 20 ? 'text-amber-500' : 'text-red-500'}`}>
+                              {formatCurrency(margin)}
+                            </span>
+                            <span className="text-[9px] text-slate-400">({pct.toFixed(0)}%) @ {formatCurrency(margin / d.quantity)}/pz</span>
+                          </div>
                         </td>
                         <td className="py-2 text-right">
                           <button onClick={() => removeDish(d.id)} className="text-slate-200 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all">
