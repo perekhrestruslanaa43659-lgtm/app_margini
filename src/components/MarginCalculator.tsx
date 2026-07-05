@@ -260,6 +260,10 @@ export function MarginCalculator() {
     return suggestions
   }
 
+  function fillMissingCosts() {
+    setDishRows((prev) => prev.map((r) => r.foodCost === 0 ? { ...r, foodCost: r.sellingPrice } : r))
+  }
+
   function applyConversion(dish: DishRow, s: ConversionSuggestion) {
     const remaining = dish.quantity - s.convertQty
     // Aggiunge i contenitori come nuove righe
@@ -276,7 +280,7 @@ export function MarginCalculator() {
   }
 
   const totalFoodCost = useMemo(() =>
-    dishRows.reduce((sum, d) => sum + d.foodCost * d.quantity, 0),
+    dishRows.reduce((sum, d) => sum + (d.foodCost > 0 ? d.foodCost : d.sellingPrice) * d.quantity, 0),
     [dishRows]
   )
 
@@ -390,15 +394,27 @@ export function MarginCalculator() {
                     <th className="text-left py-2 font-medium uppercase tracking-wide text-[10px]">Piatto</th>
                     <th className="text-right py-2 font-medium uppercase tracking-wide text-[10px] w-20">Qtà</th>
                     <th className="text-right py-2 font-medium uppercase tracking-wide text-[10px] w-24">Prezzo</th>
-                    <th className="text-right py-2 font-medium uppercase tracking-wide text-[10px] w-24">Food Cost</th>
+                    <th className="text-right py-2 font-medium uppercase tracking-wide text-[10px] w-24">
+                      <span>Food Cost</span>
+                      {dishRows.some((r) => r.foodCost === 0) && (
+                        <button
+                          onClick={fillMissingCosts}
+                          className="ml-1.5 text-[9px] bg-amber-100 text-amber-700 hover:bg-amber-200 rounded px-1 py-0.5 font-medium normal-case tracking-normal transition"
+                          title="Compila i costi mancanti usando il prezzo di vendita"
+                        >
+                          Compila
+                        </button>
+                      )}
+                    </th>
                     <th className="text-right py-2 font-medium uppercase tracking-wide text-[10px] w-24">Margine</th>
                     <th className="w-6" />
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50">
                   {dishRows.map((d, idx) => {
-                    const margin = (d.sellingPrice - d.foodCost) * d.quantity
-                    const pct = d.sellingPrice > 0 ? ((d.sellingPrice - d.foodCost) / d.sellingPrice) * 100 : 0
+                    const effectiveCost = d.foodCost > 0 ? d.foodCost : d.sellingPrice
+                    const margin = (d.sellingPrice - effectiveCost) * d.quantity
+                    const pct = d.sellingPrice > 0 ? ((d.sellingPrice - effectiveCost) / d.sellingPrice) * 100 : 0
                     const catIdx = catalog.findIndex((c) => c.name === d.dishName)
                     const cat = catIdx >= 0 ? catalog[catIdx].category : null
                     const allCats = Array.from(new Set(catalog.map((c) => c.category ?? ''))).sort()
@@ -653,7 +669,7 @@ export function MarginCalculator() {
           <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
             <h3 className="text-sm font-semibold text-slate-700 mb-3">Food Cost %</h3>
             {dishRows.map((d) => {
-              const pct = d.sellingPrice > 0 ? (d.foodCost / d.sellingPrice) * 100 : 0
+              const pct = d.sellingPrice > 0 ? ((d.foodCost > 0 ? d.foodCost : d.sellingPrice) / d.sellingPrice) * 100 : 0
               return (
                 <div key={d.id} className="mb-2">
                   <div className="flex justify-between text-xs mb-1">
