@@ -577,33 +577,50 @@ export function MarginCalculator() {
               <h2 className="text-sm font-semibold text-slate-700">Ingredienti necessari</h2>
               <span className="ml-auto text-xs text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">{aggregatedIngredients.length} voci</span>
             </div>
-            <div className="px-5 py-3">
-              <table className="w-full text-xs">
-                <thead>
-                  <tr className="text-slate-400 border-b border-slate-100">
-                    <th className="text-left py-2 font-medium uppercase tracking-wide text-[10px]">Ingrediente</th>
-                    <th className="text-right py-2 font-medium uppercase tracking-wide text-[10px] w-24">Quantità</th>
-                    <th className="text-right py-2 font-medium uppercase tracking-wide text-[10px] w-24">Costo tot.</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-50">
-                  {aggregatedIngredients.map((ing) => (
-                    <tr key={ing.name} className="hover:bg-slate-50">
-                      <td className="py-2 font-medium text-slate-700">{ing.name}</td>
-                      <td className="py-2 text-right text-slate-600">
-                        {ing.totalQty % 1 === 0 ? ing.totalQty : ing.totalQty.toFixed(2)} {ing.unit}
-                      </td>
-                      <td className="py-2 text-right font-semibold text-red-500">
-                        {ing.totalCost > 0 ? formatCurrency(ing.totalCost) : <span className="text-slate-300">—</span>}
-                      </td>
-                    </tr>
-                  ))}
-                  <tr className="border-t border-slate-200 bg-slate-50">
-                    <td className="py-2 font-semibold text-slate-600 uppercase tracking-wide text-[10px]" colSpan={2}>Totale food cost ingredienti</td>
-                    <td className="py-2 text-right font-bold text-red-600">{formatCurrency(aggregatedIngredients.reduce((s, i) => s + i.totalCost, 0))}</td>
-                  </tr>
-                </tbody>
-              </table>
+            <div className="px-5 py-3 space-y-4">
+              {/* Per piatto */}
+              {dishRows.filter((d) => recipeLines.some((l) => l.dish_name === d.dishName)).map((d, di) => {
+                const allCats = Array.from(new Set(catalog.map((c) => c.category ?? ''))).sort()
+                const cat = catalog.find((c) => c.name === d.dishName)?.category ?? null
+                const colorClass = CAT_COLORS[allCats.indexOf(cat ?? '') % CAT_COLORS.length] ?? CAT_COLORS[di % CAT_COLORS.length]
+                const lines = recipeLines.filter((l) => l.dish_name === d.dishName)
+                const dishCost = lines.reduce((sum, l) => {
+                  const c = (l.unit === 'g' || l.unit === 'ml') ? (l.quantity / 1000) * l.cost_per_unit * d.quantity : l.quantity * l.cost_per_unit * d.quantity
+                  return sum + c
+                }, 0)
+                return (
+                  <div key={d.id}>
+                    <div className={`flex items-center justify-between px-3 py-1.5 rounded-lg border ${colorClass} mb-1`}>
+                      <span className="text-[11px] font-semibold">{d.dishName} × {d.quantity}</span>
+                      <span className="text-[11px] font-semibold">{formatCurrency(dishCost)}</span>
+                    </div>
+                    <table className="w-full text-xs">
+                      <tbody className="divide-y divide-slate-50">
+                        {lines.map((l) => {
+                          const qty = l.quantity * d.quantity
+                          const cost = (l.unit === 'g' || l.unit === 'ml') ? (l.quantity / 1000) * l.cost_per_unit * d.quantity : l.quantity * l.cost_per_unit * d.quantity
+                          return (
+                            <tr key={l.ingredient_name} className="hover:bg-slate-50">
+                              <td className="py-1.5 pl-3 text-slate-600">{l.ingredient_name}</td>
+                              <td className="py-1.5 text-right text-slate-500 w-24">
+                                {qty % 1 === 0 ? qty : qty.toFixed(2)} {l.unit}
+                              </td>
+                              <td className="py-1.5 text-right text-red-400 w-24">
+                                {cost > 0 ? formatCurrency(cost) : <span className="text-slate-300">—</span>}
+                              </td>
+                            </tr>
+                          )
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )
+              })}
+              {/* Totale generale */}
+              <div className="border-t border-slate-200 pt-2 flex justify-between items-center">
+                <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">Totale food cost ingredienti</span>
+                <span className="text-sm font-bold text-red-600">{formatCurrency(aggregatedIngredients.reduce((s, i) => s + i.totalCost, 0))}</span>
+              </div>
             </div>
           </div>
         )}
