@@ -9,6 +9,19 @@ import { SetupBanner } from '@/components/ui/SetupBanner'
 
 const UNITS = ['kg', 'g', 'L', 'ml', 'pz', 'fetta', 'porzione']
 
+const CAT_COLORS = [
+  { bg: 'bg-blue-50', border: 'border-blue-200', dot: 'bg-blue-500', text: 'text-blue-800' },
+  { bg: 'bg-emerald-50', border: 'border-emerald-200', dot: 'bg-emerald-500', text: 'text-emerald-800' },
+  { bg: 'bg-violet-50', border: 'border-violet-200', dot: 'bg-violet-500', text: 'text-violet-800' },
+  { bg: 'bg-amber-50', border: 'border-amber-200', dot: 'bg-amber-500', text: 'text-amber-800' },
+  { bg: 'bg-rose-50', border: 'border-rose-200', dot: 'bg-rose-500', text: 'text-rose-800' },
+  { bg: 'bg-cyan-50', border: 'border-cyan-200', dot: 'bg-cyan-500', text: 'text-cyan-800' },
+  { bg: 'bg-orange-50', border: 'border-orange-200', dot: 'bg-orange-500', text: 'text-orange-800' },
+  { bg: 'bg-teal-50', border: 'border-teal-200', dot: 'bg-teal-500', text: 'text-teal-800' },
+  { bg: 'bg-pink-50', border: 'border-pink-200', dot: 'bg-pink-500', text: 'text-pink-800' },
+  { bg: 'bg-indigo-50', border: 'border-indigo-200', dot: 'bg-indigo-500', text: 'text-indigo-800' },
+]
+
 function formatCost(n: number) {
   return n.toLocaleString('it-IT', { style: 'currency', currency: 'EUR', minimumFractionDigits: 2 })
 }
@@ -181,6 +194,8 @@ function RecipesPageInner() {
     }
     return map
   }, [filteredDishes])
+
+  const sortedCats = useMemo(() => Array.from(groupedDishes.keys()).sort(), [groupedDishes])
 
   useEffect(() => {
     if (dishes.length > 0) {
@@ -385,30 +400,32 @@ function RecipesPageInner() {
 
           {/* Categorie e piatti */}
           <div className="space-y-3">
-            {Array.from(groupedDishes.entries()).map(([cat, catDishes]) => {
+            {sortedCats.map((cat, catIdx) => {
+              const catDishes = groupedDishes.get(cat) ?? []
               const isCatCollapsed = collapsedCats.has(cat)
               const catWithRecipe = catDishes.filter((d) => dishesWithRecipe.has(d.name)).length
+              const c = CAT_COLORS[catIdx % CAT_COLORS.length]
               return (
                 <div key={cat}>
                   {/* Header categoria */}
                   <button
-                    className="w-full flex items-center gap-3 px-4 py-3 bg-white border border-slate-200 rounded-xl shadow-sm hover:border-blue-200 hover:bg-blue-50/30 transition-all cursor-pointer group"
+                    className={`w-full flex items-center gap-3 px-4 py-3 ${c.bg} border ${c.border} rounded-xl shadow-sm hover:brightness-95 transition-all cursor-pointer`}
                     onClick={() => setCollapsedCats((prev) => {
                       const next = new Set(prev)
                       if (next.has(cat)) next.delete(cat); else next.add(cat)
                       return next
                     })}
                   >
-                    <div className="w-2 h-2 rounded-full bg-blue-500 shrink-0" />
+                    <div className={`w-2 h-2 rounded-full ${c.dot} shrink-0`} />
                     <div className="flex-1 text-left">
-                      <span className="text-sm font-semibold text-slate-700">{cat}</span>
-                      <span className="ml-2 text-xs text-slate-400">
+                      <span className={`text-sm font-semibold ${c.text}`}>{cat}</span>
+                      <span className="ml-2 text-xs text-slate-500">
                         {catDishes.length} piatti{catWithRecipe > 0 ? ` · ${catWithRecipe} con ricetta` : ''}
                       </span>
                     </div>
                     <ChevronDown
                       size={15}
-                      className={`text-slate-400 transition-transform duration-200 ${isCatCollapsed ? '' : 'rotate-180'}`}
+                      className={`${c.text} transition-transform duration-200 ${isCatCollapsed ? '' : 'rotate-180'}`}
                     />
                   </button>
 
