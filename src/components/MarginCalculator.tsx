@@ -285,6 +285,12 @@ export function MarginCalculator() {
     [dishRows]
   )
 
+  // Piatti nel calcolatore senza ricetta configurata in recipe_items
+  const dishesWithoutRecipe = useMemo(() =>
+    dishRows.filter((d) => !recipeLines.some((l) => l.dish_name === d.dishName)),
+    [dishRows, recipeLines]
+  )
+
   // Aggrega ingredienti di tutti i piatti selezionati (qtà × porzioni)
   const aggregatedIngredients = useMemo(() => {
     const map = new Map<string, { name: string; totalQty: number; unit: string; totalCost: number }>()
@@ -598,6 +604,29 @@ export function MarginCalculator() {
                   </tr>
                 </tbody>
               </table>
+            </div>
+          </div>
+        )}
+
+        {/* Piatti senza ricetta */}
+        {dishesWithoutRecipe.length > 0 && (
+          <div className="bg-amber-50 border border-amber-200 rounded-xl overflow-hidden">
+            <div className="px-5 py-3 border-b border-amber-200 flex items-center gap-2.5">
+              <div className="w-7 h-7 bg-amber-200 rounded-lg flex items-center justify-center shrink-0">
+                <span className="text-amber-700 text-xs font-bold">!</span>
+              </div>
+              <div>
+                <h2 className="text-sm font-semibold text-amber-800">Piatti da completare in Food Cost</h2>
+                <p className="text-[11px] text-amber-600">Questi piatti non hanno ingredienti configurati — il costo è stimato</p>
+              </div>
+            </div>
+            <div className="px-5 py-3 space-y-1.5">
+              {dishesWithoutRecipe.map((d) => (
+                <div key={d.id} className="flex items-center justify-between text-xs">
+                  <span className="font-medium text-amber-900">{d.dishName}</span>
+                  <span className="text-amber-600">× {d.quantity} — vai su Food Cost e aggiungi gli ingredienti</span>
+                </div>
+              ))}
             </div>
           </div>
         )}
