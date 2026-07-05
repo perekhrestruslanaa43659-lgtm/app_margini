@@ -231,32 +231,26 @@ export function MarginCalculator() {
 
     const suggestions: ConversionSuggestion[] = []
 
-    // Cerca spillatore corrispondente
-    const spillDish = catalog.find(c =>
-      (c.category === 'Spillatori') &&
-      getBeerBase(c.name).toLowerCase() === beerBase.toLowerCase()
-    )
+    // Cerca spillatore: prima match esatto per nome, poi qualsiasi spillatore del catalogo
+    const spillDish =
+      catalog.find(c => c.category === 'Spillatori' && getBeerBase(c.name).toLowerCase() === beerBase.toLowerCase()) ??
+      catalog.find(c => c.category === 'Spillatori')
     if (spillDish && dish.quantity >= spillQty) {
       const nSpill = Math.floor(dish.quantity / spillQty)
       const revenueSpill = nSpill * spillDish.unit_price
       const revenueBirre = nSpill * spillQty * singlePrice
-      if (revenueSpill > revenueBirre) {
-        suggestions.push({ type: 'spillatore', convertQty: nSpill * spillQty, nContainers: nSpill, containerDish: spillDish, revenueGain: revenueSpill - revenueBirre })
-      }
+      suggestions.push({ type: 'spillatore', convertQty: nSpill * spillQty, nContainers: nSpill, containerDish: spillDish, revenueGain: revenueSpill - revenueBirre })
     }
 
-    // Cerca caraffa corrispondente
-    const caraffaDish = catalog.find(c =>
-      (c.category === 'Caraffe') &&
-      getBeerBase(c.name).toLowerCase() === beerBase.toLowerCase()
-    )
+    // Cerca caraffa: prima match esatto per nome, poi qualsiasi caraffa del catalogo
+    const caraffaDish =
+      catalog.find(c => c.category === 'Caraffe' && getBeerBase(c.name).toLowerCase() === beerBase.toLowerCase()) ??
+      catalog.find(c => c.category === 'Caraffe')
     if (caraffaDish && dish.quantity >= caraffaQty) {
       const nCaraffe = Math.floor(dish.quantity / caraffaQty)
       const revenueCaraffe = nCaraffe * caraffaDish.unit_price
       const revenueBirre = nCaraffe * caraffaQty * singlePrice
-      if (revenueCaraffe > revenueBirre) {
-        suggestions.push({ type: 'caraffa', convertQty: nCaraffe * caraffaQty, nContainers: nCaraffe, containerDish: caraffaDish, revenueGain: revenueCaraffe - revenueBirre })
-      }
+      suggestions.push({ type: 'caraffa', convertQty: nCaraffe * caraffaQty, nContainers: nCaraffe, containerDish: caraffaDish, revenueGain: revenueCaraffe - revenueBirre })
     }
 
     return suggestions
@@ -429,17 +423,21 @@ export function MarginCalculator() {
                           <div className="flex items-center gap-1.5 flex-wrap">
                             {cat && <span className={`inline-block text-[9px] font-semibold px-1.5 py-0.5 rounded-full border ${colorClass}`}>{cat}</span>}
                             {d.dishName}
-                            {conversions.map((s) => (
-                              <button
-                                key={s.type}
-                                onClick={() => applyConversion(d, s)}
-                                title={`Converti ${s.convertQty} birre in ${s.nContainers} ${s.type} → +${formatCurrency(s.revenueGain)}`}
-                                className="inline-flex items-center gap-1 text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200 hover:bg-emerald-200 transition cursor-pointer"
-                              >
-                                <ArrowRightLeft size={8} />
-                                {s.nContainers} {s.type} +{formatCurrency(s.revenueGain)}
-                              </button>
-                            ))}
+                            {conversions.map((s) => {
+                              const gain = s.revenueGain
+                              const positive = gain >= 0
+                              return (
+                                <button
+                                  key={s.type}
+                                  onClick={() => applyConversion(d, s)}
+                                  title={`Converti ${s.convertQty} birre in ${s.nContainers} ${s.type} (${positive ? '+' : ''}${formatCurrency(gain)} ricavi)`}
+                                  className={`inline-flex items-center gap-1 text-[9px] font-semibold px-1.5 py-0.5 rounded-full border transition cursor-pointer ${positive ? 'bg-emerald-100 text-emerald-700 border-emerald-200 hover:bg-emerald-200' : 'bg-amber-100 text-amber-700 border-amber-200 hover:bg-amber-200'}`}
+                                >
+                                  <ArrowRightLeft size={8} />
+                                  {s.nContainers} {s.type} {positive ? '+' : ''}{formatCurrency(gain)}
+                                </button>
+                              )
+                            })}
                           </div>
                         </td>
                         <td className="py-2 text-right">
