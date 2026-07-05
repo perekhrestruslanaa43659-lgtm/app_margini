@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useMemo, useEffect } from 'react'
-import { Plus, Trash2, TrendingUp, TrendingDown, Minus, Search, Loader2, ChevronDown, ScanLine, RotateCcw, Package } from 'lucide-react'
+import { Plus, Trash2, TrendingUp, TrendingDown, Minus, Search, Loader2, ChevronDown, ScanLine, RotateCcw, Package, ArrowRightLeft } from 'lucide-react'
 import { computeMargin, formatCurrency, formatPct, marginColor } from '@/lib/margin'
 import { createClient } from '@/lib/supabase/client'
 import type { EventItem, ItemType } from '@/lib/supabase/types'
@@ -201,6 +201,80 @@ export function MarginCalculator() {
     [catalog, search]
   )
 
+  // Estrae il nome della birra rimuovendo il prefisso (es. "0.4 Sexy IPA" → "Sexy IPA")
+  function getBeerBase(name: string): string {
+    return name.replace(/^(0\.[0-9]+|spill|caraffa)\s+/i, '').trim()
+  }
+
+  // Per ogni riga birra, calcola suggerimenti di conversione
+  type ConversionSuggestion = {
+    type: 'spillatore' | 'caraffa'
+    convertQty: number       // quante birre convertire
+    nContainers: number      // quanti spillatori/caraffe
+    containerDish: CatalogDish
+    revenueGain: number      // guadagno in € rispetto alle birre singole
+  }
+
+  function getConversions(dish: DishRow): ConversionSuggestion[] {
+    const isMedie = dish.dishName.startsWith('0.4 ') || (catalog.find(c => c.name === dish.dishName)?.category === 'Birre Medie')
+    const isPiccole = dish.dishName.startsWith('0.2 ') || (catalog.find(c => c.name === dish.dishName)?.category === 'Birre Piccole')
+    if (!isMedie && !isPiccole) return []
+
+    const beerBase = getBeerBase(dish.dishName)
+    const singlePrice = dish.sellingPrice
+    // Medie: 5 → spillatore (2L), 4 → caraffa (1.5L approssimato a 4 medie)
+    // Piccole: 10 → spillatore, 8 → caraffa
+    const spillQty = isMedie ? 5 : 10
+    const caraffaQty = isMedie ? 4 : 8
+
+    const suggestions: ConversionSuggestion[] = []
+
+    // Cerca spillatore corrispondente
+    const spillDish = catalog.find(c =>
+      (c.category === 'Spillatori') &&
+      getBeerBase(c.name).toLowerCase() === beerBase.toLowerCase()
+    )
+    if (spillDish && dish.quantity >= spillQty) {
+      const nSpill = Math.floor(dish.quantity / spillQty)
+      const revenueSpill = nSpill * spillDish.unit_price
+      const revenueBirre = nSpill * spillQty * singlePrice
+      if (revenueSpill > revenueBirre) {
+        suggestions.push({ type: 'spillatore', convertQty: nSpill * spillQty, nContainers: nSpill, containerDish: spillDish, revenueGain: revenueSpill - revenueBirre })
+      }
+    }
+
+    // Cerca caraffa corrispondente
+    const caraffaDish = catalog.find(c =>
+      (c.category === 'Caraffe') &&
+      getBeerBase(c.name).toLowerCase() === beerBase.toLowerCase()
+    )
+    if (caraffaDish && dish.quantity >= caraffaQty) {
+      const nCaraffe = Math.floor(dish.quantity / caraffaQty)
+      const revenueCaraffe = nCaraffe * caraffaDish.unit_price
+      const revenueBirre = nCaraffe * caraffaQty * singlePrice
+      if (revenueCaraffe > revenueBirre) {
+        suggestions.push({ type: 'caraffa', convertQty: nCaraffe * caraffaQty, nContainers: nCaraffe, containerDish: caraffaDish, revenueGain: revenueCaraffe - revenueBirre })
+      }
+    }
+
+    return suggestions
+  }
+
+  function applyConversion(dish: DishRow, s: ConversionSuggestion) {
+    const remaining = dish.quantity - s.convertQty
+    // Aggiunge i contenitori come nuove righe
+    setDishRows((prev) => {
+      const updated = prev.map((r) =>
+        r.id === dish.id ? { ...r, quantity: remaining } : r
+      ).filter((r) => r.quantity > 0)
+      const existing = updated.find((r) => r.dishName === s.containerDish.name)
+      if (existing) {
+        return updated.map((r) => r.dishName === s.containerDish.name ? { ...r, quantity: r.quantity + s.nContainers } : r)
+      }
+      return [...updated, { id: uid(), dishName: s.containerDish.name, sellingPrice: s.containerDish.unit_price, foodCost: foodCosts[s.containerDish.name] ?? 0, quantity: s.nContainers }]
+    })
+  }
+
   const totalFoodCost = useMemo(() =>
     dishRows.reduce((sum, d) => sum + d.foodCost * d.quantity, 0),
     [dishRows]
@@ -330,12 +404,24 @@ export function MarginCalculator() {
                     const allCats = Array.from(new Set(catalog.map((c) => c.category ?? ''))).sort()
                     const colorClass = CAT_COLORS[allCats.indexOf(cat ?? '') % CAT_COLORS.length] ?? CAT_COLORS[idx % CAT_COLORS.length]
                     const [bgColor] = colorClass.split(' ')
+                    const conversions = getConversions(d)
                     return (
                       <tr key={d.id} className={`group ${bgColor}/30`}>
                         <td className="py-2 font-medium text-slate-700">
-                          <div className="flex items-center gap-1.5">
+                          <div className="flex items-center gap-1.5 flex-wrap">
                             {cat && <span className={`inline-block text-[9px] font-semibold px-1.5 py-0.5 rounded-full border ${colorClass}`}>{cat}</span>}
                             {d.dishName}
+                            {conversions.map((s) => (
+                              <button
+                                key={s.type}
+                                onClick={() => applyConversion(d, s)}
+                                title={`Converti ${s.convertQty} birre in ${s.nContainers} ${s.type} → +${formatCurrency(s.revenueGain)}`}
+                                className="inline-flex items-center gap-1 text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200 hover:bg-emerald-200 transition cursor-pointer"
+                              >
+                                <ArrowRightLeft size={8} />
+                                {s.nContainers} {s.type} +{formatCurrency(s.revenueGain)}
+                              </button>
+                            ))}
                           </div>
                         </td>
                         <td className="py-2 text-right">
