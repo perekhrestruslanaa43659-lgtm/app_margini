@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useMemo, useEffect } from 'react'
-import { Plus, Trash2, TrendingUp, TrendingDown, Minus, Search, Loader2, ChevronDown, ScanLine, RotateCcw } from 'lucide-react'
+import { Plus, Trash2, TrendingUp, TrendingDown, Minus, Search, Loader2, ChevronDown, ScanLine, RotateCcw, Package } from 'lucide-react'
 import { computeMargin, formatCurrency, formatPct, marginColor } from '@/lib/margin'
 import { createClient } from '@/lib/supabase/client'
 import type { EventItem, ItemType } from '@/lib/supabase/types'
@@ -27,7 +27,21 @@ interface ManualRow {
 
 type CatalogDish = { name: string; unit_price: number; category: string | null }
 
+// Ingredienti per piatto (caricati al mount)
+type RecipeLine = { dish_name: string; quantity: number; unit: string; ingredient_name: string; cost_per_unit: number }
+
 function uid() { return Math.random().toString(36).slice(2) }
+
+const CAT_COLORS = [
+  'bg-blue-50 border-blue-200 text-blue-800',
+  'bg-emerald-50 border-emerald-200 text-emerald-800',
+  'bg-violet-50 border-violet-200 text-violet-800',
+  'bg-amber-50 border-amber-200 text-amber-800',
+  'bg-rose-50 border-rose-200 text-rose-800',
+  'bg-cyan-50 border-cyan-200 text-cyan-800',
+  'bg-orange-50 border-orange-200 text-orange-800',
+  'bg-teal-50 border-teal-200 text-teal-800',
+]
 
 const STORAGE_KEY = 'margin_calculator_state'
 
@@ -49,6 +63,7 @@ export function MarginCalculator() {
   const [catalog, setCatalog] = useState<CatalogDish[]>([])
   // Food cost per piatto { dishName -> costo porzione }
   const [foodCosts, setFoodCosts] = useState<Record<string, number>>({})
+  const [recipeLines, setRecipeLines] = useState<RecipeLine[]>([])
   const [loadingCatalog, setLoadingCatalog] = useState(true)
 
   // Righe piatti selezionati
@@ -78,22 +93,25 @@ export function MarginCalculator() {
         (sb as unknown as { from: (t: string) => { select: (s: string) => { order: (f: string) => Promise<{ data: unknown[] | null }> } } })
           .from('catalog_items').select('name, unit_price, category').order('name'),
         (sb as unknown as { from: (t: string) => { select: (s: string) => Promise<{ data: unknown[] | null }> } })
-          .from('recipe_items').select('dish_name, quantity, ingredient:ingredients(cost_per_unit, unit)'),
+          .from('recipe_items').select('dish_name, quantity, ingredient:ingredients(name, cost_per_unit, unit)'),
       ])
 
       setCatalog((catData ?? []) as CatalogDish[])
 
-      // Calcola food cost per piatto
+      // Calcola food cost per piatto e salva recipe lines
       const costs: Record<string, number> = {}
-      for (const row of (recipeData ?? []) as { dish_name: string; quantity: number; ingredient: { cost_per_unit: number; unit: string } | null }[]) {
+      const lines: RecipeLine[] = []
+      for (const row of (recipeData ?? []) as { dish_name: string; quantity: number; ingredient: { name: string; cost_per_unit: number; unit: string } | null }[]) {
         const ing = row.ingredient
         if (!ing) continue
         const lineCost = ing.unit === 'g' || ing.unit === 'ml'
           ? (row.quantity / 1000) * ing.cost_per_unit
           : row.quantity * ing.cost_per_unit
         costs[row.dish_name] = (costs[row.dish_name] ?? 0) + lineCost
+        lines.push({ dish_name: row.dish_name, quantity: row.quantity, unit: ing.unit, ingredient_name: ing.name, cost_per_unit: ing.cost_per_unit })
       }
       setFoodCosts(costs)
+      setRecipeLines(lines)
       setLoadingCatalog(false)
     }
     load()
@@ -193,6 +211,28 @@ export function MarginCalculator() {
     [dishRows]
   )
 
+  // Aggrega ingredienti di tutti i piatti selezionati (qtà × porzioni)
+  const aggregatedIngredients = useMemo(() => {
+    const map = new Map<string, { name: string; totalQty: number; unit: string; totalCost: number }>()
+    for (const dish of dishRows) {
+      const lines = recipeLines.filter((l) => l.dish_name === dish.dishName)
+      for (const line of lines) {
+        const qty = line.quantity * dish.quantity
+        const cost = (line.unit === 'g' || line.unit === 'ml')
+          ? (line.quantity / 1000) * line.cost_per_unit * dish.quantity
+          : line.quantity * line.cost_per_unit * dish.quantity
+        const existing = map.get(line.ingredient_name)
+        if (existing) {
+          existing.totalQty += qty
+          existing.totalCost += cost
+        } else {
+          map.set(line.ingredient_name, { name: line.ingredient_name, totalQty: qty, unit: line.unit, totalCost: cost })
+        }
+      }
+    }
+    return Array.from(map.values()).sort((a, b) => b.totalCost - a.totalCost)
+  }, [dishRows, recipeLines])
+
   return (
     <>
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -282,12 +322,22 @@ export function MarginCalculator() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50">
-                  {dishRows.map((d) => {
+                  {dishRows.map((d, idx) => {
                     const margin = (d.sellingPrice - d.foodCost) * d.quantity
                     const pct = d.sellingPrice > 0 ? ((d.sellingPrice - d.foodCost) / d.sellingPrice) * 100 : 0
+                    const catIdx = catalog.findIndex((c) => c.name === d.dishName)
+                    const cat = catIdx >= 0 ? catalog[catIdx].category : null
+                    const allCats = Array.from(new Set(catalog.map((c) => c.category ?? ''))).sort()
+                    const colorClass = CAT_COLORS[allCats.indexOf(cat ?? '') % CAT_COLORS.length] ?? CAT_COLORS[idx % CAT_COLORS.length]
+                    const [bgColor] = colorClass.split(' ')
                     return (
-                      <tr key={d.id} className="group">
-                        <td className="py-2 font-medium text-slate-700">{d.dishName}</td>
+                      <tr key={d.id} className={`group ${bgColor}/30`}>
+                        <td className="py-2 font-medium text-slate-700">
+                          <div className="flex items-center gap-1.5">
+                            {cat && <span className={`inline-block text-[9px] font-semibold px-1.5 py-0.5 rounded-full border ${colorClass}`}>{cat}</span>}
+                            {d.dishName}
+                          </div>
+                        </td>
                         <td className="py-2 text-right">
                           <input
                             type="number"
@@ -394,6 +444,47 @@ export function MarginCalculator() {
             <p className="text-xs text-slate-400 text-center py-5">Nessuna voce extra — aggiungi costi fissi o ricavi aggiuntivi</p>
           )}
         </div>
+
+        {/* Lista ingredienti aggregata */}
+        {aggregatedIngredients.length > 0 && (
+          <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+            <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2.5">
+              <div className="w-7 h-7 bg-amber-100 rounded-lg flex items-center justify-center">
+                <Package size={13} className="text-amber-600" />
+              </div>
+              <h2 className="text-sm font-semibold text-slate-700">Ingredienti necessari</h2>
+              <span className="ml-auto text-xs text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">{aggregatedIngredients.length} voci</span>
+            </div>
+            <div className="px-5 py-3">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="text-slate-400 border-b border-slate-100">
+                    <th className="text-left py-2 font-medium uppercase tracking-wide text-[10px]">Ingrediente</th>
+                    <th className="text-right py-2 font-medium uppercase tracking-wide text-[10px] w-24">Quantità</th>
+                    <th className="text-right py-2 font-medium uppercase tracking-wide text-[10px] w-24">Costo tot.</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-50">
+                  {aggregatedIngredients.map((ing) => (
+                    <tr key={ing.name} className="hover:bg-slate-50">
+                      <td className="py-2 font-medium text-slate-700">{ing.name}</td>
+                      <td className="py-2 text-right text-slate-600">
+                        {ing.totalQty % 1 === 0 ? ing.totalQty : ing.totalQty.toFixed(2)} {ing.unit}
+                      </td>
+                      <td className="py-2 text-right font-semibold text-red-500">
+                        {ing.totalCost > 0 ? formatCurrency(ing.totalCost) : <span className="text-slate-300">—</span>}
+                      </td>
+                    </tr>
+                  ))}
+                  <tr className="border-t border-slate-200 bg-slate-50">
+                    <td className="py-2 font-semibold text-slate-600 uppercase tracking-wide text-[10px]" colSpan={2}>Totale food cost ingredienti</td>
+                    <td className="py-2 text-right font-bold text-red-600">{formatCurrency(aggregatedIngredients.reduce((s, i) => s + i.totalCost, 0))}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
 
         {/* Ospiti + Sconto */}
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm px-5 py-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
