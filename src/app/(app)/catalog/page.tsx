@@ -11,6 +11,19 @@ import { SetupBanner } from '@/components/ui/SetupBanner'
 
 const VAT_OPTIONS = [0, 4, 10, 22]
 
+const CAT_COLORS = [
+  { bg: 'bg-blue-50', text: 'text-blue-800', badge: 'bg-blue-100 text-blue-600', border: 'border-blue-100' },
+  { bg: 'bg-emerald-50', text: 'text-emerald-800', badge: 'bg-emerald-100 text-emerald-600', border: 'border-emerald-100' },
+  { bg: 'bg-violet-50', text: 'text-violet-800', badge: 'bg-violet-100 text-violet-600', border: 'border-violet-100' },
+  { bg: 'bg-amber-50', text: 'text-amber-800', badge: 'bg-amber-100 text-amber-600', border: 'border-amber-100' },
+  { bg: 'bg-rose-50', text: 'text-rose-800', badge: 'bg-rose-100 text-rose-600', border: 'border-rose-100' },
+  { bg: 'bg-cyan-50', text: 'text-cyan-800', badge: 'bg-cyan-100 text-cyan-600', border: 'border-cyan-100' },
+  { bg: 'bg-orange-50', text: 'text-orange-800', badge: 'bg-orange-100 text-orange-600', border: 'border-orange-100' },
+  { bg: 'bg-teal-50', text: 'text-teal-800', badge: 'bg-teal-100 text-teal-600', border: 'border-teal-100' },
+  { bg: 'bg-pink-50', text: 'text-pink-800', badge: 'bg-pink-100 text-pink-600', border: 'border-pink-100' },
+  { bg: 'bg-indigo-50', text: 'text-indigo-800', badge: 'bg-indigo-100 text-indigo-600', border: 'border-indigo-100' },
+]
+
 interface EditState {
   type: ItemType
   category: string
@@ -476,29 +489,30 @@ function CatalogPageInner() {
       ) : (
         /* Grouped by category with collapsible headers */
         <div className="space-y-2">
-          {sortedCats.map((cat) => {
+          {sortedCats.map((cat, catIdx) => {
             const catItems = grouped.get(cat) ?? []
             const isCollapsed = collapsedCats.has(cat)
+            const c = CAT_COLORS[catIdx % CAT_COLORS.length]
             return (
               <div key={cat} className="card p-0 overflow-hidden">
                 {/* Category header */}
                 <button
-                  className="w-full flex items-center justify-between px-4 py-3 bg-white hover:bg-slate-50 transition-colors"
+                  className={`w-full flex items-center justify-between px-4 py-3 ${c.bg} hover:brightness-95 transition-all`}
                   onClick={() => toggleCat(cat)}
                 >
                   <div className="flex items-center gap-3">
-                    <span className="font-semibold text-slate-700">{cat}</span>
-                    <span className="text-xs bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full font-medium">{catItems.length}</span>
+                    <span className={`font-semibold ${c.text}`}>{cat}</span>
+                    <span className={`text-xs ${c.badge} px-2 py-0.5 rounded-full font-medium`}>{catItems.length}</span>
                   </div>
                   {isCollapsed
-                    ? <ChevronDown size={16} className="text-slate-400" />
-                    : <ChevronUp size={16} className="text-slate-400" />
+                    ? <ChevronDown size={16} className={c.text} />
+                    : <ChevronUp size={16} className={c.text} />
                   }
                 </button>
 
                 {/* Category items */}
                 {!isCollapsed && (
-                  <div className="overflow-x-auto border-t border-slate-100">
+                  <div className={`overflow-x-auto border-t ${c.border}`}>
                     <table className="w-full text-sm">
                       {TABLE_HEAD}
                       <tbody className="divide-y divide-slate-50">
