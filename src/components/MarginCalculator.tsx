@@ -394,28 +394,31 @@ export function MarginCalculator() {
                 <thead>
                   <tr className="text-slate-400 border-b border-slate-100">
                     <th className="text-left py-2 font-medium uppercase tracking-wide text-[10px]">Piatto</th>
-                    <th className="text-right py-2 font-medium uppercase tracking-wide text-[10px] w-20">Qtà</th>
-                    <th className="text-right py-2 font-medium uppercase tracking-wide text-[10px] w-24">Prezzo</th>
-                    <th className="text-right py-2 font-medium uppercase tracking-wide text-[10px] w-24">
-                      <span>Food Cost</span>
+                    <th className="text-center py-2 font-medium uppercase tracking-wide text-[10px] w-16">Qtà</th>
+                    <th className="text-right py-2 font-medium uppercase tracking-wide text-[10px]">
+                      <span className="text-emerald-600">Ricavi</span>
+                      <span className="mx-1 text-slate-300">/</span>
+                      <span className="text-red-400">Costi</span>
                       {dishRows.some((r) => r.foodCost === 0) && (
                         <button
                           onClick={fillMissingCosts}
-                          className="ml-1.5 text-[9px] bg-amber-100 text-amber-700 hover:bg-amber-200 rounded px-1 py-0.5 font-medium normal-case tracking-normal transition"
+                          className="ml-2 text-[9px] bg-amber-100 text-amber-700 hover:bg-amber-200 rounded px-1.5 py-0.5 font-medium normal-case tracking-normal transition"
                           title="Compila i costi mancanti usando il prezzo di vendita"
                         >
-                          Compila
+                          Compila costi
                         </button>
                       )}
                     </th>
-                    <th className="text-right py-2 font-medium uppercase tracking-wide text-[10px] w-24">Margine</th>
+                    <th className="text-right py-2 font-medium uppercase tracking-wide text-[10px] w-28">Margine</th>
                     <th className="w-6" />
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-50">
+                <tbody className="divide-y divide-slate-100">
                   {dishRows.map((d, idx) => {
                     const effectiveCost = d.foodCost > 0 ? d.foodCost : d.sellingPrice
-                    const margin = (d.sellingPrice - effectiveCost) * d.quantity
+                    const totalRevenue = d.sellingPrice * d.quantity
+                    const totalCost = effectiveCost * d.quantity
+                    const margin = totalRevenue - totalCost
                     const pct = d.sellingPrice > 0 ? ((d.sellingPrice - effectiveCost) / d.sellingPrice) * 100 : 0
                     const catIdx = catalog.findIndex((c) => c.name === d.dishName)
                     const cat = catIdx >= 0 ? catalog[catIdx].category : null
@@ -423,61 +426,77 @@ export function MarginCalculator() {
                     const colorClass = CAT_COLORS[allCats.indexOf(cat ?? '') % CAT_COLORS.length] ?? CAT_COLORS[idx % CAT_COLORS.length]
                     const [bgColor] = colorClass.split(' ')
                     const conversions = getConversions(d)
+                    const marginColor = pct >= 40 ? 'text-emerald-600' : pct >= 20 ? 'text-amber-500' : 'text-red-500'
+                    const barColor = pct >= 40 ? 'bg-emerald-400' : pct >= 20 ? 'bg-amber-400' : 'bg-red-400'
+                    const isEstimated = d.foodCost === 0
                     return (
-                      <tr key={d.id} className={`group ${bgColor}/30`}>
-                        <td className="py-2 font-medium text-slate-700">
-                          <div className="flex items-center gap-1.5 flex-wrap">
-                            {cat && <span className={`inline-block text-[9px] font-semibold px-1.5 py-0.5 rounded-full border ${colorClass}`}>{cat}</span>}
-                            {d.dishName}
-                            {conversions.map((s) => {
-                              const gain = s.revenueGain
-                              const positive = gain >= 0
-                              return (
-                                <button
-                                  key={s.type}
-                                  onClick={() => applyConversion(d, s)}
-                                  title={`Converti ${s.convertQty} birre in ${s.nContainers} ${s.type} (${positive ? '+' : ''}${formatCurrency(gain)} ricavi)`}
-                                  className={`inline-flex items-center gap-1 text-[9px] font-semibold px-1.5 py-0.5 rounded-full border transition cursor-pointer ${positive ? 'bg-emerald-100 text-emerald-700 border-emerald-200 hover:bg-emerald-200' : 'bg-amber-100 text-amber-700 border-amber-200 hover:bg-amber-200'}`}
-                                >
-                                  <ArrowRightLeft size={8} />
-                                  {s.nContainers} {s.type} {positive ? '+' : ''}{formatCurrency(gain)}
-                                </button>
-                              )
-                            })}
+                      <tr key={d.id} className={`group ${bgColor}/20`}>
+                        {/* Nome piatto */}
+                        <td className="py-3 font-medium text-slate-700">
+                          <div className="flex flex-col gap-1">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              {cat && <span className={`inline-block text-[9px] font-semibold px-1.5 py-0.5 rounded-full border ${colorClass}`}>{cat}</span>}
+                              <span className="text-sm">{d.dishName}</span>
+                            </div>
+                            {conversions.length > 0 && (
+                              <div className="flex gap-1 flex-wrap">
+                                {conversions.map((s) => {
+                                  const gain = s.revenueGain
+                                  const positive = gain >= 0
+                                  return (
+                                    <button
+                                      key={s.type}
+                                      onClick={() => applyConversion(d, s)}
+                                      title={`Converti ${s.convertQty} birre in ${s.nContainers} ${s.type}`}
+                                      className={`inline-flex items-center gap-1 text-[9px] font-semibold px-1.5 py-0.5 rounded-full border transition cursor-pointer ${positive ? 'bg-emerald-100 text-emerald-700 border-emerald-200 hover:bg-emerald-200' : 'bg-amber-100 text-amber-700 border-amber-200 hover:bg-amber-200'}`}
+                                    >
+                                      <ArrowRightLeft size={8} />
+                                      {s.nContainers} {s.type} {positive ? '+' : ''}{formatCurrency(gain)}
+                                    </button>
+                                  )
+                                })}
+                              </div>
+                            )}
                           </div>
                         </td>
-                        <td className="py-2 text-right">
+                        {/* Qtà */}
+                        <td className="py-3 text-center">
                           <input
                             type="number"
                             min="1"
-                            className="w-16 h-7 px-2 rounded-lg border border-slate-200 text-xs text-right focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
+                            className="w-14 h-7 px-2 rounded-lg border border-slate-200 text-xs text-center focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
                             value={d.quantity}
                             onChange={(e) => updateDishQty(d.id, parseInt(e.target.value) || 1)}
                           />
                         </td>
-                        <td className="py-2 text-right text-emerald-600 font-semibold">{formatCurrency(d.sellingPrice * d.quantity)}</td>
-                        <td className="py-2 text-right">
-                          <div className="flex flex-col items-end">
-                            {d.foodCost > 0
-                              ? <span className="text-red-500 font-medium">{formatCurrency(d.foodCost * d.quantity)}</span>
-                              : <span className="text-slate-400 text-[10px]" title="Costo stimato = prezzo vendita">≈{formatCurrency(d.sellingPrice * d.quantity)}</span>
-                            }
-                            {d.quantity > 1 && (
-                              <span className="text-[9px] text-slate-400">
-                                @ {d.foodCost > 0 ? formatCurrency(d.foodCost) : `≈${formatCurrency(d.sellingPrice)}`}/pz
-                              </span>
-                            )}
+                        {/* Ricavi / Costi */}
+                        <td className="py-3">
+                          <div className="flex items-center justify-end gap-3">
+                            <div className="text-right">
+                              <div className="text-[10px] text-slate-400 uppercase tracking-wide">Ricavi</div>
+                              <div className="text-sm font-semibold text-emerald-600">{formatCurrency(totalRevenue)}</div>
+                              {d.quantity > 1 && <div className="text-[10px] text-slate-400">{formatCurrency(d.sellingPrice)}/pz</div>}
+                            </div>
+                            <div className="text-slate-300 text-lg font-light">−</div>
+                            <div className="text-right">
+                              <div className="text-[10px] text-slate-400 uppercase tracking-wide">{isEstimated ? 'Costo ≈' : 'Costo'}</div>
+                              <div className={`text-sm font-semibold ${isEstimated ? 'text-slate-400' : 'text-red-500'}`}>{formatCurrency(totalCost)}</div>
+                              {d.quantity > 1 && <div className="text-[10px] text-slate-400">{formatCurrency(effectiveCost)}/pz</div>}
+                            </div>
                           </div>
                         </td>
-                        <td className="py-2 text-right">
-                          <div className="flex flex-col items-end">
-                            <span className={`font-semibold ${pct >= 40 ? 'text-emerald-600' : pct >= 20 ? 'text-amber-500' : 'text-red-500'}`}>
-                              {formatCurrency(margin)}
-                            </span>
-                            <span className="text-[9px] text-slate-400">({pct.toFixed(0)}%) @ {formatCurrency(margin / d.quantity)}/pz</span>
+                        {/* Margine */}
+                        <td className="py-3 text-right w-28">
+                          <div className={`text-sm font-bold ${marginColor}`}>{formatCurrency(margin)}</div>
+                          <div className="flex items-center gap-1 mt-1 justify-end">
+                            <div className="w-16 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                              <div className={`h-full rounded-full ${barColor}`} style={{ width: `${Math.min(Math.abs(pct), 100)}%` }} />
+                            </div>
+                            <span className={`text-[10px] font-semibold ${marginColor}`}>{pct.toFixed(0)}%</span>
                           </div>
                         </td>
-                        <td className="py-2 text-right">
+                        {/* Elimina */}
+                        <td className="py-3 text-right">
                           <button onClick={() => removeDish(d.id)} className="text-slate-200 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all">
                             <Trash2 size={12} />
                           </button>
@@ -485,12 +504,21 @@ export function MarginCalculator() {
                       </tr>
                     )
                   })}
-                  <tr className="border-t border-slate-200 bg-slate-50">
-                    <td className="py-2 px-1 text-xs font-semibold text-slate-500 uppercase tracking-wide">Totale piatti</td>
+                  <tr className="border-t-2 border-slate-200 bg-slate-50">
+                    <td className="py-2.5 px-1 text-xs font-semibold text-slate-500 uppercase tracking-wide">Totale piatti</td>
                     <td />
-                    <td className="py-2 text-right text-xs font-bold text-emerald-600">{formatCurrency(totalRevenueDishes)}</td>
-                    <td className="py-2 text-right text-xs font-bold text-red-500">{formatCurrency(totalFoodCost)}</td>
-                    <td className="py-2 text-right text-xs font-bold text-slate-700">{formatCurrency(totalRevenueDishes - totalFoodCost)}</td>
+                    <td className="py-2.5 text-right">
+                      <div className="flex items-center justify-end gap-3">
+                        <div className="text-right">
+                          <div className="text-xs font-bold text-emerald-600">{formatCurrency(totalRevenueDishes)}</div>
+                        </div>
+                        <div className="text-slate-300">−</div>
+                        <div className="text-right">
+                          <div className="text-xs font-bold text-red-500">{formatCurrency(totalFoodCost)}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="py-2.5 text-right text-sm font-bold text-slate-700">{formatCurrency(totalRevenueDishes - totalFoodCost)}</td>
                     <td />
                   </tr>
                 </tbody>
