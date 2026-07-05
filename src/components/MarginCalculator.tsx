@@ -112,6 +112,8 @@ export function MarginCalculator() {
       }
       setFoodCosts(costs)
       setRecipeLines(lines)
+      // Aggiorna le righe già in stato (da localStorage) con i food cost freschi da DB
+      setDishRows((prev) => prev.map((r) => costs[r.dishName] !== undefined ? { ...r, foodCost: costs[r.dishName] } : r))
       setLoadingCatalog(false)
     }
     load()
