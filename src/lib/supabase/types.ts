@@ -1,6 +1,21 @@
 export type EventStatus = 'richiesta' | 'bozza' | 'confermato' | 'concluso' | 'annullato'
 export type ItemType = 'costo' | 'ricavo'
 
+export interface CompanySettings {
+  id: number
+  name: string | null
+  legal_name: string | null
+  address: string | null
+  vat_number: string | null
+  tax_code: string | null
+  email: string | null
+  phone: string | null
+  iban: string | null
+  bank_name: string | null
+  payment_terms: string | null
+  updated_at: string
+}
+
 export interface Event {
   id: string
   name: string
@@ -159,6 +174,12 @@ export type Database = {
         Row: CatalogItem
         Insert: Omit<CatalogItem, 'id' | 'created_at'>
         Update: Partial<Omit<CatalogItem, 'id' | 'created_at'>>
+        Relationships: []
+      }
+      company_settings: {
+        Row: CompanySettings
+        Insert: Partial<Omit<CompanySettings, 'updated_at'>>
+        Update: Partial<Omit<CompanySettings, 'id' | 'updated_at'>>
         Relationships: []
       }
     }

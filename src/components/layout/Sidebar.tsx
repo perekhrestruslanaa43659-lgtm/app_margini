@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { CalendarDays, LayoutDashboard, BookOpen, Calculator, Home, Menu, X, ShieldCheck, FlaskConical, LogOut } from 'lucide-react'
+import { CalendarDays, LayoutDashboard, BookOpen, Calculator, Home, Menu, X, ShieldCheck, FlaskConical, LogOut, Building2 } from 'lucide-react'
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 
@@ -14,6 +14,7 @@ const nav = [
   { href: '/allergens', label: 'Allergeni', icon: ShieldCheck },
   { href: '/recipes', label: 'Food Cost', icon: FlaskConical },
   { href: '/calculator', label: 'Calcolatrice', icon: Calculator },
+  { href: '/settings', label: 'Impostazioni', icon: Building2 },
 ]
 
 export function Sidebar() {

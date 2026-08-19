@@ -4,7 +4,7 @@ import { renderToBuffer } from '@react-pdf/renderer'
 import * as XLSX from 'xlsx'
 import type { Event, EventItem } from '@/lib/supabase/types'
 import { computeMargin, formatCurrency } from '@/lib/margin'
-import { COMPANY_INFO } from '@/lib/company'
+import { getCompanyInfo } from '@/lib/company'
 import { QuotePdfDocument } from '@/lib/pdf/QuotePdfDocument'
 
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
@@ -35,10 +35,11 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   const costs = items.filter((i) => i.type === 'costo')
   const summary = computeMargin(items, event.guests_count ?? 1)
   const fileBase = `preventivo-${event.name.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}`
+  const companyInfo = await getCompanyInfo()
 
   if (format === 'pdf') {
     const buffer = await renderToBuffer(
-      QuotePdfDocument({ event, revenues, totalRevenue: summary.totalRevenue })
+      QuotePdfDocument({ event, revenues, totalRevenue: summary.totalRevenue, companyInfo })
     )
     return new NextResponse(buffer as unknown as BodyInit, {
       headers: {
@@ -60,9 +61,9 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     ['Location', event.location ?? ''],
     ['N. ospiti', event.guests_count ?? ''],
     [],
-    ['Azienda', COMPANY_INFO.name],
-    ['IBAN', COMPANY_INFO.iban],
-    ['Condizioni di pagamento', COMPANY_INFO.paymentTerms],
+    ['Azienda', companyInfo.name],
+    ['IBAN', companyInfo.iban],
+    ['Condizioni di pagamento', companyInfo.paymentTerms],
   ])
   XLSX.utils.book_append_sheet(wb, infoSheet, 'Info')
 

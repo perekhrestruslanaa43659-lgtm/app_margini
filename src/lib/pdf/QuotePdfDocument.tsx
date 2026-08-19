@@ -1,7 +1,7 @@
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer'
 import type { Event, EventItem } from '@/lib/supabase/types'
 import { formatCurrency } from '@/lib/margin'
-import { COMPANY_INFO } from '@/lib/company'
+import type { CompanyInfo } from '@/lib/company'
 
 const INK = '#1A1A1A'
 const YELLOW = '#F5C518'
@@ -61,9 +61,10 @@ interface Props {
   event: Event
   revenues: EventItem[]
   totalRevenue: number
+  companyInfo: CompanyInfo
 }
 
-export function QuotePdfDocument({ event, revenues, totalRevenue }: Props) {
+export function QuotePdfDocument({ event, revenues, totalRevenue, companyInfo }: Props) {
   const vatByRate = new Map<number, number>()
   for (const r of revenues) {
     const net = r.quantity * r.unit_price
@@ -79,9 +80,9 @@ export function QuotePdfDocument({ event, revenues, totalRevenue }: Props) {
         <View style={styles.headerBand}>
           <View>
             <View style={styles.logoBadge}><Text style={styles.logoText}>DM</Text></View>
-            <Text style={styles.companyName}>{COMPANY_INFO.name}</Text>
-            {COMPANY_INFO.address ? <Text style={styles.small}>{COMPANY_INFO.address}</Text> : null}
-            {COMPANY_INFO.vatNumber ? <Text style={styles.small}>P.IVA {COMPANY_INFO.vatNumber}</Text> : null}
+            <Text style={styles.companyName}>{companyInfo.name}</Text>
+            {companyInfo.address ? <Text style={styles.small}>{companyInfo.address}</Text> : null}
+            {companyInfo.vatNumber ? <Text style={styles.small}>P.IVA {companyInfo.vatNumber}</Text> : null}
           </View>
           <View>
             <Text style={styles.docTitle}>PREVENTIVO</Text>
@@ -143,11 +144,11 @@ export function QuotePdfDocument({ event, revenues, totalRevenue }: Props) {
         </View>
 
         {/* Payment terms */}
-        {COMPANY_INFO.paymentTerms ? (
+        {companyInfo.paymentTerms ? (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Condizioni di pagamento</Text>
             <View style={styles.notesBox}>
-              <Text style={styles.notesText}>{COMPANY_INFO.paymentTerms}</Text>
+              <Text style={styles.notesText}>{companyInfo.paymentTerms}</Text>
             </View>
           </View>
         ) : null}
@@ -159,19 +160,19 @@ export function QuotePdfDocument({ event, revenues, totalRevenue }: Props) {
           <View style={styles.footerRow}>
             <View style={styles.footerCol}>
               <Text style={styles.footerLabel}>Ragione sociale</Text>
-              <Text style={styles.footerValue}>{COMPANY_INFO.legalName || COMPANY_INFO.name}</Text>
-              {COMPANY_INFO.taxCode ? <Text style={styles.footerValue}>CF {COMPANY_INFO.taxCode}</Text> : null}
+              <Text style={styles.footerValue}>{companyInfo.legalName || companyInfo.name}</Text>
+              {companyInfo.taxCode ? <Text style={styles.footerValue}>CF {companyInfo.taxCode}</Text> : null}
             </View>
             <View style={styles.footerCol}>
               <Text style={styles.footerLabel}>Contatti</Text>
-              {COMPANY_INFO.email ? <Text style={styles.footerValue}>{COMPANY_INFO.email}</Text> : null}
-              {COMPANY_INFO.phone ? <Text style={styles.footerValue}>{COMPANY_INFO.phone}</Text> : null}
+              {companyInfo.email ? <Text style={styles.footerValue}>{companyInfo.email}</Text> : null}
+              {companyInfo.phone ? <Text style={styles.footerValue}>{companyInfo.phone}</Text> : null}
             </View>
-            {COMPANY_INFO.iban ? (
+            {companyInfo.iban ? (
               <View style={styles.footerCol}>
                 <Text style={styles.footerLabel}>Coordinate bancarie</Text>
-                <Text style={styles.footerValue}>IBAN {COMPANY_INFO.iban}</Text>
-                {COMPANY_INFO.bankName ? <Text style={styles.footerValue}>{COMPANY_INFO.bankName}</Text> : null}
+                <Text style={styles.footerValue}>IBAN {companyInfo.iban}</Text>
+                {companyInfo.bankName ? <Text style={styles.footerValue}>{companyInfo.bankName}</Text> : null}
               </View>
             ) : null}
           </View>
