@@ -53,6 +53,8 @@ function NewEventPageInner() {
   const [clientEmail, setClientEmail] = useState('')
   const [clientPhone, setClientPhone] = useState('')
   const [eventDate, setEventDate] = useState('')
+  const [eventStartTime, setEventStartTime] = useState('')
+  const [eventEndTime, setEventEndTime] = useState('')
   const [location, setLocation] = useState('')
   const [guestsCount, setGuestsCount] = useState<number | ''>('')
   const [budgetMin, setBudgetMin] = useState<number | ''>('')
@@ -85,6 +87,8 @@ function NewEventPageInner() {
       client_email: clientEmail || null,
       client_phone: clientPhone || null,
       event_date: eventDate || null,
+      event_start_time: eventStartTime || null,
+      event_end_time: eventEndTime || null,
       location: location || null,
       guests_count: guestsCount !== '' ? Number(guestsCount) : null,
       budget_min: budgetMin !== '' ? Number(budgetMin) : null,
@@ -359,6 +363,16 @@ function NewEventPageInner() {
                 <div>
                   <label className="label">Data evento</label>
                   <input type="date" className="input" value={eventDate} onChange={(e) => setEventDate(e.target.value)} />
+                </div>
+                <div className="flex gap-2">
+                  <div className="flex-1">
+                    <label className="label">Ora inizio</label>
+                    <input type="time" className="input" value={eventStartTime} onChange={(e) => setEventStartTime(e.target.value)} />
+                  </div>
+                  <div className="flex-1">
+                    <label className="label">Ora fine</label>
+                    <input type="time" className="input" value={eventEndTime} onChange={(e) => setEventEndTime(e.target.value)} />
+                  </div>
                 </div>
                 <div>
                   <label className="label">Email cliente</label>

@@ -61,6 +61,8 @@ export interface Event {
   budget_max: number | null
   deposit_date: string | null
   room_id: string | null
+  event_start_time: string | null
+  event_end_time: string | null
   created_at: string
 }
 

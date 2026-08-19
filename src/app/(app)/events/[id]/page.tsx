@@ -8,6 +8,7 @@ import { createClient } from '@/lib/supabase/client'
 import { isSupabaseConfigured } from '@/lib/supabase/config'
 import type { Event, EventItem, MarginScenario, ScenarioOverride, EventStatus, CatalogItem, ItemType, Room, EventMenuCategory, EventMenuItem, MenuCategoryTemplate, MenuSelectionType } from '@/lib/supabase/types'
 import { computeMargin, formatCurrency } from '@/lib/margin'
+import { formatTimeRange } from '@/lib/timeOverlap'
 import { MarginBadge } from '@/components/ui/MarginBadge'
 import { MarginSummaryPanel } from '@/components/events/MarginSummaryPanel'
 import { ItemsTable } from '@/components/events/ItemsTable'
@@ -49,7 +50,7 @@ function EventDetailPageInner() {
   const [editingHeader, setEditingHeader] = useState(false)
   const [headerDraft, setHeaderDraft] = useState({
     name: '', client_name: '', client_email: '', client_phone: '',
-    event_date: '', location: '', guests_count: '',
+    event_date: '', event_start_time: '', event_end_time: '', location: '', guests_count: '',
   })
   const [savingHeader, setSavingHeader] = useState(false)
   const [noteText, setNoteText] = useState('')
@@ -205,6 +206,8 @@ function EventDetailPageInner() {
       client_email: event.client_email ?? '',
       client_phone: event.client_phone ?? '',
       event_date: event.event_date ?? '',
+      event_start_time: event.event_start_time ?? '',
+      event_end_time: event.event_end_time ?? '',
       location: event.location ?? '',
       guests_count: event.guests_count != null ? String(event.guests_count) : '',
     })
@@ -220,6 +223,8 @@ function EventDetailPageInner() {
       client_email: headerDraft.client_email.trim() || null,
       client_phone: headerDraft.client_phone.trim() || null,
       event_date: headerDraft.event_date || null,
+      event_start_time: headerDraft.event_start_time || null,
+      event_end_time: headerDraft.event_end_time || null,
       location: headerDraft.location.trim() || null,
       guests_count: headerDraft.guests_count ? Number(headerDraft.guests_count) : null,
     }
@@ -659,6 +664,26 @@ function EventDetailPageInner() {
                     onChange={(e) => setHeaderDraft((d) => ({ ...d, event_date: e.target.value }))}
                   />
                 </div>
+                <div className="flex gap-2">
+                  <div className="flex-1">
+                    <label className="label">Ora inizio</label>
+                    <input
+                      type="time"
+                      className="input py-1.5 text-sm"
+                      value={headerDraft.event_start_time}
+                      onChange={(e) => setHeaderDraft((d) => ({ ...d, event_start_time: e.target.value }))}
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <label className="label">Ora fine</label>
+                    <input
+                      type="time"
+                      className="input py-1.5 text-sm"
+                      value={headerDraft.event_end_time}
+                      onChange={(e) => setHeaderDraft((d) => ({ ...d, event_end_time: e.target.value }))}
+                    />
+                  </div>
+                </div>
                 <div>
                   <label className="label">Location</label>
                   <input
@@ -702,6 +727,9 @@ function EventDetailPageInner() {
               {event.client_email && <a href={`mailto:${event.client_email}`} className="text-dm-maroon hover:underline">· {event.client_email}</a>}
               {event.client_phone && <a href={`tel:${event.client_phone}`} className="hover:underline">· {event.client_phone}</a>}
               {event.event_date && <span>· {event.event_date}</span>}
+              {(event.event_start_time || event.event_end_time) && (
+                <span>· {formatTimeRange(event.event_start_time, event.event_end_time)}</span>
+              )}
               {event.location && <span>· {event.location}</span>}
               {event.guests_count && <span>· {event.guests_count} ospiti</span>}
               {(event.budget_min || event.budget_max) && (

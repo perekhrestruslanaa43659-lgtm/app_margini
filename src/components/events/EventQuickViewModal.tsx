@@ -2,12 +2,13 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { X, ArrowUpRight, CalendarDays, Users, MapPin, DoorOpen } from 'lucide-react'
+import { X, ArrowUpRight, CalendarDays, Users, MapPin, DoorOpen, Clock } from 'lucide-react'
 import { format } from 'date-fns'
 import { it } from 'date-fns/locale'
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import { MarginBadge } from '@/components/ui/MarginBadge'
 import { formatCurrency } from '@/lib/margin'
+import { formatTimeRange } from '@/lib/timeOverlap'
 import type { EventStatus, Room } from '@/lib/supabase/types'
 
 export interface QuickViewEvent {
@@ -16,6 +17,8 @@ export interface QuickViewEvent {
   client_name: string | null
   client_email: string | null
   event_date: string | null
+  event_start_time: string | null
+  event_end_time: string | null
   location: string | null
   guests_count: number | null
   status: EventStatus
@@ -71,6 +74,12 @@ export function EventQuickViewModal({ event, rooms, onClose, onUpdate }: Props) 
             <CalendarDays size={14} className="text-dm-wood shrink-0" />
             {event.event_date ? format(new Date(event.event_date), 'd MMMM yyyy', { locale: it }) : 'Data non impostata'}
           </div>
+          {(event.event_start_time || event.event_end_time) && (
+            <div className="flex items-center gap-2 text-sm text-slate-600">
+              <Clock size={14} className="text-dm-wood shrink-0" />
+              {formatTimeRange(event.event_start_time, event.event_end_time)}
+            </div>
+          )}
           {event.location && (
             <div className="flex items-center gap-2 text-sm text-slate-600">
               <MapPin size={14} className="text-dm-wood shrink-0" />
