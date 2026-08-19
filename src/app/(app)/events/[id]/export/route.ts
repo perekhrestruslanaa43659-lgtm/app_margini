@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { renderToBuffer } from '@react-pdf/renderer'
 import * as XLSX from 'xlsx'
-import type { Event, EventItem, Room } from '@/lib/supabase/types'
+import type { Event, EventItem, Room, EventMenuCategory, EventMenuItem } from '@/lib/supabase/types'
 import { computeMargin, formatCurrency } from '@/lib/margin'
 import { getCompanyInfo } from '@/lib/company'
 import { QuotePdfDocument } from '@/lib/pdf/QuotePdfDocument'
@@ -37,6 +37,18 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     roomName = (room as unknown as Room | null)?.name ?? null
   }
 
+  const { data: mc } = await supabase.from('event_menu_categories').select('*').eq('event_id', params.id).order('sort_order')
+  const menuCategories = (mc ?? []) as unknown as EventMenuCategory[]
+  let menuItems: EventMenuItem[] = []
+  if (menuCategories.length > 0) {
+    const { data: mi } = await supabase
+      .from('event_menu_items')
+      .select('*')
+      .in('category_id', menuCategories.map((c) => c.id))
+      .order('sort_order')
+    menuItems = (mi ?? []) as unknown as EventMenuItem[]
+  }
+
   const revenues = items.filter((i) => i.type === 'ricavo')
   const costs = items.filter((i) => i.type === 'costo')
   const summary = computeMargin(items, event.guests_count ?? 1)
@@ -45,7 +57,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 
   if (format === 'pdf') {
     const buffer = await renderToBuffer(
-      QuotePdfDocument({ event, revenues, totalRevenue: summary.totalRevenue, companyInfo, roomName })
+      QuotePdfDocument({ event, revenues, totalRevenue: summary.totalRevenue, companyInfo, roomName, menuCategories, menuItems })
     )
     return new NextResponse(buffer as unknown as BodyInit, {
       headers: {

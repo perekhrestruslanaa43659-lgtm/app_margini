@@ -1,10 +1,10 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Building2, Save, CheckCircle2, ShieldCheck, DoorOpen, Plus, Trash2 } from 'lucide-react'
+import { Building2, Save, CheckCircle2, ShieldCheck, DoorOpen, Plus, Trash2, UtensilsCrossed } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { isSupabaseConfigured } from '@/lib/supabase/config'
-import type { CompanySettings, Room } from '@/lib/supabase/types'
+import type { CompanySettings, Room, MenuCategoryTemplate, MenuSelectionType } from '@/lib/supabase/types'
 import { SetupBanner } from '@/components/ui/SetupBanner'
 
 type FormState = Omit<CompanySettings, 'id' | 'updated_at'>
@@ -20,6 +20,12 @@ const EMPTY: FormState = {
   iban: '',
   bank_name: '',
   payment_terms: '',
+  contract_terms: '',
+}
+
+const SELECTION_TYPE_LABELS: Record<MenuSelectionType, string> = {
+  a_scelta: 'A scelta',
+  tutti_inclusi: 'Tutti inclusi',
 }
 
 const FIELDS: { key: keyof FormState; label: string; placeholder: string; span?: boolean }[] = [
@@ -46,10 +52,19 @@ function SettingsPageInner() {
   const [newRoomName, setNewRoomName] = useState('')
   const [newRoomLocation, setNewRoomLocation] = useState('')
   const [savingRoom, setSavingRoom] = useState(false)
+  const [categoryTemplates, setCategoryTemplates] = useState<MenuCategoryTemplate[]>([])
+  const [newCategoryName, setNewCategoryName] = useState('')
+  const [newCategoryType, setNewCategoryType] = useState<MenuSelectionType>('a_scelta')
+  const [savingCategory, setSavingCategory] = useState(false)
 
   async function loadRooms() {
     const { data } = await sb.from('rooms').select('*').order('name')
     setRooms((data ?? []) as Room[])
+  }
+
+  async function loadCategoryTemplates() {
+    const { data } = await sb.from('menu_category_templates').select('*').order('sort_order')
+    setCategoryTemplates((data ?? []) as MenuCategoryTemplate[])
   }
 
   useEffect(() => {
@@ -68,10 +83,12 @@ function SettingsPageInner() {
           iban: row.iban ?? '',
           bank_name: row.bank_name ?? '',
           payment_terms: row.payment_terms ?? '',
+          contract_terms: row.contract_terms ?? '',
         })
         setPaymentTerms(row.payment_terms ?? '')
       }
       await loadRooms()
+      await loadCategoryTemplates()
       setLoading(false)
     }
     load()
@@ -95,6 +112,25 @@ function SettingsPageInner() {
   async function deleteRoom(roomId: string) {
     await sb.from('rooms').delete().eq('id', roomId)
     setRooms((prev) => prev.filter((r) => r.id !== roomId))
+  }
+
+  async function addCategoryTemplate() {
+    if (!newCategoryName.trim()) return
+    setSavingCategory(true)
+    await sb.from('menu_category_templates').insert({
+      name: newCategoryName.trim(),
+      selection_type: newCategoryType,
+      sort_order: categoryTemplates.length,
+    })
+    setNewCategoryName('')
+    setNewCategoryType('a_scelta')
+    await loadCategoryTemplates()
+    setSavingCategory(false)
+  }
+
+  async function deleteCategoryTemplate(templateId: string) {
+    await sb.from('menu_category_templates').delete().eq('id', templateId)
+    setCategoryTemplates((prev) => prev.filter((c) => c.id !== templateId))
   }
 
   async function handleSave() {
@@ -153,6 +189,16 @@ function SettingsPageInner() {
               placeholder="Es. Acconto 30% alla conferma, saldo entro la data evento."
               value={paymentTerms}
               onChange={(e) => setPaymentTerms(e.target.value)}
+            />
+          </div>
+          <div className="sm:col-span-2">
+            <label className="label">Clausole contrattuali</label>
+            <textarea
+              className="input"
+              rows={3}
+              placeholder="Es. Minimo 20 coperti, conferma 7 giorni prima, penale 20% per disdetta tardiva."
+              value={form.contract_terms ?? ''}
+              onChange={(e) => setField('contract_terms', e.target.value)}
             />
           </div>
         </div>
@@ -225,6 +271,70 @@ function SettingsPageInner() {
             className="btn-primary flex items-center gap-1.5"
             onClick={addRoom}
             disabled={savingRoom || !newRoomName.trim()}
+          >
+            <Plus size={15} /> Aggiungi
+          </button>
+        </div>
+      </div>
+
+      <div className="card mt-6">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-9 h-9 bg-dm-wood/20 rounded-xl flex items-center justify-center shrink-0">
+            <UtensilsCrossed className="text-dm-wood" size={16} />
+          </div>
+          <div>
+            <h2 className="font-semibold text-dm-ink/80">Categorie menu</h2>
+            <p className="text-xs text-slate-500">Template riutilizzabili per costruire il menu degli eventi</p>
+          </div>
+        </div>
+
+        {categoryTemplates.length === 0 ? (
+          <p className="text-sm text-slate-400 py-3 text-center">Nessuna categoria configurata.</p>
+        ) : (
+          <div className="space-y-1.5 mb-4">
+            {categoryTemplates.map((c) => (
+              <div key={c.id} className="flex items-center gap-3 bg-slate-50 border border-slate-100 rounded-xl px-3 py-2">
+                <span className="text-sm font-medium text-dm-ink/80 flex-1">{c.name}</span>
+                <span className="badge bg-dm-cream text-dm-ink/70">{SELECTION_TYPE_LABELS[c.selection_type]}</span>
+                <button
+                  type="button"
+                  onClick={() => deleteCategoryTemplate(c.id)}
+                  className="text-slate-300 hover:text-red-500 transition-colors shrink-0"
+                  title="Elimina categoria"
+                >
+                  <Trash2 size={14} />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div className="flex flex-wrap items-end gap-3 pt-3 border-t border-slate-100">
+          <div className="flex-1 min-w-[10rem]">
+            <label className="label">Nome categoria</label>
+            <input
+              className="input"
+              placeholder="Es. Antipasti"
+              value={newCategoryName}
+              onChange={(e) => setNewCategoryName(e.target.value)}
+            />
+          </div>
+          <div className="min-w-[10rem]">
+            <label className="label">Tipo</label>
+            <select
+              className="input"
+              value={newCategoryType}
+              onChange={(e) => setNewCategoryType(e.target.value as MenuSelectionType)}
+            >
+              <option value="a_scelta">A scelta</option>
+              <option value="tutti_inclusi">Tutti inclusi</option>
+            </select>
+          </div>
+          <button
+            type="button"
+            className="btn-primary flex items-center gap-1.5"
+            onClick={addCategoryTemplate}
+            disabled={savingCategory || !newCategoryName.trim()}
           >
             <Plus size={15} /> Aggiungi
           </button>

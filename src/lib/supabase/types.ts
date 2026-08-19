@@ -13,7 +13,35 @@ export interface CompanySettings {
   iban: string | null
   bank_name: string | null
   payment_terms: string | null
+  contract_terms: string | null
   updated_at: string
+}
+
+export type MenuSelectionType = 'a_scelta' | 'tutti_inclusi'
+
+export interface MenuCategoryTemplate {
+  id: string
+  name: string
+  selection_type: MenuSelectionType
+  sort_order: number
+  created_at: string
+}
+
+export interface EventMenuCategory {
+  id: string
+  event_id: string
+  name: string
+  selection_type: MenuSelectionType
+  price_per_guest: number | null
+  sort_order: number
+}
+
+export interface EventMenuItem {
+  id: string
+  category_id: string
+  dish_name: string
+  unit_price: number
+  sort_order: number
 }
 
 export interface Event {
@@ -196,6 +224,24 @@ export type Database = {
         Row: Room
         Insert: Omit<Room, 'id' | 'created_at'>
         Update: Partial<Omit<Room, 'id' | 'created_at'>>
+        Relationships: []
+      }
+      menu_category_templates: {
+        Row: MenuCategoryTemplate
+        Insert: Omit<MenuCategoryTemplate, 'id' | 'created_at'>
+        Update: Partial<Omit<MenuCategoryTemplate, 'id' | 'created_at'>>
+        Relationships: []
+      }
+      event_menu_categories: {
+        Row: EventMenuCategory
+        Insert: Omit<EventMenuCategory, 'id'>
+        Update: Partial<Omit<EventMenuCategory, 'id'>>
+        Relationships: []
+      }
+      event_menu_items: {
+        Row: EventMenuItem
+        Insert: Omit<EventMenuItem, 'id'>
+        Update: Partial<Omit<EventMenuItem, 'id'>>
         Relationships: []
       }
     }

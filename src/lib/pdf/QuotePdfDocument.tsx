@@ -1,5 +1,5 @@
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer'
-import type { Event, EventItem } from '@/lib/supabase/types'
+import type { Event, EventItem, EventMenuCategory, EventMenuItem } from '@/lib/supabase/types'
 import { formatCurrency } from '@/lib/margin'
 import type { CompanyInfo } from '@/lib/company'
 
@@ -46,6 +46,11 @@ const styles = StyleSheet.create({
   notesBox: { backgroundColor: CREAM, borderRadius: 8, padding: 10, marginTop: 4, borderLeftWidth: 3, borderLeftColor: YELLOW },
   notesText: { fontSize: 9, color: '#5a4a1a' },
   depositText: { fontFamily: 'Helvetica-Bold', color: MAROON, marginBottom: 3 },
+  menuCategoryBox: { marginBottom: 8, borderBottomWidth: 0.5, borderBottomColor: GREY_100, paddingBottom: 8 },
+  menuCategoryHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 2 },
+  menuCategoryName: { fontSize: 10, fontFamily: 'Helvetica-Bold', color: INK },
+  menuCategoryPrice: { fontSize: 9.5, fontFamily: 'Helvetica-Bold', color: MAROON },
+  menuCategoryDishes: { fontSize: 9, color: '#3a3a3a' },
   footer: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: INK, paddingHorizontal: 40, paddingVertical: 14 },
   footerRow: { flexDirection: 'row', justifyContent: 'space-between' },
   footerCol: { flex: 1 },
@@ -64,16 +69,40 @@ interface Props {
   totalRevenue: number
   companyInfo: CompanyInfo
   roomName: string | null
+  menuCategories?: EventMenuCategory[]
+  menuItems?: EventMenuItem[]
 }
 
-export function QuotePdfDocument({ event, revenues, totalRevenue, companyInfo, roomName }: Props) {
+const MENU_VAT_RATE = 10 // usato solo per il calcolo standalone del menu (nessun campo IVA dedicato nello schema)
+
+export function QuotePdfDocument({ event, revenues, totalRevenue, companyInfo, roomName, menuCategories = [], menuItems = [] }: Props) {
+  const guests = event.guests_count ?? 1
+
+  const menuItemsByCategory = new Map<string, EventMenuItem[]>()
+  for (const it of menuItems) {
+    const list = menuItemsByCategory.get(it.category_id) ?? []
+    list.push(it)
+    menuItemsByCategory.set(it.category_id, list)
+  }
+
+  const menuTotalPerGuest = menuCategories.reduce((sum, cat) => {
+    const dishes = menuItemsByCategory.get(cat.id) ?? []
+    if (cat.selection_type === 'a_scelta') return sum + (cat.price_per_guest ?? 0)
+    return sum + dishes.reduce((s, d) => s + d.unit_price, 0)
+  }, 0)
+  const menuTotal = menuTotalPerGuest * guests
+  const menuVat = menuTotal > 0 ? menuTotal * (MENU_VAT_RATE / 100) : 0
+
   const vatByRate = new Map<number, number>()
   for (const r of revenues) {
     const net = r.quantity * r.unit_price
     vatByRate.set(r.vat_rate, (vatByRate.get(r.vat_rate) ?? 0) + net * (r.vat_rate / 100))
   }
-  const totalVat = Array.from(vatByRate.values()).reduce((a, b) => a + b, 0)
-  const totalWithVat = totalRevenue + totalVat
+  const itemsVat = Array.from(vatByRate.values()).reduce((a, b) => a + b, 0)
+
+  const grandTotalRevenue = totalRevenue + menuTotal
+  const totalVat = itemsVat + menuVat
+  const totalWithVat = grandTotalRevenue + totalVat
 
   return (
     <Document title={`Preventivo ${event.name}`}>
@@ -110,41 +139,74 @@ export function QuotePdfDocument({ event, revenues, totalRevenue, companyInfo, r
           </View>
         </View>
 
-        {/* Items table */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Voci di preventivo</Text>
-          <View style={styles.table}>
-            <View style={styles.tableHeaderRow}>
-              <Text style={styles.thName}>Descrizione</Text>
-              <Text style={styles.thQty}>Qtà</Text>
-              <Text style={styles.thPrice}>Prezzo unit.</Text>
-              <Text style={styles.thTotal}>Totale</Text>
-            </View>
-            {revenues.map((item, i) => (
-              <View style={i % 2 === 1 ? styles.tableRowAlt : styles.tableRow} key={item.id}>
-                <Text style={styles.tdName}>{item.name}</Text>
-                <Text style={styles.tdQty}>{item.quantity}</Text>
-                <Text style={styles.tdPrice}>{formatCurrency(item.unit_price)}</Text>
-                <Text style={styles.tdTotal}>{formatCurrency(item.quantity * item.unit_price)}</Text>
-              </View>
-            ))}
+        {/* Menu */}
+        {menuCategories.length > 0 ? (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Menu</Text>
+            {menuCategories.map((cat) => {
+              const dishes = menuItemsByCategory.get(cat.id) ?? []
+              const dishNames = dishes.map((d) => d.dish_name).join(', ') || '—'
+              return (
+                <View style={styles.menuCategoryBox} key={cat.id}>
+                  <View style={styles.menuCategoryHeader}>
+                    <Text style={styles.menuCategoryName}>{cat.name}</Text>
+                    {cat.selection_type === 'a_scelta' ? (
+                      <Text style={styles.menuCategoryPrice}>{formatCurrency(cat.price_per_guest ?? 0)}/persona</Text>
+                    ) : null}
+                  </View>
+                  <Text style={styles.menuCategoryDishes}>
+                    {cat.selection_type === 'a_scelta'
+                      ? `A scelta tra: ${dishNames}`
+                      : `${dishNames} (inclusi)`}
+                  </Text>
+                </View>
+              )
+            })}
           </View>
+        ) : null}
 
-          <View style={styles.totalsBox}>
-            <View style={styles.totalsRow}>
-              <Text style={styles.totalsLabel}>Imponibile</Text>
-              <Text style={styles.totalsValue}>{formatCurrency(totalRevenue)}</Text>
-            </View>
-            <View style={styles.totalsRow}>
-              <Text style={styles.totalsLabel}>IVA</Text>
-              <Text style={styles.totalsValue}>{formatCurrency(totalVat)}</Text>
-            </View>
-            <View style={styles.grandTotalRow}>
-              <Text style={styles.grandTotalLabel}>TOTALE</Text>
-              <Text style={styles.grandTotalValue}>{formatCurrency(totalWithVat)}</Text>
+        {/* Items table */}
+        {revenues.length > 0 ? (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Voci di preventivo</Text>
+            <View style={styles.table}>
+              <View style={styles.tableHeaderRow}>
+                <Text style={styles.thName}>Descrizione</Text>
+                <Text style={styles.thQty}>Qtà</Text>
+                <Text style={styles.thPrice}>Prezzo unit.</Text>
+                <Text style={styles.thTotal}>Totale</Text>
+              </View>
+              {revenues.map((item, i) => (
+                <View style={i % 2 === 1 ? styles.tableRowAlt : styles.tableRow} key={item.id}>
+                  <Text style={styles.tdName}>{item.name}</Text>
+                  <Text style={styles.tdQty}>{item.quantity}</Text>
+                  <Text style={styles.tdPrice}>{formatCurrency(item.unit_price)}</Text>
+                  <Text style={styles.tdTotal}>{formatCurrency(item.quantity * item.unit_price)}</Text>
+                </View>
+              ))}
             </View>
           </View>
-        </View>
+        ) : null}
+
+        {/* Totals */}
+        {(grandTotalRevenue > 0) ? (
+          <View style={styles.section}>
+            <View style={styles.totalsBox}>
+              <View style={styles.totalsRow}>
+                <Text style={styles.totalsLabel}>Imponibile</Text>
+                <Text style={styles.totalsValue}>{formatCurrency(grandTotalRevenue)}</Text>
+              </View>
+              <View style={styles.totalsRow}>
+                <Text style={styles.totalsLabel}>IVA</Text>
+                <Text style={styles.totalsValue}>{formatCurrency(totalVat)}</Text>
+              </View>
+              <View style={styles.grandTotalRow}>
+                <Text style={styles.grandTotalLabel}>TOTALE</Text>
+                <Text style={styles.grandTotalValue}>{formatCurrency(totalWithVat)}</Text>
+              </View>
+            </View>
+          </View>
+        ) : null}
 
         {/* Payment terms */}
         {(companyInfo.paymentTerms || event.deposit_date) ? (
@@ -157,6 +219,16 @@ export function QuotePdfDocument({ event, revenues, totalRevenue, companyInfo, r
                 </Text>
               ) : null}
               {companyInfo.paymentTerms ? <Text style={styles.notesText}>{companyInfo.paymentTerms}</Text> : null}
+            </View>
+          </View>
+        ) : null}
+
+        {/* Contract terms */}
+        {companyInfo.contractTerms ? (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Condizioni contrattuali</Text>
+            <View style={styles.notesBox}>
+              <Text style={styles.notesText}>{companyInfo.contractTerms}</Text>
             </View>
           </View>
         ) : null}

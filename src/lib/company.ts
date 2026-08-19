@@ -15,6 +15,7 @@ const ENV_DEFAULTS = {
   iban: process.env.COMPANY_IBAN || '',
   bankName: process.env.COMPANY_BANK_NAME || '',
   paymentTerms: process.env.COMPANY_PAYMENT_TERMS || 'Acconto 30% alla conferma, saldo entro la data evento.',
+  contractTerms: process.env.COMPANY_CONTRACT_TERMS || '',
 }
 
 export type CompanyInfo = typeof ENV_DEFAULTS
@@ -51,6 +52,7 @@ export async function getCompanyInfo(): Promise<CompanyInfo> {
       iban: row.iban || ENV_DEFAULTS.iban,
       bankName: row.bank_name || ENV_DEFAULTS.bankName,
       paymentTerms: row.payment_terms || ENV_DEFAULTS.paymentTerms,
+      contractTerms: row.contract_terms || ENV_DEFAULTS.contractTerms,
     }
   } catch {
     return ENV_DEFAULTS
