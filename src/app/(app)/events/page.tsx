@@ -5,12 +5,14 @@ import Link from 'next/link'
 import { Plus, Search, Trash2, CalendarDays, Users, MapPin } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { isSupabaseConfigured } from '@/lib/supabase/config'
-import type { Event, EventItem, EventStatus } from '@/lib/supabase/types'
+import type { Event, EventItem, EventStatus, Room } from '@/lib/supabase/types'
 import { computeMargin, formatCurrency } from '@/lib/margin'
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import { MarginBadge } from '@/components/ui/MarginBadge'
 import { ConfirmModal } from '@/components/ui/ConfirmModal'
 import { SetupBanner } from '@/components/ui/SetupBanner'
+import { RoomMap } from '@/components/events/RoomMap'
+import { EventQuickViewModal, type QuickViewEvent } from '@/components/events/EventQuickViewModal'
 import { format } from 'date-fns'
 import { it } from 'date-fns/locale'
 
@@ -18,6 +20,10 @@ interface EventWithMargin extends Event {
   marginPct: number
   totalRevenue: number
   totalCosts: number
+}
+
+function todayISO() {
+  return new Date().toISOString().slice(0, 10)
 }
 
 const STATUS_OPTIONS: { value: string; label: string }[] = [
@@ -38,12 +44,17 @@ function EventsPageInner() {
   const [monthFilter, setMonthFilter] = useState<string>('')
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [rooms, setRooms] = useState<Room[]>([])
+  const [mapDate, setMapDate] = useState(todayISO())
+  const [quickView, setQuickView] = useState<QuickViewEvent | null>(null)
 
   async function fetchEvents() {
     setLoading(true)
     const { data: eventsData, error } = await supabase.from('events').select('*').order('event_date', { ascending: false })
     if (error) { setLoading(false); return }
     const { data: itemsData } = await supabase.from('event_items').select('*')
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: roomsData } = await (supabase as any).from('rooms').select('*').order('name')
 
     const events = (eventsData ?? []) as unknown as Event[]
     const allItems = (itemsData ?? []) as unknown as EventItem[]
@@ -62,11 +73,37 @@ function EventsPageInner() {
     })
 
     setEvents(enriched)
+    setRooms((roomsData ?? []) as Room[])
     setLoading(false)
   }
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { fetchEvents() }, [])
+
+  const roomsById = useMemo(() => new Map(rooms.map((r) => [r.id, r])), [rooms])
+
+  function openQuickView(ev: EventWithMargin) {
+    setQuickView({
+      id: ev.id,
+      name: ev.name,
+      client_name: ev.client_name,
+      client_email: ev.client_email,
+      event_date: ev.event_date,
+      location: ev.location,
+      guests_count: ev.guests_count,
+      status: ev.status,
+      room_id: ev.room_id,
+      totalRevenue: ev.totalRevenue,
+      marginPct: ev.marginPct,
+    })
+  }
+
+  async function updateQuickView(id: string, patch: { status?: EventStatus; room_id?: string | null }) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (supabase as any).from('events').update(patch).eq('id', id)
+    setEvents((prev) => prev.map((ev) => ev.id === id ? { ...ev, ...patch } : ev))
+    setQuickView((prev) => prev && prev.id === id ? { ...prev, ...patch } : prev)
+  }
 
   const filtered = useMemo(() => {
     return events.filter((ev) => {
@@ -126,6 +163,26 @@ function EventsPageInner() {
           Nuovo evento
         </Link>
       </div>
+
+      <RoomMap
+        rooms={rooms}
+        events={events.map((ev) => ({
+          id: ev.id,
+          name: ev.name,
+          client_name: ev.client_name,
+          client_email: ev.client_email,
+          event_date: ev.event_date,
+          location: ev.location,
+          guests_count: ev.guests_count,
+          status: ev.status,
+          room_id: ev.room_id,
+          totalRevenue: ev.totalRevenue,
+          marginPct: ev.marginPct,
+        }))}
+        date={mapDate}
+        onDateChange={setMapDate}
+        onSelectEvent={setQuickView}
+      />
 
       {/* Filters */}
       <div className="card mb-4 flex flex-col sm:flex-row gap-3">
@@ -189,6 +246,7 @@ function EventsPageInner() {
                   <th className="text-left px-4 py-3 font-medium text-slate-600">Evento</th>
                   <th className="text-left px-4 py-3 font-medium text-slate-600 hidden md:table-cell">Data</th>
                   <th className="text-left px-4 py-3 font-medium text-slate-600 hidden lg:table-cell">Ospiti</th>
+                  <th className="text-left px-4 py-3 font-medium text-slate-600 hidden lg:table-cell">Sala</th>
                   <th className="text-left px-4 py-3 font-medium text-slate-600">Stato</th>
                   <th className="text-right px-4 py-3 font-medium text-slate-600">Ricavi</th>
                   <th className="text-right px-4 py-3 font-medium text-slate-600">Margine</th>
@@ -196,7 +254,11 @@ function EventsPageInner() {
               </thead>
               <tbody className="divide-y divide-slate-50">
                 {filtered.map((ev) => (
-                  <tr key={ev.id} className="hover:bg-slate-50 transition-colors">
+                  <tr
+                    key={ev.id}
+                    className="hover:bg-slate-50 transition-colors cursor-pointer"
+                    onClick={() => openQuickView(ev)}
+                  >
                     <td className="px-4 py-3">
                       <input
                         type="checkbox"
@@ -207,7 +269,7 @@ function EventsPageInner() {
                       />
                     </td>
                     <td className="px-4 py-3">
-                      <Link href={`/events/${ev.id}`} className="group">
+                      <Link href={`/events/${ev.id}`} className="group" onClick={(e) => e.stopPropagation()}>
                         <p className="font-medium text-dm-ink group-hover:text-dm-maroon transition-colors">{ev.name}</p>
                         {ev.client_name && <p className="text-xs text-slate-400">{ev.client_name}</p>}
                         {ev.location && (
@@ -226,6 +288,9 @@ function EventsPageInner() {
                           <Users size={13} />{ev.guests_count}
                         </span>
                       ) : '—'}
+                    </td>
+                    <td className="px-4 py-3 hidden lg:table-cell text-slate-500">
+                      {ev.room_id ? (roomsById.get(ev.room_id)?.name ?? '—') : '—'}
                     </td>
                     <td className="px-4 py-3">
                       <StatusBadge status={ev.status as EventStatus} />
@@ -250,6 +315,13 @@ function EventsPageInner() {
         message={`Stai per eliminare ${selected.size} eventi. L'operazione è irreversibile.`}
         onConfirm={deleteSelected}
         onCancel={() => setConfirmDelete(false)}
+      />
+
+      <EventQuickViewModal
+        event={quickView}
+        rooms={rooms}
+        onClose={() => setQuickView(null)}
+        onUpdate={updateQuickView}
       />
     </div>
   )
