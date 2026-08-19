@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
+import { checkRateLimit, getClientIp } from '@/lib/rateLimit'
+
+const MAX_FILE_BYTES = 8 * 1024 * 1024 // 8MB, ampio margine per un PDF/foto di preventivo
 
 export interface ExtractedQuote {
   clientName: string | null
@@ -36,11 +39,21 @@ Regole:
 
 export async function POST(req: NextRequest) {
   try {
+    const ip = getClientIp(req)
+    const { allowed } = await checkRateLimit('extract-quote', ip, 5, 60)
+    if (!allowed) {
+      return NextResponse.json({ error: 'Troppe richieste, riprova tra un minuto.' }, { status: 429 })
+    }
+
     const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
     const { fileBase64, mimeType } = await req.json() as { fileBase64: string; mimeType: string }
 
     if (!fileBase64 || !mimeType) {
       return NextResponse.json({ error: 'File mancante' }, { status: 400 })
+    }
+
+    if (fileBase64.length > MAX_FILE_BYTES * 1.4) { // base64 aggiunge ~33% overhead
+      return NextResponse.json({ error: 'File troppo grande (massimo 8MB).' }, { status: 413 })
     }
 
     const isPdf = mimeType === 'application/pdf'

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import nodemailer from 'nodemailer'
+import { checkRateLimit, getClientIp } from '@/lib/rateLimit'
 
 const transporter = nodemailer.createTransport({
   service: 'gmail',
@@ -12,6 +13,12 @@ const transporter = nodemailer.createTransport({
 
 export async function POST(req: NextRequest) {
   try {
+    const ip = getClientIp(req)
+    const { allowed } = await checkRateLimit('quote-request', ip, 5, 300)
+    if (!allowed) {
+      return NextResponse.json({ error: 'Troppe richieste inviate, riprova più tardi.' }, { status: 429 })
+    }
+
     const {
       clientName, clientEmail, clientPhone,
       eventDate, location, guestsCount,

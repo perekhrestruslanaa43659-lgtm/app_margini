@@ -45,6 +45,7 @@ function EventDetailPageInner() {
   const [scenarios, setScenarios] = useState<MarginScenario[]>([])
   const [overrides, setOverrides] = useState<ScenarioOverride[]>([])
   const [editingScenario, setEditingScenario] = useState<string | null>(null)
+  const [exportScenarioId, setExportScenarioId] = useState<string>('')
   const [noteText, setNoteText] = useState('')
   const [savingNote, setSavingNote] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -511,11 +512,13 @@ function EventDetailPageInner() {
   )
 
   function exportPDF() {
-    window.open(`/events/${id}/export?format=pdf`, '_blank')
+    const scenarioParam = exportScenarioId ? `&scenario=${exportScenarioId}` : ''
+    window.open(`/events/${id}/export?format=pdf${scenarioParam}`, '_blank')
   }
 
   function exportExcel() {
-    window.open(`/events/${id}/export?format=excel`, '_blank')
+    const scenarioParam = exportScenarioId ? `&scenario=${exportScenarioId}` : ''
+    window.open(`/events/${id}/export?format=excel${scenarioParam}`, '_blank')
   }
 
   function buildMessageText() {
@@ -1116,6 +1119,25 @@ function EventDetailPageInner() {
                       )
                     ))}
                   </div>
+                </div>
+              )}
+
+              {scenarios.length > 0 && (
+                <div className="mb-5">
+                  <label className="label">Scenario da esportare</label>
+                  <select
+                    className="input"
+                    value={exportScenarioId}
+                    onChange={(e) => setExportScenarioId(e.target.value)}
+                  >
+                    <option value="">Prezzi base (nessuno sconto)</option>
+                    {scenarios.map((sc) => (
+                      <option key={sc.id} value={sc.id}>{sc.name} ({sc.discount_pct}% sconto)</option>
+                    ))}
+                  </select>
+                  <p className="text-[11px] text-slate-400 mt-1">
+                    Il PDF e l&apos;Excel useranno i prezzi di questo scenario invece di quelli base del preventivo.
+                  </p>
                 </div>
               )}
 

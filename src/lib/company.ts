@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js'
+import { createAdminClient } from '@/lib/supabase/admin'
 import type { CompanySettings } from '@/lib/supabase/types'
 
 // Dati aziendali per i documenti di preventivo (PDF/Excel).
@@ -23,15 +23,10 @@ export type CompanyInfo = typeof ENV_DEFAULTS
 // Legge le impostazioni aziendali da Supabase (modificabili dalla pagina /settings).
 // Se la tabella è vuota o non raggiungibile, usa i valori da variabili d'ambiente come fallback.
 export async function getCompanyInfo(): Promise<CompanyInfo> {
-  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-    return ENV_DEFAULTS
-  }
+  const supabase = createAdminClient()
+  if (!supabase) return ENV_DEFAULTS
 
   try {
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-    )
     const { data } = await supabase
       .from('company_settings')
       .select('*')

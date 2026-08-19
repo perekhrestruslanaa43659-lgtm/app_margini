@@ -1,23 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
 import { renderToBuffer } from '@react-pdf/renderer'
 import * as XLSX from 'xlsx'
-import type { Event, EventItem, Room, EventMenuCategory, EventMenuItem } from '@/lib/supabase/types'
+import type { Event, EventItem, Room, EventMenuCategory, EventMenuItem, MarginScenario, ScenarioOverride } from '@/lib/supabase/types'
 import { computeMargin, formatCurrency } from '@/lib/margin'
 import { getCompanyInfo } from '@/lib/company'
 import { QuotePdfDocument } from '@/lib/pdf/QuotePdfDocument'
+import { createAdminClient } from '@/lib/supabase/admin'
 
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   const format = req.nextUrl.searchParams.get('format') === 'excel' ? 'excel' : 'pdf'
+  const scenarioId = req.nextUrl.searchParams.get('scenario')
 
-  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+  const supabase = createAdminClient()
+  if (!supabase) {
     return NextResponse.json({ error: 'Supabase non configurato' }, { status: 500 })
   }
-
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  )
 
   const [{ data: ev }, { data: it }] = await Promise.all([
     supabase.from('events').select('*').eq('id', params.id).single(),
@@ -49,9 +46,28 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     menuItems = (mi ?? []) as unknown as EventMenuItem[]
   }
 
-  const revenues = items.filter((i) => i.type === 'ricavo')
+  let discountPct = 0
+  let scenarioOverrides: ScenarioOverride[] = []
+  if (scenarioId) {
+    const { data: sc } = await supabase.from('margin_scenarios').select('*').eq('id', scenarioId).eq('event_id', params.id).single()
+    const scenario = sc as unknown as MarginScenario | null
+    if (scenario) {
+      discountPct = scenario.discount_pct
+      const { data: ov } = await supabase.from('scenario_overrides').select('*').eq('scenario_id', scenarioId)
+      scenarioOverrides = (ov ?? []) as unknown as ScenarioOverride[]
+    }
+  }
+
+  const revenues = items
+    .filter((i) => i.type === 'ricavo')
+    .map((i) => {
+      const override = scenarioOverrides.find((o) => o.item_id === i.id)
+      return override
+        ? { ...i, quantity: override.quantity_override ?? i.quantity, unit_price: override.unit_price_override ?? i.unit_price }
+        : i
+    })
   const costs = items.filter((i) => i.type === 'costo')
-  const summary = computeMargin(items, event.guests_count ?? 1)
+  const summary = computeMargin(items, event.guests_count ?? 1, discountPct, scenarioOverrides)
   const fileBase = `preventivo-${event.name.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}`
   const companyInfo = await getCompanyInfo()
 
