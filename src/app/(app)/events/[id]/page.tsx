@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { ArrowLeft, Download, FileSpreadsheet, Plus, Trash2, Mail, MessageCircle, CalendarDays, Zap, AlertTriangle } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { isSupabaseConfigured } from '@/lib/supabase/config'
-import type { Event, EventItem, MarginScenario, EventStatus, CatalogItem, ItemType } from '@/lib/supabase/types'
+import type { Event, EventItem, MarginScenario, ScenarioOverride, EventStatus, CatalogItem, ItemType } from '@/lib/supabase/types'
 import { computeMargin, formatCurrency } from '@/lib/margin'
 import { MarginBadge } from '@/components/ui/MarginBadge'
 import { MarginSummaryPanel } from '@/components/events/MarginSummaryPanel'
@@ -41,6 +41,8 @@ function EventDetailPageInner() {
   const [event, setEvent] = useState<Event | null>(null)
   const [items, setItems] = useState<DraftItem[]>([])
   const [scenarios, setScenarios] = useState<MarginScenario[]>([])
+  const [overrides, setOverrides] = useState<ScenarioOverride[]>([])
+  const [editingScenario, setEditingScenario] = useState<string | null>(null)
   const [noteText, setNoteText] = useState('')
   const [savingNote, setSavingNote] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -64,6 +66,17 @@ function EventDetailPageInner() {
     if (evTyped) { setEvent(evTyped); setNoteText(evTyped.notes ?? '') }
     setItems(itTyped.map((i) => ({ ...i, _key: i.id })))
     setScenarios(scTyped)
+
+    if (scTyped.length > 0) {
+      const { data: ov } = await sb
+        .from('scenario_overrides')
+        .select('*')
+        .in('scenario_id', scTyped.map((s) => s.id))
+      setOverrides((ov ?? []) as unknown as ScenarioOverride[])
+    } else {
+      setOverrides([])
+    }
+
     setLoading(false)
   }
 
@@ -248,14 +261,52 @@ function EventDetailPageInner() {
   async function deleteScenario(scId: string) {
     await sb.from('margin_scenarios').delete().eq('id', scId)
     setScenarios((prev) => prev.filter((s) => s.id !== scId))
+    setOverrides((prev) => prev.filter((o) => o.scenario_id !== scId))
+  }
+
+  function overridesFor(scId: string) {
+    return overrides.filter((o) => o.scenario_id === scId)
+  }
+
+  async function setItemOverride(scId: string, itemId: string, field: 'quantity_override' | 'unit_price_override', raw: string) {
+    const value = raw === '' ? null : parseFloat(raw)
+    const existing = overrides.find((o) => o.scenario_id === scId && o.item_id === itemId)
+
+    if (existing) {
+      const otherField = field === 'quantity_override' ? 'unit_price_override' : 'quantity_override'
+      if (value === null && existing[otherField] === null) {
+        await sb.from('scenario_overrides').delete().eq('id', existing.id)
+        setOverrides((prev) => prev.filter((o) => o.id !== existing.id))
+        return
+      }
+      await sb.from('scenario_overrides').update({ [field]: value }).eq('id', existing.id)
+      setOverrides((prev) => prev.map((o) => o.id === existing.id ? { ...o, [field]: value } : o))
+      return
+    }
+
+    if (value === null) return
+    const { data } = await sb
+      .from('scenario_overrides')
+      .insert({ scenario_id: scId, item_id: itemId, quantity_override: null, unit_price_override: null, [field]: value })
+      .select()
+      .single()
+    if (data) setOverrides((prev) => [...prev, data as unknown as ScenarioOverride])
+  }
+
+  async function clearItemOverride(scId: string, itemId: string) {
+    const existing = overrides.find((o) => o.scenario_id === scId && o.item_id === itemId)
+    if (!existing) return
+    await sb.from('scenario_overrides').delete().eq('id', existing.id)
+    setOverrides((prev) => prev.filter((o) => o.id !== existing.id))
   }
 
   const scenarioChartData = useMemo(() =>
     scenarios.map((sc) => {
-      const s = computeMargin(items as unknown as EventItem[], event?.guests_count ?? 1, sc.discount_pct)
+      const scOverrides = overrides.filter((o) => o.scenario_id === sc.id)
+      const s = computeMargin(items as unknown as EventItem[], event?.guests_count ?? 1, sc.discount_pct, scOverrides)
       return { name: sc.name, Ricavi: Math.round(s.totalRevenue), Costi: Math.round(s.totalCosts), Margine: Math.round(s.grossMargin) }
     }),
-    [scenarios, items, event]
+    [scenarios, items, event, overrides]
   )
 
   function exportPDF() {
@@ -435,37 +486,98 @@ function EventDetailPageInner() {
                 <>
                   {/* Editable scenario list */}
                   <div className="space-y-2 mb-6">
-                    {scenarios.map((sc) => (
-                      <div key={sc.id} className="border border-slate-100 rounded-xl p-3 flex flex-col sm:flex-row gap-3 items-start sm:items-center">
-                        <input
-                          className="input py-1 text-xs font-medium sm:w-40"
-                          value={sc.name}
-                          onChange={(e) => updateScenario(sc.id, 'name', e.target.value)}
-                          onBlur={(e) => sb.from('margin_scenarios').update({ name: e.target.value }).eq('id', sc.id)}
-                        />
-                        <div className="flex items-center gap-2">
-                          <label className="text-xs text-slate-400 whitespace-nowrap">Sconto</label>
-                          <input
-                            type="number"
-                            min="0"
-                            max="100"
-                            className="input py-1 text-xs w-20 text-right"
-                            value={sc.discount_pct}
-                            onChange={(e) => updateScenario(sc.id, 'discount_pct', parseFloat(e.target.value) || 0)}
-                          />
-                          <span className="text-xs text-slate-400">%</span>
+                    {scenarios.map((sc) => {
+                      const scOverrides = overridesFor(sc.id)
+                      const isEditing = editingScenario === sc.id
+                      return (
+                        <div key={sc.id} className="border border-slate-100 rounded-xl overflow-hidden">
+                          <div className="p-3 flex flex-col sm:flex-row gap-3 items-start sm:items-center">
+                            <input
+                              className="input py-1 text-xs font-medium sm:w-40"
+                              value={sc.name}
+                              onChange={(e) => updateScenario(sc.id, 'name', e.target.value)}
+                              onBlur={(e) => sb.from('margin_scenarios').update({ name: e.target.value }).eq('id', sc.id)}
+                            />
+                            <div className="flex items-center gap-2">
+                              <label className="text-xs text-slate-400 whitespace-nowrap">Sconto</label>
+                              <input
+                                type="number"
+                                min="0"
+                                max="100"
+                                className="input py-1 text-xs w-20 text-right"
+                                value={sc.discount_pct}
+                                onChange={(e) => updateScenario(sc.id, 'discount_pct', parseFloat(e.target.value) || 0)}
+                              />
+                              <span className="text-xs text-slate-400">%</span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => setEditingScenario(isEditing ? null : sc.id)}
+                              className={`text-xs font-medium px-2.5 py-1 rounded-lg transition-colors whitespace-nowrap
+                                ${isEditing ? 'bg-dm-yellow text-dm-ink' : 'bg-dm-cream text-dm-ink/70 hover:bg-dm-yellow/40'}`}
+                            >
+                              {scOverrides.length > 0 ? `Voci modificate (${scOverrides.length})` : 'Modifica voci'}
+                            </button>
+                            <div className="flex-1">
+                              {(() => {
+                                const s = computeMargin(items as unknown as EventItem[], event?.guests_count ?? 1, sc.discount_pct, scOverrides)
+                                return <MarginBadge pct={s.marginPct} />
+                              })()}
+                            </div>
+                            <button className="text-slate-300 hover:text-red-500 transition-colors" onClick={() => deleteScenario(sc.id)}>
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+
+                          {isEditing && (
+                            <div className="border-t border-slate-100 bg-slate-50 p-3 space-y-1.5">
+                              <p className="text-[11px] text-slate-400 mb-2">
+                                Modifica quantità o prezzo solo per questo scenario. Le voci originali del preventivo non vengono toccate.
+                              </p>
+                              {items.filter((it) => it.name.trim() && it.id).map((it) => {
+                                const ov = scOverrides.find((o) => o.item_id === it.id)
+                                const hasOverride = !!ov && (ov.quantity_override !== null || ov.unit_price_override !== null)
+                                return (
+                                  <div key={it._key} className={`flex items-center gap-2 rounded-lg px-2.5 py-1.5 ${hasOverride ? 'bg-dm-yellow/15 border border-dm-yellow/40' : 'bg-white border border-slate-100'}`}>
+                                    <span className={`text-xs flex-1 truncate ${it.type === 'ricavo' ? 'text-emerald-700' : 'text-red-500'}`}>{it.name}</span>
+                                    <input
+                                      type="number"
+                                      step="any"
+                                      className="input py-1 text-xs w-20 text-right"
+                                      placeholder={String(it.quantity)}
+                                      value={ov?.quantity_override ?? ''}
+                                      onChange={(e) => setItemOverride(sc.id, it.id!, 'quantity_override', e.target.value)}
+                                    />
+                                    <span className="text-[10px] text-slate-300">×</span>
+                                    <input
+                                      type="number"
+                                      step="any"
+                                      className="input py-1 text-xs w-24 text-right"
+                                      placeholder={String(it.unit_price)}
+                                      value={ov?.unit_price_override ?? ''}
+                                      onChange={(e) => setItemOverride(sc.id, it.id!, 'unit_price_override', e.target.value)}
+                                    />
+                                    {hasOverride && (
+                                      <button
+                                        type="button"
+                                        onClick={() => clearItemOverride(sc.id, it.id!)}
+                                        className="text-slate-300 hover:text-red-500 transition-colors shrink-0"
+                                        title="Ripristina valore originale"
+                                      >
+                                        <Trash2 size={12} />
+                                      </button>
+                                    )}
+                                  </div>
+                                )
+                              })}
+                              {items.filter((it) => it.name.trim() && it.id).length === 0 && (
+                                <p className="text-xs text-slate-400 text-center py-3">Salva prima le voci di preventivo per poterle modificare qui.</p>
+                              )}
+                            </div>
+                          )}
                         </div>
-                        <div className="flex-1">
-                          {(() => {
-                            const s = computeMargin(items as unknown as EventItem[], event?.guests_count ?? 1, sc.discount_pct)
-                            return <MarginBadge pct={s.marginPct} />
-                          })()}
-                        </div>
-                        <button className="text-slate-300 hover:text-red-500 transition-colors" onClick={() => deleteScenario(sc.id)}>
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                    ))}
+                      )
+                    })}
                   </div>
 
                   {/* Comparison table */}
@@ -484,7 +596,7 @@ function EventDetailPageInner() {
                       </thead>
                       <tbody className="divide-y divide-slate-50">
                         {scenarios.map((sc) => {
-                          const s = computeMargin(items as unknown as EventItem[], event?.guests_count ?? 1, sc.discount_pct)
+                          const s = computeMargin(items as unknown as EventItem[], event?.guests_count ?? 1, sc.discount_pct, overridesFor(sc.id))
                           return (
                             <tr key={sc.id}>
                               <td className="px-3 py-2 font-medium text-dm-ink/80">{sc.name}</td>
