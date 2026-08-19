@@ -3,7 +3,7 @@
 import { useEffect, useState, useMemo } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Download, FileSpreadsheet, Plus, Trash2, Mail, MessageCircle, CalendarDays, Zap, AlertTriangle, EyeOff, ListChecks } from 'lucide-react'
+import { ArrowLeft, Download, FileSpreadsheet, Plus, Trash2, Mail, MessageCircle, CalendarDays, Zap, AlertTriangle, EyeOff, ListChecks, Pencil, X, Check } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { isSupabaseConfigured } from '@/lib/supabase/config'
 import type { Event, EventItem, MarginScenario, ScenarioOverride, EventStatus, CatalogItem, ItemType, Room, EventMenuCategory, EventMenuItem, MenuCategoryTemplate, MenuSelectionType } from '@/lib/supabase/types'
@@ -46,6 +46,12 @@ function EventDetailPageInner() {
   const [overrides, setOverrides] = useState<ScenarioOverride[]>([])
   const [editingScenario, setEditingScenario] = useState<string | null>(null)
   const [exportScenarioId, setExportScenarioId] = useState<string>('')
+  const [editingHeader, setEditingHeader] = useState(false)
+  const [headerDraft, setHeaderDraft] = useState({
+    name: '', client_name: '', client_email: '', client_phone: '',
+    event_date: '', location: '', guests_count: '',
+  })
+  const [savingHeader, setSavingHeader] = useState(false)
   const [noteText, setNoteText] = useState('')
   const [savingNote, setSavingNote] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -189,6 +195,38 @@ function EventDetailPageInner() {
     const roomId = value || null
     await sb.from('events').update({ room_id: roomId }).eq('id', id)
     setEvent((e) => e ? { ...e, room_id: roomId } : e)
+  }
+
+  function openHeaderEdit() {
+    if (!event) return
+    setHeaderDraft({
+      name: event.name ?? '',
+      client_name: event.client_name ?? '',
+      client_email: event.client_email ?? '',
+      client_phone: event.client_phone ?? '',
+      event_date: event.event_date ?? '',
+      location: event.location ?? '',
+      guests_count: event.guests_count != null ? String(event.guests_count) : '',
+    })
+    setEditingHeader(true)
+  }
+
+  async function saveHeader() {
+    if (!headerDraft.name.trim()) return
+    setSavingHeader(true)
+    const patch = {
+      name: headerDraft.name.trim(),
+      client_name: headerDraft.client_name.trim() || null,
+      client_email: headerDraft.client_email.trim() || null,
+      client_phone: headerDraft.client_phone.trim() || null,
+      event_date: headerDraft.event_date || null,
+      location: headerDraft.location.trim() || null,
+      guests_count: headerDraft.guests_count ? Number(headerDraft.guests_count) : null,
+    }
+    await sb.from('events').update(patch).eq('id', id)
+    setEvent((e) => e ? { ...e, ...patch } : e)
+    setSavingHeader(false)
+    setEditingHeader(false)
   }
 
   async function saveItems() {
@@ -553,8 +591,8 @@ function EventDetailPageInner() {
             <div className="w-10 h-10 bg-dm-wood/20 rounded-xl flex items-center justify-center shrink-0">
               <CalendarDays className="text-dm-wood" size={18} />
             </div>
-            <h1 className="text-xl font-bold text-dm-ink">{event.name}</h1>
-            {missingFields.length > 0 && (
+            {!editingHeader && <h1 className="text-xl font-bold text-dm-ink">{event.name}</h1>}
+            {missingFields.length > 0 && !editingHeader && (
               <button
                 type="button"
                 onClick={() => setTab('export')}
@@ -564,18 +602,113 @@ function EventDetailPageInner() {
                 <AlertTriangle size={12} /> {missingFields.length} dati mancanti
               </button>
             )}
-          </div>
-          <div className="flex flex-wrap items-center gap-2 mt-1 text-sm text-slate-500">
-            {event.client_name && <span>{event.client_name}</span>}
-            {event.client_email && <a href={`mailto:${event.client_email}`} className="text-dm-maroon hover:underline">· {event.client_email}</a>}
-            {event.client_phone && <a href={`tel:${event.client_phone}`} className="hover:underline">· {event.client_phone}</a>}
-            {event.event_date && <span>· {event.event_date}</span>}
-            {event.location && <span>· {event.location}</span>}
-            {event.guests_count && <span>· {event.guests_count} ospiti</span>}
-            {(event.budget_min || event.budget_max) && (
-              <span>· Budget {event.budget_min ? formatCurrency(event.budget_min) : '—'} – {event.budget_max ? formatCurrency(event.budget_max) : '—'}</span>
+            {!editingHeader && (
+              <button
+                type="button"
+                onClick={openHeaderEdit}
+                className="flex items-center gap-1 text-xs font-medium text-slate-400 hover:text-dm-maroon border border-slate-200 hover:border-dm-maroon/40 px-2.5 py-1 rounded-full transition-colors"
+              >
+                <Pencil size={11} /> Modifica
+              </button>
             )}
           </div>
+
+          {editingHeader ? (
+            <div className="bg-white border border-dm-ink/10 rounded-xl p-4 mt-1 space-y-3">
+              <div className="grid sm:grid-cols-2 gap-3">
+                <div className="sm:col-span-2">
+                  <label className="label">Nome prenotazione *</label>
+                  <input
+                    className="input py-1.5 text-sm"
+                    value={headerDraft.name}
+                    onChange={(e) => setHeaderDraft((d) => ({ ...d, name: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <label className="label">Nome cliente</label>
+                  <input
+                    className="input py-1.5 text-sm"
+                    value={headerDraft.client_name}
+                    onChange={(e) => setHeaderDraft((d) => ({ ...d, client_name: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <label className="label">Email cliente</label>
+                  <input
+                    type="email"
+                    className="input py-1.5 text-sm"
+                    value={headerDraft.client_email}
+                    onChange={(e) => setHeaderDraft((d) => ({ ...d, client_email: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <label className="label">Telefono cliente</label>
+                  <input
+                    type="tel"
+                    className="input py-1.5 text-sm"
+                    value={headerDraft.client_phone}
+                    onChange={(e) => setHeaderDraft((d) => ({ ...d, client_phone: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <label className="label">Data evento</label>
+                  <input
+                    type="date"
+                    className="input py-1.5 text-sm"
+                    value={headerDraft.event_date}
+                    onChange={(e) => setHeaderDraft((d) => ({ ...d, event_date: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <label className="label">Location</label>
+                  <input
+                    className="input py-1.5 text-sm"
+                    value={headerDraft.location}
+                    onChange={(e) => setHeaderDraft((d) => ({ ...d, location: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <label className="label">Numero ospiti</label>
+                  <input
+                    type="number"
+                    min="0"
+                    className="input py-1.5 text-sm"
+                    value={headerDraft.guests_count}
+                    onChange={(e) => setHeaderDraft((d) => ({ ...d, guests_count: e.target.value }))}
+                  />
+                </div>
+              </div>
+              <div className="flex items-center gap-2 justify-end">
+                <button
+                  type="button"
+                  onClick={() => setEditingHeader(false)}
+                  className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-dm-ink px-3 py-1.5 rounded-lg transition-colors"
+                >
+                  <X size={14} /> Annulla
+                </button>
+                <button
+                  type="button"
+                  onClick={saveHeader}
+                  disabled={savingHeader || !headerDraft.name.trim()}
+                  className="flex items-center gap-1.5 text-sm font-medium bg-dm-yellow hover:bg-dm-yellow-dark text-dm-ink px-3 py-1.5 rounded-lg transition-colors disabled:opacity-40"
+                >
+                  <Check size={14} /> {savingHeader ? 'Salvataggio...' : 'Salva'}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-wrap items-center gap-2 mt-1 text-sm text-slate-500">
+              {event.client_name && <span>{event.client_name}</span>}
+              {event.client_email && <a href={`mailto:${event.client_email}`} className="text-dm-maroon hover:underline">· {event.client_email}</a>}
+              {event.client_phone && <a href={`tel:${event.client_phone}`} className="hover:underline">· {event.client_phone}</a>}
+              {event.event_date && <span>· {event.event_date}</span>}
+              {event.location && <span>· {event.location}</span>}
+              {event.guests_count && <span>· {event.guests_count} ospiti</span>}
+              {(event.budget_min || event.budget_max) && (
+                <span>· Budget {event.budget_min ? formatCurrency(event.budget_min) : '—'} – {event.budget_max ? formatCurrency(event.budget_max) : '—'}</span>
+              )}
+            </div>
+          )}
           <div className="flex flex-wrap items-end gap-4 mt-3">
             <div>
               <label className="label">Data acconto</label>
