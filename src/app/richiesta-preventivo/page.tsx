@@ -66,7 +66,7 @@ export default function QuoteRequestPage() {
           <div className="w-14 h-14 bg-emerald-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
             <CheckCircle2 className="text-emerald-600" size={28} />
           </div>
-          <h1 className="text-lg font-bold text-slate-800 mb-2">Richiesta inviata!</h1>
+          <h1 className="text-lg font-bold text-dm-ink mb-2">Richiesta inviata!</h1>
           <p className="text-sm text-slate-500">
             Grazie {clientName}, abbiamo ricevuto la tua richiesta di preventivo. Ti contatteremo al più presto.
           </p>
@@ -81,20 +81,20 @@ export default function QuoteRequestPage() {
 
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center font-bold text-2xl text-white mx-auto mb-4">
+          <div className="w-16 h-16 bg-dm-yellow rounded-2xl flex items-center justify-center font-display font-bold text-2xl text-dm-ink mx-auto mb-4">
             DM
           </div>
-          <h1 className="text-2xl font-bold text-slate-800">Doppio Malto</h1>
+          <h1 className="text-2xl font-bold text-dm-ink">Doppio Malto</h1>
           <p className="text-sm text-slate-500 mt-1">Richiedi un preventivo per il tuo evento</p>
         </div>
 
         {/* Form card */}
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-8">
           <div className="flex items-center gap-3 mb-6">
-            <div className="w-9 h-9 bg-blue-100 rounded-xl flex items-center justify-center">
-              <CalendarPlus size={16} className="text-blue-600" />
+            <div className="w-9 h-9 bg-dm-wood/20 rounded-xl flex items-center justify-center">
+              <CalendarPlus size={16} className="text-dm-wood" />
             </div>
-            <h2 className="font-semibold text-slate-700">Raccontaci del tuo evento</h2>
+            <h2 className="font-semibold text-dm-ink/80">Raccontaci del tuo evento</h2>
           </div>
 
           <button
@@ -220,7 +220,7 @@ export default function QuoteRequestPage() {
             <button
               type="submit"
               disabled={sending}
-              className="w-full h-11 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg flex items-center justify-center gap-2 transition disabled:opacity-60"
+              className="w-full h-11 bg-dm-yellow hover:bg-dm-yellow-dark text-dm-ink font-display font-semibold uppercase tracking-wide text-sm rounded-lg flex items-center justify-center gap-2 transition disabled:opacity-60"
             >
               {sending
                 ? <><Loader2 size={15} className="animate-spin" /> Invio in corso...</>

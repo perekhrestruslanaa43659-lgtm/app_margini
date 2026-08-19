@@ -32,7 +32,7 @@ export function Sidebar() {
     <>
       {/* Mobile toggle */}
       <button
-        className="md:hidden fixed top-4 left-4 z-50 bg-slate-800 text-white p-2 rounded-xl"
+        className="md:hidden fixed top-4 left-4 z-50 bg-dm-ink text-dm-yellow p-2 rounded-xl"
         onClick={() => setOpen(!open)}
       >
         {open ? <X size={20} /> : <Menu size={20} />}
@@ -48,18 +48,18 @@ export function Sidebar() {
 
       {/* Sidebar */}
       <aside
-        className={`fixed top-0 left-0 h-full w-64 bg-slate-800 text-white z-40 flex flex-col transition-transform duration-300
+        className={`fixed top-0 left-0 h-full w-64 bg-dm-ink text-white z-40 flex flex-col transition-transform duration-300
           ${open ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0`}
       >
         {/* Logo */}
-        <div className="px-6 py-6 border-b border-slate-700">
+        <div className="px-6 py-6 border-b border-white/10">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center font-bold text-lg">
+            <div className="w-10 h-10 bg-dm-yellow rounded-xl flex items-center justify-center font-display font-bold text-lg text-dm-ink">
               DM
             </div>
             <div>
-              <p className="font-bold text-sm leading-tight">Doppio Malto</p>
-              <p className="text-xs text-slate-400">Event Manager</p>
+              <p className="font-display font-bold text-sm leading-tight uppercase tracking-wide">Doppio Malto</p>
+              <p className="text-xs text-white/40">Event Manager</p>
             </div>
           </div>
         </div>
@@ -75,8 +75,8 @@ export function Sidebar() {
                 onClick={() => setOpen(false)}
                 className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors duration-150
                   ${active
-                    ? 'bg-blue-600 text-white'
-                    : 'text-slate-300 hover:bg-slate-700 hover:text-white'
+                    ? 'bg-dm-yellow text-dm-ink font-semibold'
+                    : 'text-white/70 hover:bg-white/10 hover:text-white'
                   }`}
               >
                 <Icon size={18} />
@@ -86,15 +86,15 @@ export function Sidebar() {
           })}
         </nav>
 
-        <div className="px-3 py-4 border-t border-slate-700 space-y-1">
+        <div className="px-3 py-4 border-t border-white/10 space-y-1">
           <button
             onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-400 hover:bg-slate-700 hover:text-white transition-colors"
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-white/50 hover:bg-white/10 hover:text-white transition-colors"
           >
             <LogOut size={18} />
             Esci
           </button>
-          <p className="text-xs text-slate-600 px-3 pt-1">v1.0.0 · {new Date().getFullYear()}</p>
+          <p className="text-xs text-white/30 px-3 pt-1">v1.0.0 · {new Date().getFullYear()}</p>
         </div>
       </aside>
     </>

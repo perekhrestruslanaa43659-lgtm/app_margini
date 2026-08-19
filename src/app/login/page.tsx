@@ -81,10 +81,10 @@ export default function LoginPage() {
 
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center font-bold text-2xl text-white mx-auto mb-4">
+          <div className="w-16 h-16 bg-dm-yellow rounded-2xl flex items-center justify-center font-display font-bold text-2xl text-dm-ink mx-auto mb-4">
             DM
           </div>
-          <h1 className="text-2xl font-bold text-slate-800">Doppio Malto</h1>
+          <h1 className="text-2xl font-bold text-dm-ink">Doppio Malto</h1>
           <p className="text-sm text-slate-500 mt-1">Event Manager</p>
         </div>
 
@@ -93,7 +93,7 @@ export default function LoginPage() {
           <button
             onClick={() => switchMode('login')}
             className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${
-              isLogin ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+              isLogin ? 'bg-white text-dm-ink shadow-sm' : 'text-slate-500 hover:text-dm-ink/80'
             }`}
           >
             Accedi
@@ -101,7 +101,7 @@ export default function LoginPage() {
           <button
             onClick={() => switchMode('register')}
             className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${
-              !isLogin ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+              !isLogin ? 'bg-white text-dm-ink shadow-sm' : 'text-slate-500 hover:text-dm-ink/80'
             }`}
           >
             Registrati
@@ -111,13 +111,13 @@ export default function LoginPage() {
         {/* Form card */}
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-8">
           <div className="flex items-center gap-3 mb-6">
-            <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${isLogin ? 'bg-blue-100' : 'bg-emerald-100'}`}>
+            <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${isLogin ? 'bg-dm-wood/20' : 'bg-emerald-100'}`}>
               {isLogin
-                ? <Lock size={16} className="text-blue-600" />
+                ? <Lock size={16} className="text-dm-wood" />
                 : <UserPlus size={16} className="text-emerald-600" />
               }
             </div>
-            <h2 className="font-semibold text-slate-700">
+            <h2 className="font-semibold text-dm-ink/80">
               {isLogin ? 'Accedi al tuo account' : 'Crea un account'}
             </h2>
           </div>
@@ -131,7 +131,7 @@ export default function LoginPage() {
                 type="email"
                 required
                 autoComplete="email"
-                className="w-full h-11 px-3 rounded-lg border border-slate-200 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
+                className="w-full h-11 px-3 rounded-lg border border-slate-200 text-sm text-dm-ink placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-dm-maroon/20 focus:border-dm-maroon transition"
                 placeholder="email@esempio.it"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -146,7 +146,7 @@ export default function LoginPage() {
                 type="password"
                 required
                 autoComplete={isLogin ? 'current-password' : 'new-password'}
-                className="w-full h-11 px-3 rounded-lg border border-slate-200 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
+                className="w-full h-11 px-3 rounded-lg border border-slate-200 text-sm text-dm-ink placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-dm-maroon/20 focus:border-dm-maroon transition"
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -162,7 +162,7 @@ export default function LoginPage() {
                   type="password"
                   required
                   autoComplete="new-password"
-                  className="w-full h-11 px-3 rounded-lg border border-slate-200 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
+                  className="w-full h-11 px-3 rounded-lg border border-slate-200 text-sm text-dm-ink placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-dm-maroon/20 focus:border-dm-maroon transition"
                   placeholder="••••••••"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
@@ -185,10 +185,10 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className={`w-full h-11 text-white text-sm font-medium rounded-lg flex items-center justify-center gap-2 transition disabled:opacity-60 ${
+              className={`w-full h-11 text-sm font-medium rounded-lg flex items-center justify-center gap-2 transition disabled:opacity-60 ${
                 isLogin
-                  ? 'bg-blue-600 hover:bg-blue-700'
-                  : 'bg-emerald-600 hover:bg-emerald-700'
+                  ? 'bg-dm-yellow hover:bg-dm-yellow-dark text-dm-ink'
+                  : 'bg-emerald-600 hover:bg-emerald-700 text-white'
               }`}
             >
               {loading

@@ -326,7 +326,7 @@ export function MarginCalculator() {
             <div className="w-7 h-7 bg-emerald-100 rounded-lg flex items-center justify-center">
               <Search size={13} className="text-emerald-600" />
             </div>
-            <h2 className="text-sm font-semibold text-slate-700">Piatti del menu</h2>
+            <h2 className="text-sm font-semibold text-dm-ink/80">Piatti del menu</h2>
             {loadingCatalog
               ? <Loader2 size={13} className="animate-spin text-slate-400 ml-auto" />
               : (
@@ -356,7 +356,7 @@ export function MarginCalculator() {
               <Search size={13} className="absolute left-3 top-3 text-slate-400" />
               <input
                 type="text"
-                className="w-full h-10 pl-8 pr-4 rounded-lg border border-slate-200 text-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
+                className="w-full h-10 pl-8 pr-4 rounded-lg border border-slate-200 text-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-dm-maroon/20 focus:border-dm-maroon transition"
                 placeholder="Cerca piatto dal catalogo..."
                 value={search}
                 onChange={(e) => { setSearch(e.target.value); setShowDropdown(true) }}
@@ -370,10 +370,10 @@ export function MarginCalculator() {
                       key={d.name}
                       type="button"
                       onMouseDown={() => addDish(d)}
-                      className="w-full text-left px-4 py-2.5 hover:bg-blue-50 text-sm border-b border-slate-50 last:border-0 flex items-center justify-between gap-3"
+                      className="w-full text-left px-4 py-2.5 hover:bg-dm-cream text-sm border-b border-slate-50 last:border-0 flex items-center justify-between gap-3"
                     >
                       <div>
-                        <span className="font-medium text-slate-700">{d.name}</span>
+                        <span className="font-medium text-dm-ink/80">{d.name}</span>
                         {d.category && <span className="ml-2 text-xs text-slate-400">{d.category}</span>}
                       </div>
                       <div className="text-right shrink-0">
@@ -432,7 +432,7 @@ export function MarginCalculator() {
                     return (
                       <tr key={d.id} className={`group ${bgColor}/20`}>
                         {/* Nome piatto */}
-                        <td className="py-3 font-medium text-slate-700">
+                        <td className="py-3 font-medium text-dm-ink/80">
                           <div className="flex flex-col gap-1">
                             <div className="flex items-center gap-1.5 flex-wrap">
                               {cat && <span className={`inline-block text-[9px] font-semibold px-1.5 py-0.5 rounded-full border ${colorClass}`}>{cat}</span>}
@@ -464,7 +464,7 @@ export function MarginCalculator() {
                           <input
                             type="number"
                             min="1"
-                            className="w-14 h-7 px-2 rounded-lg border border-slate-200 text-xs text-center focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
+                            className="w-14 h-7 px-2 rounded-lg border border-slate-200 text-xs text-center focus:outline-none focus:ring-2 focus:ring-dm-maroon/20 focus:border-dm-maroon transition"
                             value={d.quantity}
                             onChange={(e) => updateDishQty(d.id, parseInt(e.target.value) || 1)}
                           />
@@ -518,7 +518,7 @@ export function MarginCalculator() {
                         </div>
                       </div>
                     </td>
-                    <td className="py-2.5 text-right text-sm font-bold text-slate-700">{formatCurrency(totalRevenueDishes - totalFoodCost)}</td>
+                    <td className="py-2.5 text-right text-sm font-bold text-dm-ink/80">{formatCurrency(totalRevenueDishes - totalFoodCost)}</td>
                     <td />
                   </tr>
                 </tbody>
@@ -535,7 +535,7 @@ export function MarginCalculator() {
         {/* Righe extra manuali */}
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
           <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-slate-700">Voci extra</h2>
+            <h2 className="text-sm font-semibold text-dm-ink/80">Voci extra</h2>
             <div className="flex gap-2">
               <button onClick={() => addManual('ricavo')} className="flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg border border-slate-200 text-emerald-600 hover:bg-emerald-50 transition">
                 <Plus size={11} /> Ricavo
@@ -572,13 +572,13 @@ export function MarginCalculator() {
                         </select>
                       </td>
                       <td className="py-1.5 px-2">
-                        <input className="w-full h-7 px-2 rounded-lg border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition" placeholder="Descrizione..." value={r.name} onChange={(e) => updateManual(r.id, 'name', e.target.value)} />
+                        <input className="w-full h-7 px-2 rounded-lg border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-dm-maroon/20 focus:border-dm-maroon transition" placeholder="Descrizione..." value={r.name} onChange={(e) => updateManual(r.id, 'name', e.target.value)} />
                       </td>
                       <td className="py-1.5 px-1">
-                        <input type="number" min="0" className="w-14 h-7 px-2 rounded-lg border border-slate-200 text-xs text-right focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition" value={r.quantity} onChange={(e) => updateManual(r.id, 'quantity', parseFloat(e.target.value) || 0)} />
+                        <input type="number" min="0" className="w-14 h-7 px-2 rounded-lg border border-slate-200 text-xs text-right focus:outline-none focus:ring-2 focus:ring-dm-maroon/20 focus:border-dm-maroon transition" value={r.quantity} onChange={(e) => updateManual(r.id, 'quantity', parseFloat(e.target.value) || 0)} />
                       </td>
                       <td className="py-1.5 px-1">
-                        <input type="number" min="0" step="0.01" className="w-24 h-7 px-2 rounded-lg border border-slate-200 text-xs text-right focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition" value={r.unit_price} onChange={(e) => updateManual(r.id, 'unit_price', parseFloat(e.target.value) || 0)} />
+                        <input type="number" min="0" step="0.01" className="w-24 h-7 px-2 rounded-lg border border-slate-200 text-xs text-right focus:outline-none focus:ring-2 focus:ring-dm-maroon/20 focus:border-dm-maroon transition" value={r.unit_price} onChange={(e) => updateManual(r.id, 'unit_price', parseFloat(e.target.value) || 0)} />
                       </td>
                       <td className="py-1.5 text-right">
                         <button onClick={() => removeManual(r.id)} className="text-slate-200 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all">
@@ -602,7 +602,7 @@ export function MarginCalculator() {
               <div className="w-7 h-7 bg-amber-100 rounded-lg flex items-center justify-center">
                 <Package size={13} className="text-amber-600" />
               </div>
-              <h2 className="text-sm font-semibold text-slate-700">Ingredienti necessari</h2>
+              <h2 className="text-sm font-semibold text-dm-ink/80">Ingredienti necessari</h2>
               <span className="ml-auto text-xs text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">{aggregatedIngredients.length} voci</span>
             </div>
             <div className="px-5 py-3 space-y-4">
@@ -682,14 +682,14 @@ export function MarginCalculator() {
             <label className="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-1.5">N° ospiti</label>
             <input
               type="number" min="1"
-              className="w-full h-10 px-3 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
+              className="w-full h-10 px-3 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-dm-maroon/20 focus:border-dm-maroon transition"
               value={guests}
               onChange={(e) => setGuests(e.target.value === '' ? '' : parseInt(e.target.value) || 1)}
             />
           </div>
           <div>
             <label className="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-1.5">
-              Sconto globale — <span className="font-bold text-slate-700">{discount}%</span>
+              Sconto globale — <span className="font-bold text-dm-ink/80">{discount}%</span>
             </label>
             <input type="range" min="0" max="50" step="1" className="w-full mt-2" value={discount} onChange={(e) => setDiscount(parseInt(e.target.value))} />
           </div>
@@ -698,7 +698,7 @@ export function MarginCalculator() {
 
       {/* ── Colonna destra: risultati ── */}
       <div className="space-y-4">
-        <div className="bg-slate-800 rounded-xl p-5 text-white">
+        <div className="bg-dm-ink rounded-xl p-5 text-white">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-sm font-semibold text-slate-300">Margine totale</h3>
             <div className={`flex items-center gap-2 text-3xl font-bold ${mc}`}>
@@ -715,7 +715,7 @@ export function MarginCalculator() {
               <span className="text-slate-400">Costi</span>
               <span className="text-red-400 font-medium">{formatCurrency(summary.totalCosts)}</span>
             </div>
-            <div className="flex justify-between pt-2 border-t border-slate-700 font-bold">
+            <div className="flex justify-between pt-2 border-t border-white/20 font-bold">
               <span>Margine lordo</span>
               <span className={mc}>{formatCurrency(summary.grossMargin)}</span>
             </div>
@@ -723,7 +723,7 @@ export function MarginCalculator() {
         </div>
 
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
-          <h3 className="text-sm font-semibold text-slate-700 mb-3">Per ospite ({guests || 1} pax)</h3>
+          <h3 className="text-sm font-semibold text-dm-ink/80 mb-3">Per ospite ({guests || 1} pax)</h3>
           <div className="space-y-2 text-sm">
             <div className="flex justify-between">
               <span className="text-slate-500">Ricavo/ospite</span>
@@ -734,7 +734,7 @@ export function MarginCalculator() {
               <span className="text-red-500 font-medium">{formatCurrency(summary.costPerGuest)}</span>
             </div>
             <div className="flex justify-between border-t border-slate-100 pt-2 font-medium">
-              <span className="text-slate-700">Margine/ospite</span>
+              <span className="text-dm-ink/80">Margine/ospite</span>
               <span className={marginColor(summary.marginPct)}>{formatCurrency(summary.marginPerGuest)}</span>
             </div>
           </div>
@@ -750,7 +750,7 @@ export function MarginCalculator() {
 
         {dishRows.length > 0 && (
           <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
-            <h3 className="text-sm font-semibold text-slate-700 mb-3">Food Cost %</h3>
+            <h3 className="text-sm font-semibold text-dm-ink/80 mb-3">Food Cost %</h3>
             {dishRows.map((d) => {
               const pct = d.sellingPrice > 0 ? ((d.foodCost > 0 ? d.foodCost : d.sellingPrice) / d.sellingPrice) * 100 : 0
               return (

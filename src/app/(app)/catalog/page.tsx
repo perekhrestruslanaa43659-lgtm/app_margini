@@ -102,7 +102,7 @@ function ItemRow({
         <td className="px-4 py-2">
           <div className="flex gap-1">
             <button className="text-emerald-500 hover:text-emerald-700" onClick={() => saveEdit(it.id)}><Check size={16} /></button>
-            <button className="text-slate-400 hover:text-slate-700" onClick={() => setEditingId(null)}><X size={16} /></button>
+            <button className="text-slate-400 hover:text-dm-ink/80" onClick={() => setEditingId(null)}><X size={16} /></button>
           </div>
         </td>
       </tr>
@@ -112,7 +112,7 @@ function ItemRow({
   return (
     <tr className="hover:bg-slate-50 transition-colors">
       <td className="px-4 py-3">
-        <p className="font-medium text-slate-700">{it.name}</p>
+        <p className="font-medium text-dm-ink/80">{it.name}</p>
         {it.notes && <p className="text-xs text-slate-400">{it.notes}</p>}
       </td>
       <td className="px-4 py-3 text-slate-500">{it.category ?? '—'}</td>
@@ -121,7 +121,7 @@ function ItemRow({
           {it.type === 'ricavo' ? 'Ricavo' : 'Costo'}
         </span>
       </td>
-      <td className="px-4 py-3 text-right font-medium text-slate-700">
+      <td className="px-4 py-3 text-right font-medium text-dm-ink/80">
         {inlinePrice?.id === it.id ? (
           <input
             ref={priceInputRef}
@@ -138,7 +138,7 @@ function ItemRow({
           />
         ) : (
           <span
-            className="cursor-pointer hover:bg-blue-50 hover:text-blue-700 px-2 py-1 rounded-lg transition-colors"
+            className="cursor-pointer hover:bg-dm-wood/10 hover:text-dm-wood px-2 py-1 rounded-lg transition-colors"
             onClick={() => startInlinePrice(it)}
             title="Clicca per modificare"
           >
@@ -149,7 +149,7 @@ function ItemRow({
       <td className="px-4 py-3 text-right text-slate-500">{it.vat_rate}%</td>
       <td className="px-4 py-3">
         <div className="flex justify-end gap-2">
-          <button className="text-slate-300 hover:text-blue-500 transition-colors" onClick={() => startEdit(it)}>
+          <button className="text-slate-300 hover:text-dm-maroon transition-colors" onClick={() => startEdit(it)}>
             <Edit2 size={14} />
           </button>
           <button className="text-slate-300 hover:text-red-500 transition-colors" onClick={() => setDeleteId(it.id)}>
@@ -364,7 +364,7 @@ function CatalogPageInner() {
             <BookOpen className="text-amber-600" size={20} />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-slate-800">Catalogo Voci</h1>
+            <h1 className="text-xl font-bold text-dm-ink">Catalogo Voci</h1>
             <p className="text-sm text-slate-500">{items.length} voci in libreria · {sortedCats.length} categorie</p>
           </div>
         </div>
@@ -401,7 +401,7 @@ function CatalogPageInner() {
           <div className="flex flex-wrap gap-1.5">
             <button
               onClick={() => setCategoryFilter('')}
-              className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${categoryFilter === '' ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+              className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${categoryFilter === '' ? 'bg-dm-yellow text-dm-ink' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
             >
               Tutti
             </button>
@@ -409,7 +409,7 @@ function CatalogPageInner() {
               <button
                 key={cat}
                 onClick={() => setCategoryFilter(categoryFilter === cat ? '' : cat)}
-                className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${categoryFilter === cat ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+                className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${categoryFilter === cat ? 'bg-dm-yellow text-dm-ink' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
               >
                 {cat}
               </button>
@@ -421,9 +421,9 @@ function CatalogPageInner() {
       {/* Expand / collapse all — only shown when not filtering */}
       {!isFiltering && sortedCats.length > 1 && (
         <div className="flex gap-2 mb-3 justify-end">
-          <button onClick={expandAll} className="text-xs text-slate-400 hover:text-blue-600 transition-colors">Espandi tutto</button>
+          <button onClick={expandAll} className="text-xs text-slate-400 hover:text-dm-maroon transition-colors">Espandi tutto</button>
           <span className="text-slate-200">|</span>
-          <button onClick={collapseAll} className="text-xs text-slate-400 hover:text-blue-600 transition-colors">Comprimi tutto</button>
+          <button onClick={collapseAll} className="text-xs text-slate-400 hover:text-dm-maroon transition-colors">Comprimi tutto</button>
         </div>
       )}
 
@@ -433,7 +433,7 @@ function CatalogPageInner() {
           <table className="w-full text-sm">
             {TABLE_HEAD}
             <tbody>
-              <tr className="bg-blue-50">
+              <tr className="bg-dm-cream">
                 <td className="px-4 py-2">
                   <input className="input py-1 text-xs" placeholder="Nome voce *" value={newItem.name} onChange={(e) => setNewItem((p) => ({ ...p, name: e.target.value }))} />
                 </td>
@@ -459,7 +459,7 @@ function CatalogPageInner() {
                 </td>
                 <td className="px-4 py-2 flex gap-1">
                   <button className="text-emerald-500 hover:text-emerald-700" onClick={addItem}><Check size={16} /></button>
-                  <button className="text-slate-400 hover:text-slate-700" onClick={() => setAddMode(false)}><X size={16} /></button>
+                  <button className="text-slate-400 hover:text-dm-ink/80" onClick={() => setAddMode(false)}><X size={16} /></button>
                 </td>
               </tr>
             </tbody>

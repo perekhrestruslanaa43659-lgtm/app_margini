@@ -52,8 +52,8 @@ export function CatalogImportModal({ open, type, onImport, onClose }: Props) {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg mx-4 flex flex-col max-h-[80vh]">
         <div className="flex items-center justify-between p-4 border-b border-slate-100">
-          <h2 className="font-semibold text-slate-800">Importa dal catalogo</h2>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-700">
+          <h2 className="font-semibold text-dm-ink">Importa dal catalogo</h2>
+          <button onClick={onClose} className="text-slate-400 hover:text-dm-ink/80">
             <X size={18} />
           </button>
         </div>
@@ -83,7 +83,7 @@ export function CatalogImportModal({ open, type, onImport, onClose }: Props) {
                 className="rounded"
               />
               <div className="flex-1">
-                <p className="text-sm font-medium text-slate-700">{it.name}</p>
+                <p className="text-sm font-medium text-dm-ink/80">{it.name}</p>
                 <p className="text-xs text-slate-400">{it.category ?? '—'} · IVA {it.vat_rate}%</p>
               </div>
               <span className="text-sm text-slate-600">{formatCurrency(it.unit_price)}</span>

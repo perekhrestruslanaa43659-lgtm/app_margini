@@ -112,11 +112,11 @@ export function EmailModal({
 
         {/* Header */}
         <div className="flex items-center gap-3 px-6 py-4 border-b border-slate-100">
-          <div className="w-9 h-9 bg-blue-100 rounded-xl flex items-center justify-center shrink-0">
-            <Mail className="text-blue-600" size={18} />
+          <div className="w-9 h-9 bg-dm-wood/20 rounded-xl flex items-center justify-center shrink-0">
+            <Mail className="text-dm-wood" size={18} />
           </div>
           <div className="flex-1">
-            <h2 className="font-semibold text-slate-800">Invia email al cliente</h2>
+            <h2 className="font-semibold text-dm-ink">Invia email al cliente</h2>
             <p className="text-xs text-slate-400">{eventName}</p>
           </div>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600 transition-colors">
@@ -136,12 +136,12 @@ export function EmailModal({
                   onClick={() => setStyle(s.value)}
                   className={`px-3 py-1.5 rounded-xl text-xs font-medium border transition-all ${
                     style === s.value
-                      ? 'bg-blue-600 border-blue-600 text-white shadow-sm'
-                      : 'bg-white border-slate-200 text-slate-600 hover:border-blue-300 hover:text-blue-600'
+                      ? 'bg-dm-yellow border-dm-yellow text-dm-ink shadow-sm'
+                      : 'bg-white border-slate-200 text-slate-600 hover:border-dm-maroon hover:text-dm-maroon'
                   }`}
                 >
                   <span>{s.label}</span>
-                  <span className={`ml-1.5 ${style === s.value ? 'text-blue-200' : 'text-slate-400'}`}>· {s.desc}</span>
+                  <span className={`ml-1.5 ${style === s.value ? 'text-dm-ink/60' : 'text-slate-400'}`}>· {s.desc}</span>
                 </button>
               ))}
             </div>
@@ -151,7 +151,7 @@ export function EmailModal({
           <button
             onClick={generate}
             disabled={generating}
-            className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-violet-600 to-blue-600 hover:from-violet-700 hover:to-blue-700 text-white font-medium text-sm px-4 py-2.5 rounded-xl transition-all shadow-sm disabled:opacity-60"
+            className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-violet-600 to-dm-maroon hover:from-violet-700 hover:to-dm-maroon-dark text-white font-medium text-sm px-4 py-2.5 rounded-xl transition-all shadow-sm disabled:opacity-60"
           >
             {generating
               ? <><Loader2 size={15} className="animate-spin" /> Generazione in corso...</>

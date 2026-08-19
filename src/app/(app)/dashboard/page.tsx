@@ -131,7 +131,7 @@ function DashboardPageInner() {
             <LayoutDashboard className="text-violet-600" size={20} />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-slate-800">Dashboard Margini</h1>
+            <h1 className="text-xl font-bold text-dm-ink">Dashboard Margini</h1>
             <p className="text-sm text-slate-500">Panoramica globale delle performance</p>
           </div>
         </div>
@@ -141,7 +141,7 @@ function DashboardPageInner() {
               key={p}
               onClick={() => setPeriod(p)}
               className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors
-                ${period === p ? 'bg-blue-600 text-white' : 'text-slate-500 hover:text-slate-800'}`}
+                ${period === p ? 'bg-dm-yellow text-dm-ink' : 'text-slate-500 hover:text-dm-ink'}`}
             >
               {p === 'month' ? 'Mese' : p === 'quarter' ? 'Trimestre' : 'Anno'}
             </button>
@@ -154,13 +154,13 @@ function DashboardPageInner() {
         <KpiCard label="Eventi totali" value={String(kpis.total)} icon={CalendarDays} />
         <KpiCard label="Confermati / Conclusi" value={String(kpis.confirmed)} icon={CheckCircle} iconColor="text-emerald-500" />
         <KpiCard label="Margine medio" value={formatPct(kpis.avgMargin)} icon={TrendingUp} iconColor={kpis.avgMargin >= 30 ? 'text-emerald-500' : kpis.avgMargin >= 15 ? 'text-amber-500' : 'text-red-500'} />
-        <KpiCard label="Ricavi totali" value={formatCurrency(kpis.totalRevenue)} icon={Euro} iconColor="text-blue-600" />
+        <KpiCard label="Ricavi totali" value={formatCurrency(kpis.totalRevenue)} icon={Euro} iconColor="text-dm-maroon" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
         {/* Bar chart */}
         <div className="card lg:col-span-2">
-          <h2 className="font-semibold text-slate-700 mb-4 text-sm">Ricavi vs Costi per evento (ultimi 10)</h2>
+          <h2 className="font-semibold text-dm-ink/80 mb-4 text-sm">Ricavi vs Costi per evento (ultimi 10)</h2>
           {barData.length === 0 ? (
             <p className="text-center text-slate-400 text-sm py-8">Nessun dato disponibile</p>
           ) : (
@@ -181,7 +181,7 @@ function DashboardPageInner() {
 
         {/* Pie chart */}
         <div className="card">
-          <h2 className="font-semibold text-slate-700 mb-4 text-sm">Distribuzione per stato</h2>
+          <h2 className="font-semibold text-dm-ink/80 mb-4 text-sm">Distribuzione per stato</h2>
           {pieData.length === 0 ? (
             <p className="text-center text-slate-400 text-sm py-8">Nessun dato</p>
           ) : (
@@ -203,7 +203,7 @@ function DashboardPageInner() {
 
       {/* Top 5 */}
       <div className="card">
-        <h2 className="font-semibold text-slate-700 mb-4 text-sm">Top 5 eventi per margine %</h2>
+        <h2 className="font-semibold text-dm-ink/80 mb-4 text-sm">Top 5 eventi per margine %</h2>
         {top5.length === 0 ? (
           <p className="text-sm text-slate-400">Nessun dato disponibile</p>
         ) : (
@@ -225,7 +225,7 @@ function DashboardPageInner() {
                       <div className="flex items-center gap-2">
                         <span className="text-xs font-bold text-slate-300 w-4">{i + 1}</span>
                         <div>
-                          <p className="font-medium text-slate-700">{ev.name}</p>
+                          <p className="font-medium text-dm-ink/80">{ev.name}</p>
                           {ev.client_name && <p className="text-xs text-slate-400">{ev.client_name}</p>}
                         </div>
                       </div>

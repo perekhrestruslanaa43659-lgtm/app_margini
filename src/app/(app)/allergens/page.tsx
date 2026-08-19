@@ -137,7 +137,7 @@ function AllergensPageInner() {
             <ShieldCheck className="text-emerald-600" size={20} />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-slate-800">Schede Allergeni</h1>
+            <h1 className="text-xl font-bold text-dm-ink">Schede Allergeni</h1>
             <p className="text-sm text-slate-500">
               14 allergeni EU · Reg. 1169/2011 · <strong>{rows.length}</strong> voci
             </p>
@@ -236,7 +236,7 @@ function AllergensPageInner() {
                       return (
                         <tr key={row.id} className="hover:bg-slate-50 group">
                           <td className="px-2 py-2">
-                            <p className="font-medium text-slate-700 leading-tight">{row.dish_name}</p>
+                            <p className="font-medium text-dm-ink/80 leading-tight">{row.dish_name}</p>
                             {badges.length > 0 && (
                               <p className="text-[10px] mt-0.5 text-amber-600">
                                 {badges.map((a) => a.emoji).join(' ')}

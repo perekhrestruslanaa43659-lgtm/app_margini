@@ -20,9 +20,9 @@ export function ConfirmModal({ open, title, message, confirmLabel = 'Elimina', o
           <div className="w-10 h-10 bg-red-100 rounded-xl flex items-center justify-center">
             <AlertTriangle className="text-red-500" size={20} />
           </div>
-          <h2 className="font-semibold text-slate-800">{title}</h2>
+          <h2 className="font-display font-semibold text-dm-ink">{title}</h2>
         </div>
-        <p className="text-sm text-slate-600 mb-6">{message}</p>
+        <p className="text-sm text-dm-ink/70 mb-6">{message}</p>
         <div className="flex gap-3 justify-end">
           <button className="btn-secondary" onClick={onCancel}>Annulla</button>
           <button className="btn-danger" onClick={onConfirm}>{confirmLabel}</button>

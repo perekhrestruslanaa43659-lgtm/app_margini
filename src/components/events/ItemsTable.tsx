@@ -84,7 +84,7 @@ function CatalogAutocomplete({
             <button
               key={c.id}
               type="button"
-              className="w-full text-left px-3 py-2 hover:bg-blue-50 text-xs border-b border-slate-50 last:border-0"
+              className="w-full text-left px-3 py-2 hover:bg-dm-cream text-xs border-b border-slate-50 last:border-0"
               onMouseDown={(e) => {
                 e.preventDefault()
                 onSelect(c)
@@ -92,7 +92,7 @@ function CatalogAutocomplete({
                 setOpen(false)
               }}
             >
-              <span className="font-medium text-slate-700">{c.name}</span>
+              <span className="font-medium text-dm-ink/80">{c.name}</span>
               <span className="ml-2 text-slate-400">{formatCurrency(c.unit_price)}</span>
               {c.category && <span className="ml-2 text-slate-300 text-[10px]">{c.category}</span>}
             </button>
@@ -220,7 +220,7 @@ export function ItemsTable({ type, items, onChange, onImportFromCatalog, onProdu
                     {VAT_OPTIONS.map((v) => <option key={v} value={v}>{v}%</option>)}
                   </select>
                 </td>
-                <td className="py-1.5 px-2 text-right text-slate-700 font-medium">
+                <td className="py-1.5 px-2 text-right text-dm-ink/80 font-medium">
                   {formatCurrency(it.quantity * it.unit_price)}
                 </td>
                 <td className="py-1.5 px-2">

@@ -229,7 +229,7 @@ function RecipesPageInner() {
           <FlaskConical size={20} className="text-purple-600" />
         </div>
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">Food Cost</h1>
+          <h1 className="text-2xl font-bold text-dm-ink">Food Cost</h1>
           <p className="text-sm text-slate-500 mt-0.5">Ingredienti e food cost per porzione</p>
         </div>
       </div>
@@ -245,14 +245,14 @@ function RecipesPageInner() {
               <div className="w-7 h-7 bg-slate-100 rounded-lg flex items-center justify-center">
                 <Package size={13} className="text-slate-500" />
               </div>
-              <h2 className="text-sm font-semibold text-slate-700">Nuovo ingrediente</h2>
+              <h2 className="text-sm font-semibold text-dm-ink/80">Nuovo ingrediente</h2>
             </div>
 
             <div className="px-5 py-4 space-y-3">
               <div>
                 <label className="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-1.5">Nome *</label>
                 <input
-                  className="w-full h-11 px-3 rounded-lg border border-slate-200 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
+                  className="w-full h-11 px-3 rounded-lg border border-slate-200 text-sm text-dm-ink placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-dm-maroon/20 focus:border-dm-maroon transition"
                   placeholder="es. Hamburger Bovino 180g"
                   value={newIng.name}
                   onChange={(e) => setNewIng((p) => ({ ...p, name: e.target.value }))}
@@ -264,14 +264,14 @@ function RecipesPageInner() {
                 <label className="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-1.5">Unità & Costo</label>
                 <div className="flex gap-2">
                   <select
-                    className="h-11 px-3 rounded-lg border border-slate-200 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition bg-white w-24"
+                    className="h-11 px-3 rounded-lg border border-slate-200 text-sm text-dm-ink/80 focus:outline-none focus:ring-2 focus:ring-dm-maroon/20 focus:border-dm-maroon transition bg-white w-24"
                     value={newIng.unit}
                     onChange={(e) => setNewIng((p) => ({ ...p, unit: e.target.value }))}
                   >
                     {UNITS.map((u) => <option key={u}>{u}</option>)}
                   </select>
                   <input
-                    className="flex-1 h-11 px-3 rounded-lg border border-slate-200 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
+                    className="flex-1 h-11 px-3 rounded-lg border border-slate-200 text-sm text-dm-ink placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-dm-maroon/20 focus:border-dm-maroon transition"
                     placeholder="€/unità"
                     value={newIng.cost_per_unit}
                     onChange={(e) => setNewIng((p) => ({ ...p, cost_per_unit: e.target.value }))}
@@ -283,7 +283,7 @@ function RecipesPageInner() {
               <div>
                 <label className="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-1.5">Fornitore</label>
                 <input
-                  className="w-full h-11 px-3 rounded-lg border border-slate-200 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
+                  className="w-full h-11 px-3 rounded-lg border border-slate-200 text-sm text-dm-ink placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-dm-maroon/20 focus:border-dm-maroon transition"
                   placeholder="Opzionale"
                   value={newIng.supplier}
                   onChange={(e) => setNewIng((p) => ({ ...p, supplier: e.target.value }))}
@@ -291,7 +291,7 @@ function RecipesPageInner() {
               </div>
 
               <button
-                className="w-full h-11 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg flex items-center justify-center gap-2 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full h-11 bg-dm-yellow hover:bg-dm-yellow-dark text-dm-ink font-display font-semibold uppercase tracking-wide text-sm rounded-lg flex items-center justify-center gap-2 transition disabled:opacity-50 disabled:cursor-not-allowed"
                 onClick={saveIngredient}
                 disabled={addingIng || !newIng.name.trim()}
               >
@@ -312,7 +312,7 @@ function RecipesPageInner() {
               <div className="relative">
                 <Search className="absolute left-3 top-3 text-slate-400" size={13} />
                 <input
-                  className="w-full h-10 pl-8 pr-3 rounded-lg border border-slate-200 text-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
+                  className="w-full h-10 pl-8 pr-3 rounded-lg border border-slate-200 text-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-dm-maroon/20 focus:border-dm-maroon transition"
                   placeholder="Cerca..."
                   value={ingSearch}
                   onChange={(e) => setIngSearch(e.target.value)}
@@ -327,7 +327,7 @@ function RecipesPageInner() {
               {filteredIngredients.map((ing) => (
                 <div key={ing.id} className="flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50 group transition-colors">
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-medium text-slate-700 truncate">{ing.name}</p>
+                    <p className="text-xs font-medium text-dm-ink/80 truncate">{ing.name}</p>
                     <span className="inline-block mt-0.5 text-[10px] font-medium text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">
                       {ing.unit}
                     </span>
@@ -336,7 +336,7 @@ function RecipesPageInner() {
                     <input
                       type="text"
                       inputMode="decimal"
-                      className="w-20 h-8 px-2 rounded-lg border border-slate-200 text-xs text-right text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
+                      className="w-20 h-8 px-2 rounded-lg border border-slate-200 text-xs text-right text-dm-ink/80 focus:outline-none focus:ring-2 focus:ring-dm-maroon/20 focus:border-dm-maroon transition"
                       value={costInputs[ing.id] !== undefined ? costInputs[ing.id] : String(ing.cost_per_unit)}
                       placeholder="0"
                       onChange={(e) => setCostInputs((prev) => ({ ...prev, [ing.id]: e.target.value }))}
@@ -373,14 +373,14 @@ function RecipesPageInner() {
             <div className="relative flex-1">
               <Search className="absolute left-3.5 top-3.5 text-slate-400" size={14} />
               <input
-                className="w-full h-11 pl-10 pr-4 rounded-lg border border-slate-200 shadow-sm text-sm placeholder-slate-400 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
+                className="w-full h-11 pl-10 pr-4 rounded-lg border border-slate-200 shadow-sm text-sm placeholder-slate-400 bg-white focus:outline-none focus:ring-2 focus:ring-dm-maroon/20 focus:border-dm-maroon transition"
                 placeholder="Cerca piatto..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
             </div>
             <select
-              className="h-11 px-3 rounded-lg border border-slate-200 shadow-sm text-sm text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition w-44"
+              className="h-11 px-3 rounded-lg border border-slate-200 shadow-sm text-sm text-dm-ink/80 bg-white focus:outline-none focus:ring-2 focus:ring-dm-maroon/20 focus:border-dm-maroon transition w-44"
               value={filterCategory}
               onChange={(e) => setFilterCategory(e.target.value)}
             >
@@ -453,7 +453,7 @@ function RecipesPageInner() {
                               onClick={() => setExpandedDish(isOpen ? null : dish)}
                             >
                               <div>
-                                <p className="font-medium text-slate-700 text-sm">{dish}</p>
+                                <p className="font-medium text-dm-ink/80 text-sm">{dish}</p>
                                 {hasRecipe ? (
                                   <p className="text-xs text-purple-600 font-medium mt-1">
                                     Food cost: {formatCost(cost)} · {lines.length} ingredienti
@@ -505,7 +505,7 @@ function RecipesPageInner() {
                                               <div className="relative">
                                                 <input
                                                   type="text"
-                                                  className="w-full h-7 px-2 rounded-lg border border-slate-200 text-xs text-slate-700 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
+                                                  className="w-full h-7 px-2 rounded-lg border border-slate-200 text-xs text-dm-ink/80 font-medium focus:outline-none focus:ring-2 focus:ring-dm-maroon/20 focus:border-dm-maroon transition"
                                                   value={currentIngSearch}
                                                   onChange={(e) => {
                                                     setEditIngSearch((prev) => ({ ...prev, [line.id]: e.target.value }))
@@ -529,14 +529,14 @@ function RecipesPageInner() {
                                                         <button
                                                           key={i.id}
                                                           type="button"
-                                                          className="w-full text-left px-3 py-2 hover:bg-blue-50 text-xs border-b border-slate-50 last:border-0 flex justify-between gap-2"
+                                                          className="w-full text-left px-3 py-2 hover:bg-dm-cream text-xs border-b border-slate-50 last:border-0 flex justify-between gap-2"
                                                           onMouseDown={() => {
                                                             updateRecipeIngredient(line.id, i.id)
                                                             setEditIngSearch((prev) => { const n = { ...prev }; delete n[line.id]; return n })
                                                             setEditIngDropdown(null)
                                                           }}
                                                         >
-                                                          <span className="font-medium text-slate-700">{i.name}</span>
+                                                          <span className="font-medium text-dm-ink/80">{i.name}</span>
                                                           <span className="text-slate-400 shrink-0 bg-slate-100 px-1.5 py-0.5 rounded text-[10px]">{i.unit}</span>
                                                         </button>
                                                       ))}
@@ -553,7 +553,7 @@ function RecipesPageInner() {
                                                 <input
                                                   type="text"
                                                   inputMode="decimal"
-                                                  className="w-16 h-7 px-2 rounded-lg border border-slate-200 text-xs text-right text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
+                                                  className="w-16 h-7 px-2 rounded-lg border border-slate-200 text-xs text-right text-dm-ink/80 focus:outline-none focus:ring-2 focus:ring-dm-maroon/20 focus:border-dm-maroon transition"
                                                   value={qtyInputs[line.id] !== undefined ? qtyInputs[line.id] : String(parseFloat(String(line.quantity)))}
                                                   onChange={(e) => setQtyInputs((prev) => ({ ...prev, [line.id]: e.target.value }))}
                                                   onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur() }}
@@ -564,7 +564,7 @@ function RecipesPageInner() {
                                                   }}
                                                 />
                                                 <select
-                                                  className="h-7 px-1 rounded-lg border border-slate-200 text-[10px] text-slate-500 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
+                                                  className="h-7 px-1 rounded-lg border border-slate-200 text-[10px] text-slate-500 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-dm-maroon/20 focus:border-dm-maroon transition"
                                                   value={unitInputs[line.id] !== undefined ? unitInputs[line.id] : (ing?.unit ?? 'pz')}
                                                   onChange={(e) => {
                                                     const u = e.target.value
@@ -620,7 +620,7 @@ function RecipesPageInner() {
                                     <div className="relative flex-1">
                                       <input
                                         type="text"
-                                        className="w-full h-9 px-3 rounded-lg border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
+                                        className="w-full h-9 px-3 rounded-lg border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-dm-maroon/20 focus:border-dm-maroon transition"
                                         placeholder="Cerca ingrediente..."
                                         value={ingLineSearch}
                                         onChange={(e) => {
@@ -640,14 +640,14 @@ function RecipesPageInner() {
                                               <button
                                                 key={i.id}
                                                 type="button"
-                                                className="w-full text-left px-3 py-2.5 hover:bg-blue-50 text-xs border-b border-slate-50 last:border-0 flex justify-between gap-2"
+                                                className="w-full text-left px-3 py-2.5 hover:bg-dm-cream text-xs border-b border-slate-50 last:border-0 flex justify-between gap-2"
                                                 onMouseDown={() => {
                                                   setNewLine((p) => ({ ...p, ingredient_id: i.id }))
                                                   setIngLineSearch(i.name)
                                                   setIngLineDropdown(false)
                                                 }}
                                               >
-                                                <span className="font-medium text-slate-700">{i.name}</span>
+                                                <span className="font-medium text-dm-ink/80">{i.name}</span>
                                                 <span className="text-slate-400 shrink-0 bg-slate-100 px-1.5 py-0.5 rounded text-[10px]">{i.unit}</span>
                                               </button>
                                             ))}
@@ -660,20 +660,20 @@ function RecipesPageInner() {
                                     <input
                                       type="text"
                                       inputMode="decimal"
-                                      className="w-24 h-9 px-3 rounded-lg border border-slate-200 text-xs text-right focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
+                                      className="w-24 h-9 px-3 rounded-lg border border-slate-200 text-xs text-right focus:outline-none focus:ring-2 focus:ring-dm-maroon/20 focus:border-dm-maroon transition"
                                       placeholder="Qtà"
                                       value={newLine.quantity}
                                       onChange={(e) => setNewLine((p) => ({ ...p, quantity: e.target.value }))}
                                       onKeyDown={(e) => e.key === 'Enter' && addRecipeLine(dish)}
                                     />
                                     <button
-                                      className="h-9 px-3 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition"
+                                      className="h-9 px-3 bg-dm-yellow hover:bg-dm-yellow-dark text-dm-ink font-display font-semibold uppercase tracking-wide text-xs rounded-lg transition"
                                       onClick={() => { addRecipeLine(dish); setIngLineSearch('') }}
                                     >
                                       Aggiungi
                                     </button>
                                     <button
-                                      className="h-9 px-3 text-slate-500 hover:text-slate-700 text-xs rounded-lg border border-slate-200 hover:bg-slate-50 transition"
+                                      className="h-9 px-3 text-slate-500 hover:text-dm-ink/80 text-xs rounded-lg border border-slate-200 hover:bg-slate-50 transition"
                                       onClick={() => { setAddingLine(null); setIngLineSearch('') }}
                                     >
                                       Annulla

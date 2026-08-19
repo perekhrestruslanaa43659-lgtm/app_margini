@@ -113,11 +113,11 @@ function EventsPageInner() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div className="flex items-center gap-3">
-          <div className="w-11 h-11 bg-blue-100 rounded-xl flex items-center justify-center shrink-0">
-            <CalendarDays className="text-blue-600" size={20} />
+          <div className="w-11 h-11 bg-dm-wood/20 rounded-xl flex items-center justify-center shrink-0">
+            <CalendarDays className="text-dm-wood" size={20} />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-slate-800">Lista Eventi</h1>
+            <h1 className="text-xl font-bold text-dm-ink">Lista Eventi</h1>
             <p className="text-sm text-slate-500">{filtered.length} eventi trovati</p>
           </div>
         </div>
@@ -153,8 +153,8 @@ function EventsPageInner() {
 
       {/* Batch actions */}
       {selected.size > 0 && (
-        <div className="mb-3 flex items-center gap-3 bg-blue-50 border border-blue-200 rounded-xl px-4 py-2">
-          <span className="text-sm text-blue-700 font-medium">{selected.size} selezionati</span>
+        <div className="mb-3 flex items-center gap-3 bg-dm-wood/10 border border-dm-wood/30 rounded-xl px-4 py-2">
+          <span className="text-sm text-dm-wood font-medium">{selected.size} selezionati</span>
           <button className="btn-danger flex items-center gap-1.5 ml-auto" onClick={() => setConfirmDelete(true)}>
             <Trash2 size={14} /> Elimina selezionati
           </button>
@@ -208,7 +208,7 @@ function EventsPageInner() {
                     </td>
                     <td className="px-4 py-3">
                       <Link href={`/events/${ev.id}`} className="group">
-                        <p className="font-medium text-slate-800 group-hover:text-blue-600 transition-colors">{ev.name}</p>
+                        <p className="font-medium text-dm-ink group-hover:text-dm-maroon transition-colors">{ev.name}</p>
                         {ev.client_name && <p className="text-xs text-slate-400">{ev.client_name}</p>}
                         {ev.location && (
                           <p className="text-xs text-slate-400 flex items-center gap-1 mt-0.5">

@@ -3,7 +3,7 @@
 import { useEffect, useState, useMemo } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Download, FileSpreadsheet, Plus, Trash2, Mail, MessageCircle, CalendarDays, Zap } from 'lucide-react'
+import { ArrowLeft, Download, FileSpreadsheet, Plus, Trash2, Mail, MessageCircle, CalendarDays, Zap, AlertTriangle } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { isSupabaseConfigured } from '@/lib/supabase/config'
 import type { Event, EventItem, MarginScenario, EventStatus, CatalogItem, ItemType } from '@/lib/supabase/types'
@@ -25,6 +25,14 @@ interface DraftItem extends Omit<EventItem, 'id' | 'event_id'> {
 
 const STATUS_OPTIONS: EventStatus[] = ['richiesta', 'bozza', 'confermato', 'concluso', 'annullato']
 
+const MISSING_FIELDS: { key: keyof Event | '__items'; label: string; type: 'text' | 'email' | 'tel' | 'date' | 'number' }[] = [
+  { key: 'client_name', label: 'Nome cliente', type: 'text' },
+  { key: 'client_email', label: 'Email cliente', type: 'email' },
+  { key: 'event_date', label: 'Data evento', type: 'date' },
+  { key: 'location', label: 'Location', type: 'text' },
+  { key: 'guests_count', label: 'Numero ospiti', type: 'number' },
+]
+
 function EventDetailPageInner() {
   const { id } = useParams<{ id: string }>()
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -40,6 +48,8 @@ function EventDetailPageInner() {
   const [savingScenario, setSavingScenario] = useState(false)
   const [calcingCosts, setCalcingCosts] = useState(false)
   const [emailModalOpen, setEmailModalOpen] = useState(false)
+  const [missingDraft, setMissingDraft] = useState<Record<string, string>>({})
+  const [savingMissing, setSavingMissing] = useState(false)
 
   async function fetchAll() {
     setLoading(true)
@@ -66,6 +76,30 @@ function EventDetailPageInner() {
     () => computeMargin(items as unknown as EventItem[], event?.guests_count ?? 1),
     [items, event]
   )
+
+  const missingFields = useMemo(() => {
+    if (!event) return []
+    const fields = MISSING_FIELDS.filter(({ key }) => {
+      if (key === '__items') return false
+      const v = event[key]
+      return v === null || v === undefined || v === ''
+    })
+    if (revenues.filter((r) => r.name.trim()).length === 0) {
+      fields.push({ key: '__items', label: 'Voci di preventivo (nessuna inserita)', type: 'text' })
+    }
+    return fields
+  }, [event, revenues])
+
+  async function saveMissingField(key: keyof Event, type: string) {
+    const raw = missingDraft[key]
+    if (!raw) return
+    setSavingMissing(true)
+    const value = type === 'number' ? Number(raw) : raw
+    await sb.from('events').update({ [key]: value }).eq('id', id)
+    setEvent((e) => e ? { ...e, [key]: value } : e)
+    setMissingDraft((d) => { const next = { ...d }; delete next[key]; return next })
+    setSavingMissing(false)
+  }
 
   async function updateStatus(status: EventStatus) {
     await sb.from('events').update({ status }).eq('id', id)
@@ -261,14 +295,24 @@ function EventDetailPageInner() {
             <ArrowLeft size={14} /> Lista eventi
           </Link>
           <div className="flex items-center gap-3 mb-1">
-            <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center shrink-0">
-              <CalendarDays className="text-blue-600" size={18} />
+            <div className="w-10 h-10 bg-dm-wood/20 rounded-xl flex items-center justify-center shrink-0">
+              <CalendarDays className="text-dm-wood" size={18} />
             </div>
-            <h1 className="text-xl font-bold text-slate-800">{event.name}</h1>
+            <h1 className="text-xl font-bold text-dm-ink">{event.name}</h1>
+            {missingFields.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setTab('export')}
+                className="flex items-center gap-1 text-xs font-medium text-amber-700 bg-amber-100 hover:bg-amber-200 px-2.5 py-1 rounded-full transition-colors"
+                title="Ci sono dati mancanti nel preventivo"
+              >
+                <AlertTriangle size={12} /> {missingFields.length} dati mancanti
+              </button>
+            )}
           </div>
           <div className="flex flex-wrap items-center gap-2 mt-1 text-sm text-slate-500">
             {event.client_name && <span>{event.client_name}</span>}
-            {event.client_email && <a href={`mailto:${event.client_email}`} className="text-blue-500 hover:underline">· {event.client_email}</a>}
+            {event.client_email && <a href={`mailto:${event.client_email}`} className="text-dm-maroon hover:underline">· {event.client_email}</a>}
             {event.client_phone && <a href={`tel:${event.client_phone}`} className="hover:underline">· {event.client_phone}</a>}
             {event.event_date && <span>· {event.event_date}</span>}
             {event.location && <span>· {event.location}</span>}
@@ -303,7 +347,7 @@ function EventDetailPageInner() {
           <button
             onClick={sendEmail}
             title="Invia email al cliente"
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-blue-50 hover:border-blue-300 hover:text-blue-700 text-sm font-medium transition-colors"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-dm-wood/10 hover:border-dm-wood hover:text-dm-wood text-sm font-medium transition-colors"
           >
             <Mail size={15} /> Email
           </button>
@@ -328,7 +372,7 @@ function EventDetailPageInner() {
                 key={t}
                 onClick={() => setTab(t)}
                 className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors capitalize
-                  ${tab === t ? 'bg-blue-600 text-white' : 'text-slate-500 hover:text-slate-800'}`}
+                  ${tab === t ? 'bg-dm-yellow text-dm-ink' : 'text-slate-500 hover:text-dm-ink'}`}
               >
                 {t}
               </button>
@@ -347,16 +391,16 @@ function EventDetailPageInner() {
               />
               {/* Auto food cost button */}
               {revenues.some((r) => r.name.trim()) && (
-                <div className="mb-3 flex items-center gap-3 bg-blue-50 border border-blue-200 rounded-xl px-4 py-2.5">
+                <div className="mb-3 flex items-center gap-3 bg-dm-wood/10 border border-dm-wood/30 rounded-xl px-4 py-2.5">
                   <div className="flex-1">
-                    <p className="text-xs font-medium text-blue-700">Calcola food cost dalla distinta base</p>
-                    <p className="text-[11px] text-blue-500 mt-0.5">Sostituisce i costi attuali con quelli calcolati dagli ingredienti</p>
+                    <p className="text-xs font-medium text-dm-wood">Calcola food cost dalla distinta base</p>
+                    <p className="text-[11px] text-dm-wood/80 mt-0.5">Sostituisce i costi attuali con quelli calcolati dagli ingredienti</p>
                   </div>
                   <button
                     type="button"
                     onClick={calcAllFoodCosts}
                     disabled={calcingCosts}
-                    className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium px-3 py-1.5 rounded-lg transition-colors shrink-0"
+                    className="flex items-center gap-1.5 bg-dm-yellow hover:bg-dm-yellow-dark text-dm-ink font-display font-semibold uppercase tracking-wide text-xs px-3 py-1.5 rounded-lg transition-colors shrink-0"
                   >
                     <Zap size={13} />
                     {calcingCosts ? 'Calcolo...' : 'Calcola costi'}
@@ -379,7 +423,7 @@ function EventDetailPageInner() {
           {tab === 'scenari' && (
             <div className="card">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="font-semibold text-slate-700">Scenari di prezzo</h2>
+                <h2 className="font-semibold text-dm-ink/80">Scenari di prezzo</h2>
                 <button className="btn-secondary flex items-center gap-1.5 text-xs py-1.5" onClick={addScenario} disabled={savingScenario}>
                   <Plus size={13} /> Aggiungi scenario
                 </button>
@@ -443,7 +487,7 @@ function EventDetailPageInner() {
                           const s = computeMargin(items as unknown as EventItem[], event?.guests_count ?? 1, sc.discount_pct)
                           return (
                             <tr key={sc.id}>
-                              <td className="px-3 py-2 font-medium text-slate-700">{sc.name}</td>
+                              <td className="px-3 py-2 font-medium text-dm-ink/80">{sc.name}</td>
                               <td className="px-3 py-2 text-right text-slate-500">{sc.discount_pct}%</td>
                               <td className="px-3 py-2 text-right text-emerald-600">{formatCurrency(s.totalRevenue)}</td>
                               <td className="px-3 py-2 text-right text-red-500">{formatCurrency(s.totalCosts)}</td>
@@ -479,13 +523,63 @@ function EventDetailPageInner() {
           {/* Tab: Export */}
           {tab === 'export' && (
             <div className="card">
-              <h2 className="font-semibold text-slate-700 mb-6">Esporta preventivo</h2>
-              <div className="grid sm:grid-cols-2 gap-4">
-                <div className="border-2 border-slate-100 rounded-2xl p-6 text-center hover:border-red-300 transition-colors">
-                  <div className="w-12 h-12 bg-red-50 rounded-xl flex items-center justify-center mx-auto mb-3">
-                    <Download className="text-red-500" size={24} />
+              <h2 className="font-semibold text-dm-ink/80 mb-6">Esporta preventivo</h2>
+
+              {missingFields.length > 0 && (
+                <div className="mb-6 bg-amber-50 border border-amber-200 rounded-2xl p-4">
+                  <div className="flex items-start gap-3 mb-3">
+                    <AlertTriangle className="text-amber-500 shrink-0 mt-0.5" size={18} />
+                    <div>
+                      <p className="text-sm font-semibold text-amber-800">Dati mancanti nel preventivo</p>
+                      <p className="text-xs text-amber-700 mt-0.5">
+                        Alcune informazioni non sono state compilate. Il PDF verrà comunque generato, ma è consigliato completarle prima dell&apos;invio al cliente.
+                      </p>
+                    </div>
                   </div>
-                  <h3 className="font-semibold text-slate-700 mb-1">PDF Preventivo</h3>
+                  <div className="space-y-2">
+                    {missingFields.map(({ key, label, type }) => (
+                      key === '__items' ? (
+                        <div key={key} className="flex items-center justify-between gap-3 bg-white rounded-xl px-3 py-2 border border-amber-200">
+                          <span className="text-xs text-amber-800">{label}</span>
+                          <button
+                            type="button"
+                            className="text-xs font-medium text-dm-maroon hover:underline shrink-0"
+                            onClick={() => setTab('preventivo')}
+                          >
+                            Vai al preventivo →
+                          </button>
+                        </div>
+                      ) : (
+                        <div key={key} className="flex items-center gap-2 bg-white rounded-xl px-3 py-2 border border-amber-200">
+                          <span className="text-xs text-amber-800 w-32 shrink-0">{label}</span>
+                          <input
+                            type={type}
+                            className="flex-1 text-xs border border-amber-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-amber-400"
+                            placeholder={label}
+                            value={missingDraft[key] ?? ''}
+                            onChange={(e) => setMissingDraft((d) => ({ ...d, [key]: e.target.value }))}
+                          />
+                          <button
+                            type="button"
+                            disabled={!missingDraft[key] || savingMissing}
+                            onClick={() => saveMissingField(key, type)}
+                            className="text-xs font-medium bg-dm-yellow hover:bg-dm-yellow-dark text-dm-ink px-3 py-1.5 rounded-lg transition-colors disabled:opacity-40 shrink-0"
+                          >
+                            Salva
+                          </button>
+                        </div>
+                      )
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="grid sm:grid-cols-2 gap-4">
+                <div className="border-2 border-slate-100 rounded-2xl p-6 text-center hover:border-dm-maroon/40 transition-colors">
+                  <div className="w-12 h-12 bg-dm-maroon/10 rounded-xl flex items-center justify-center mx-auto mb-3">
+                    <Download className="text-dm-maroon" size={24} />
+                  </div>
+                  <h3 className="font-semibold text-dm-ink/80 mb-1">PDF Preventivo</h3>
                   <p className="text-xs text-slate-400 mb-4">Layout professionale con logo DM</p>
                   <button className="btn-primary w-full" onClick={exportPDF}>
                     Scarica PDF
@@ -495,7 +589,7 @@ function EventDetailPageInner() {
                   <div className="w-12 h-12 bg-emerald-50 rounded-xl flex items-center justify-center mx-auto mb-3">
                     <FileSpreadsheet className="text-emerald-500" size={24} />
                   </div>
-                  <h3 className="font-semibold text-slate-700 mb-1">Excel</h3>
+                  <h3 className="font-semibold text-dm-ink/80 mb-1">Excel</h3>
                   <p className="text-xs text-slate-400 mb-4">4 fogli con formule native</p>
                   <button className="btn-primary w-full bg-emerald-600 hover:bg-emerald-700" onClick={exportExcel}>
                     Scarica Excel
@@ -508,7 +602,7 @@ function EventDetailPageInner() {
           {/* Tab: Note */}
           {tab === 'note' && (
             <div className="card">
-              <h2 className="font-semibold text-slate-700 mb-4">Note interne</h2>
+              <h2 className="font-semibold text-dm-ink/80 mb-4">Note interne</h2>
               <textarea
                 className="input min-h-48"
                 placeholder="Note libere sull'evento..."

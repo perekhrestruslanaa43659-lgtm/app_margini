@@ -7,8 +7,8 @@ const cards = [
     icon: CalendarDays,
     title: 'Lista Eventi',
     description: 'Visualizza e gestisci tutti gli eventi',
-    color: 'bg-blue-50 text-blue-600',
-    border: 'hover:border-blue-300',
+    color: 'bg-dm-wood/10 text-dm-wood',
+    border: 'hover:border-dm-wood',
   },
   {
     href: '/events/new',
@@ -48,11 +48,11 @@ export default function HomePage() {
   return (
     <div className="max-w-4xl mx-auto">
       <div className="mb-8 flex items-center gap-4">
-        <div className="w-14 h-14 bg-blue-600 rounded-2xl flex items-center justify-center">
-          <TrendingUp className="text-white" size={28} />
+        <div className="w-14 h-14 bg-dm-yellow rounded-2xl flex items-center justify-center">
+          <TrendingUp className="text-dm-ink" size={28} />
         </div>
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">Event & Margin Manager</h1>
+          <h1 className="text-2xl font-bold text-dm-ink">Event & Margin Manager</h1>
           <p className="text-slate-500 text-sm mt-0.5">Doppio Malto · Gestione eventi e margini</p>
         </div>
       </div>
@@ -67,7 +67,7 @@ export default function HomePage() {
             <div className={`w-12 h-12 rounded-xl ${color} flex items-center justify-center mb-4`}>
               <Icon size={24} />
             </div>
-            <h2 className="font-semibold text-slate-800 mb-1 group-hover:text-blue-600 transition-colors">{title}</h2>
+            <h2 className="font-semibold text-dm-ink mb-1 group-hover:text-dm-maroon transition-colors">{title}</h2>
             <p className="text-sm text-slate-500">{description}</p>
           </Link>
         ))}

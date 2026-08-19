@@ -142,7 +142,7 @@ export function ReceiptScanner({ open, onClose, onItemsScanned }: Props) {
             <ScanLine size={17} className="text-violet-600" />
           </div>
           <div className="flex-1">
-            <h2 className="font-semibold text-slate-800">Scanner scontrino</h2>
+            <h2 className="font-semibold text-dm-ink">Scanner scontrino</h2>
             <p className="text-xs text-slate-400">
               {scannedCount > 0 ? `${scannedCount} scontrino${scannedCount > 1 ? 'i' : ''} aggiunto${scannedCount > 1 ? 'i' : ''} — carica il prossimo` : 'Estrai automaticamente gli articoli'}
             </p>
@@ -157,11 +157,11 @@ export function ReceiptScanner({ open, onClose, onItemsScanned }: Props) {
           {/* STEP: Consenso privacy */}
           {step === 'consent' && (
             <div className="p-6 space-y-5">
-              <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex gap-3">
-                <ShieldCheck size={18} className="text-blue-600 shrink-0 mt-0.5" />
-                <div className="text-sm text-blue-800 space-y-2">
+              <div className="bg-dm-wood/10 border border-dm-wood/30 rounded-xl p-4 flex gap-3">
+                <ShieldCheck size={18} className="text-dm-wood shrink-0 mt-0.5" />
+                <div className="text-sm text-dm-ink/80 space-y-2">
                   <p className="font-semibold">Come vengono trattati i tuoi dati</p>
-                  <ul className="text-xs space-y-1 text-blue-700">
+                  <ul className="text-xs space-y-1 text-dm-wood">
                     <li>• L&apos;immagine viene inviata ad <strong>Anthropic Claude</strong> solo per estrarre il testo</li>
                     <li>• Anthropic <strong>non salva</strong> i dati delle API e non li usa per addestrare modelli</li>
                     <li>• La trasmissione è cifrata (HTTPS)</li>
@@ -182,7 +182,7 @@ export function ReceiptScanner({ open, onClose, onItemsScanned }: Props) {
                   className="flex flex-col items-center gap-2 p-4 rounded-xl border-2 border-slate-200 hover:border-violet-300 hover:bg-violet-50 transition-all"
                 >
                   <Camera size={24} className="text-violet-500" />
-                  <span className="text-sm font-medium text-slate-700">Usa fotocamera</span>
+                  <span className="text-sm font-medium text-dm-ink/80">Usa fotocamera</span>
                   <span className="text-xs text-slate-400">Scatta una foto</span>
                 </button>
                 <button
@@ -190,7 +190,7 @@ export function ReceiptScanner({ open, onClose, onItemsScanned }: Props) {
                   className="flex flex-col items-center gap-2 p-4 rounded-xl border-2 border-slate-200 hover:border-violet-300 hover:bg-violet-50 transition-all"
                 >
                   <Upload size={24} className="text-violet-500" />
-                  <span className="text-sm font-medium text-slate-700">Carica immagine</span>
+                  <span className="text-sm font-medium text-dm-ink/80">Carica immagine</span>
                   <span className="text-xs text-slate-400">JPG, PNG dal dispositivo</span>
                 </button>
               </div>
@@ -254,7 +254,7 @@ export function ReceiptScanner({ open, onClose, onItemsScanned }: Props) {
                   <div key={i} className="flex items-center gap-2 p-3 bg-slate-50 rounded-xl border border-slate-100">
                     <div className="flex-1 min-w-0">
                       <input
-                        className="w-full text-sm font-medium text-slate-700 bg-transparent border-0 outline-none focus:bg-white focus:border focus:border-blue-300 rounded px-1 -mx-1"
+                        className="w-full text-sm font-medium text-dm-ink/80 bg-transparent border-0 outline-none focus:bg-white focus:border focus:border-dm-maroon rounded px-1 -mx-1"
                         value={item.name}
                         onChange={(e) => updateItem(i, 'name', e.target.value)}
                       />
@@ -264,7 +264,7 @@ export function ReceiptScanner({ open, onClose, onItemsScanned }: Props) {
                       <input
                         type="number"
                         min="1"
-                        className="w-12 h-7 text-xs text-center rounded-lg border border-slate-200 focus:outline-none focus:border-blue-400"
+                        className="w-12 h-7 text-xs text-center rounded-lg border border-slate-200 focus:outline-none focus:border-dm-maroon"
                         value={item.quantity}
                         onChange={(e) => updateItem(i, 'quantity', parseInt(e.target.value) || 1)}
                       />
@@ -272,7 +272,7 @@ export function ReceiptScanner({ open, onClose, onItemsScanned }: Props) {
                         type="number"
                         min="0"
                         step="0.01"
-                        className="w-20 h-7 text-xs text-right rounded-lg border border-slate-200 focus:outline-none focus:border-blue-400 px-2"
+                        className="w-20 h-7 text-xs text-right rounded-lg border border-slate-200 focus:outline-none focus:border-dm-maroon px-2"
                         value={item.unit_price}
                         onChange={(e) => updateItem(i, 'unit_price', parseFloat(e.target.value) || 0)}
                       />
@@ -313,7 +313,7 @@ export function ReceiptScanner({ open, onClose, onItemsScanned }: Props) {
 
         {/* Footer */}
         <div className="px-6 py-4 border-t border-slate-100 flex justify-between gap-3 shrink-0">
-          <button onClick={handleClose} className="px-4 py-2 text-sm text-slate-500 hover:text-slate-700 rounded-xl border border-slate-200 hover:bg-slate-50 transition">
+          <button onClick={handleClose} className="px-4 py-2 text-sm text-slate-500 hover:text-dm-ink/80 rounded-xl border border-slate-200 hover:bg-slate-50 transition">
             {scannedCount > 0 ? 'Chiudi' : 'Annulla'}
           </button>
           {step === 'result' && (

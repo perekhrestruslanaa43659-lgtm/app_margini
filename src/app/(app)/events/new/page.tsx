@@ -302,7 +302,7 @@ function NewEventPageInner() {
             <div className="w-11 h-11 bg-emerald-100 rounded-xl flex items-center justify-center shrink-0">
               <CalendarPlus className="text-emerald-600" size={20} />
             </div>
-            <h1 className="text-xl font-bold text-slate-800">Nuovo Evento</h1>
+            <h1 className="text-xl font-bold text-dm-ink">Nuovo Evento</h1>
           </div>
           {autoSaving && (
             <span className="flex items-center gap-1.5 text-xs text-slate-400">
@@ -320,7 +320,7 @@ function NewEventPageInner() {
               <button
                 onClick={() => i < step && setStep(i)}
                 className={`flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full transition-colors
-                  ${i === step ? 'bg-blue-600 text-white' : i < step ? 'bg-emerald-100 text-emerald-700 cursor-pointer' : 'bg-slate-100 text-slate-400'}`}
+                  ${i === step ? 'bg-dm-yellow text-dm-ink' : i < step ? 'bg-emerald-100 text-emerald-700 cursor-pointer' : 'bg-slate-100 text-slate-400'}`}
               >
                 {i < step ? <Check size={12} /> : null}
                 {label}
@@ -338,7 +338,7 @@ function NewEventPageInner() {
           {step === 0 && (
             <div className="card">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="font-semibold text-slate-700">Informazioni evento</h2>
+                <h2 className="font-semibold text-dm-ink/80">Informazioni evento</h2>
                 <button
                   type="button"
                   onClick={() => setAttachOpen(true)}
@@ -403,7 +403,7 @@ function NewEventPageInner() {
           {/* STEP 1 – Voci */}
           {step === 1 && (
             <div className="card">
-              <h2 className="font-semibold text-slate-700 mb-4">Voci dell&apos;evento</h2>
+              <h2 className="font-semibold text-dm-ink/80 mb-4">Voci dell&apos;evento</h2>
               <ItemsTable
                 type="ricavo"
                 items={revenues}
@@ -422,16 +422,16 @@ function NewEventPageInner() {
               />
               {/* Auto food cost button */}
               {revenues.some((r) => r.name.trim()) && (
-                <div className="mb-3 flex items-center gap-3 bg-blue-50 border border-blue-200 rounded-xl px-4 py-2.5">
+                <div className="mb-3 flex items-center gap-3 bg-dm-wood/10 border border-dm-wood/30 rounded-xl px-4 py-2.5">
                   <div className="flex-1">
-                    <p className="text-xs font-medium text-blue-700">Calcola food cost dalla distinta base</p>
-                    <p className="text-[11px] text-blue-500 mt-0.5">Sostituisce i costi attuali con quelli calcolati dagli ingredienti</p>
+                    <p className="text-xs font-medium text-dm-wood">Calcola food cost dalla distinta base</p>
+                    <p className="text-[11px] text-dm-wood/80 mt-0.5">Sostituisce i costi attuali con quelli calcolati dagli ingredienti</p>
                   </div>
                   <button
                     type="button"
                     onClick={calcAllFoodCosts}
                     disabled={calcingCosts}
-                    className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium px-3 py-1.5 rounded-lg transition-colors shrink-0"
+                    className="flex items-center gap-1.5 bg-dm-yellow hover:bg-dm-yellow-dark text-dm-ink font-display font-semibold uppercase tracking-wide text-xs px-3 py-1.5 rounded-lg transition-colors shrink-0"
                   >
                     <Zap size={13} />
                     {calcingCosts ? 'Calcolo...' : 'Calcola costi'}
@@ -450,7 +450,7 @@ function NewEventPageInner() {
           {/* STEP 2 – Scenari */}
           {step === 2 && (
             <div className="card">
-              <h2 className="font-semibold text-slate-700 mb-4">Scenari di prezzo</h2>
+              <h2 className="font-semibold text-dm-ink/80 mb-4">Scenari di prezzo</h2>
               <div className="space-y-3">
                 {scenarios.map((sc, i) => (
                   <div key={i} className="border border-slate-100 rounded-xl p-4">
@@ -496,7 +496,7 @@ function NewEventPageInner() {
                         const s = computeMargin(allItems as unknown as EventItem[], Number(guestsCount) || 1, sc.discount_pct)
                         return (
                           <tr key={i}>
-                            <td className="px-3 py-2 font-medium text-slate-700">{sc.name}</td>
+                            <td className="px-3 py-2 font-medium text-dm-ink/80">{sc.name}</td>
                             <td className="px-3 py-2 text-right text-emerald-600">{new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' }).format(s.totalRevenue)}</td>
                             <td className="px-3 py-2 text-right text-red-500">{new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' }).format(s.totalCosts)}</td>
                             <td className="px-3 py-2 text-right font-medium">{new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' }).format(s.grossMargin)}</td>
@@ -514,7 +514,7 @@ function NewEventPageInner() {
           {/* STEP 3 – Riepilogo */}
           {step === 3 && (
             <div className="card">
-              <h2 className="font-semibold text-slate-700 mb-4">Riepilogo preventivo</h2>
+              <h2 className="font-semibold text-dm-ink/80 mb-4">Riepilogo preventivo</h2>
               <div className="grid sm:grid-cols-2 gap-3 text-sm mb-4">
                 <div><span className="text-slate-400">Evento: </span><span className="font-medium">{name}</span></div>
                 <div><span className="text-slate-400">Cliente: </span><span className="font-medium">{clientName || '—'}</span></div>

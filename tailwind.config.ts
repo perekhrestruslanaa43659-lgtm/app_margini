@@ -9,8 +9,20 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        navy: "#1e293b",
-        accent: "#3b82f6",
+        navy: "#1A1A1A",
+        accent: "#F5C518",
+        dm: {
+          yellow: "#F5C518",
+          "yellow-dark": "#D9A800",
+          maroon: "#8B2E2E",
+          "maroon-dark": "#6E2323",
+          ink: "#1A1A1A",
+          cream: "#FBF6EC",
+          wood: "#A9784B",
+        },
+      },
+      fontFamily: {
+        display: ["Oswald", "Arial Narrow", "sans-serif"],
       },
     },
   },

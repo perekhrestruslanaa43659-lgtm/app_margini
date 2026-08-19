@@ -96,7 +96,7 @@ export function QuoteAttachment({ open, onClose, onExtracted }: Props) {
             <Paperclip size={17} className="text-violet-600" />
           </div>
           <div className="flex-1">
-            <h2 className="font-semibold text-slate-800">Allega preventivo</h2>
+            <h2 className="font-semibold text-dm-ink">Allega preventivo</h2>
             <p className="text-xs text-slate-400">Estrai automaticamente i dati dal documento</p>
           </div>
           <button onClick={handleClose} className="text-slate-400 hover:text-slate-600 transition-colors">
@@ -109,11 +109,11 @@ export function QuoteAttachment({ open, onClose, onExtracted }: Props) {
           {/* STEP: Consenso privacy */}
           {step === 'consent' && (
             <div className="p-6 space-y-5">
-              <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex gap-3">
-                <ShieldCheck size={18} className="text-blue-600 shrink-0 mt-0.5" />
-                <div className="text-sm text-blue-800 space-y-2">
+              <div className="bg-dm-wood/10 border border-dm-wood/30 rounded-xl p-4 flex gap-3">
+                <ShieldCheck size={18} className="text-dm-wood shrink-0 mt-0.5" />
+                <div className="text-sm text-dm-ink/80 space-y-2">
                   <p className="font-semibold">Come vengono trattati i tuoi dati</p>
-                  <ul className="text-xs space-y-1 text-blue-700">
+                  <ul className="text-xs space-y-1 text-dm-wood">
                     <li>• Il documento viene inviato ad <strong>Anthropic Claude</strong> solo per estrarre i dati</li>
                     <li>• Anthropic <strong>non salva</strong> i dati delle API e non li usa per addestrare modelli</li>
                     <li>• La trasmissione è cifrata (HTTPS)</li>
@@ -127,7 +127,7 @@ export function QuoteAttachment({ open, onClose, onExtracted }: Props) {
                 className="w-full flex flex-col items-center gap-2 p-6 rounded-xl border-2 border-dashed border-slate-200 hover:border-violet-300 hover:bg-violet-50 transition-all"
               >
                 <Upload size={24} className="text-violet-500" />
-                <span className="text-sm font-medium text-slate-700">Carica preventivo</span>
+                <span className="text-sm font-medium text-dm-ink/80">Carica preventivo</span>
                 <span className="text-xs text-slate-400">PDF, JPG, PNG o WebP</span>
               </button>
 
@@ -168,7 +168,7 @@ export function QuoteAttachment({ open, onClose, onExtracted }: Props) {
                   .map((key) => (
                     <div key={key} className="flex items-center gap-2 text-sm px-3 py-2 bg-slate-50 rounded-lg border border-slate-100">
                       <span className="text-xs text-slate-400 w-32 shrink-0">{fieldLabels[key]}</span>
-                      <span className="text-slate-700 truncate">{String(extracted[key])}</span>
+                      <span className="text-dm-ink/80 truncate">{String(extracted[key])}</span>
                     </div>
                   ))}
                 {(Object.keys(fieldLabels) as (keyof ExtractedQuote)[]).every((key) => extracted[key] === null || extracted[key] === '') && (
@@ -197,7 +197,7 @@ export function QuoteAttachment({ open, onClose, onExtracted }: Props) {
 
         {/* Footer */}
         <div className="px-6 py-4 border-t border-slate-100 flex justify-between gap-3 shrink-0">
-          <button onClick={handleClose} className="px-4 py-2 text-sm text-slate-500 hover:text-slate-700 rounded-xl border border-slate-200 hover:bg-slate-50 transition">
+          <button onClick={handleClose} className="px-4 py-2 text-sm text-slate-500 hover:text-dm-ink/80 rounded-xl border border-slate-200 hover:bg-slate-50 transition">
             Annulla
           </button>
           {step === 'result' && (

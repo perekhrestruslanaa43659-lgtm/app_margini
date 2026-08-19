@@ -9,7 +9,7 @@ export default function CalculatorPage() {
           <Calculator className="text-rose-500" size={22} />
         </div>
         <div>
-          <h1 className="text-xl font-bold text-slate-800">Calcolatrice Margine</h1>
+          <h1 className="text-xl font-bold text-dm-ink">Calcolatrice Margine</h1>
           <p className="text-sm text-slate-500">Simulazione rapida senza salvare un evento</p>
         </div>
       </div>

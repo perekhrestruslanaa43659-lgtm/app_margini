@@ -193,11 +193,11 @@ export default function CalcoloFoodCost() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center">
-            <ChefHat size={20} className="text-white" />
+          <div className="w-10 h-10 bg-dm-yellow rounded-xl flex items-center justify-center">
+            <ChefHat size={20} className="text-dm-ink" />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-slate-800">Calcolo Food Cost</h1>
+            <h1 className="text-xl font-bold text-dm-ink">Calcolo Food Cost</h1>
             <p className="text-xs text-slate-400">Seleziona ingredienti dal catalogo o carica la distinta dal DB</p>
           </div>
         </div>
@@ -276,10 +276,10 @@ export default function CalcoloFoodCost() {
                       key={ing.id}
                       type="button"
                       onMouseDown={(e) => { e.preventDefault(); addIngredient(ing) }}
-                      className="w-full text-left px-4 py-2.5 hover:bg-blue-50 text-sm border-b border-slate-50 last:border-0 flex items-center justify-between gap-4"
+                      className="w-full text-left px-4 py-2.5 hover:bg-dm-cream text-sm border-b border-slate-50 last:border-0 flex items-center justify-between gap-4"
                     >
                       <div>
-                        <span className="font-medium text-slate-700">{ing.name}</span>
+                        <span className="font-medium text-dm-ink/80">{ing.name}</span>
                         <span className="ml-2 text-[10px] text-slate-400 uppercase">{ing.categoria}</span>
                       </div>
                       <span className="text-slate-500 text-xs shrink-0">{fmt(ing.cost_per_unit)}/{ing.unit}</span>
@@ -301,7 +301,7 @@ export default function CalcoloFoodCost() {
               <div className="flex flex-wrap gap-1.5">
                 <button
                   onClick={() => setActiveCategory(null)}
-                  className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${activeCategory === null ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+                  className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${activeCategory === null ? 'bg-dm-yellow text-dm-ink' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
                 >
                   Tutti
                 </button>
@@ -309,7 +309,7 @@ export default function CalcoloFoodCost() {
                   <button
                     key={cat}
                     onClick={() => setActiveCategory(activeCategory === cat ? null : cat)}
-                    className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${activeCategory === cat ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+                    className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${activeCategory === cat ? 'bg-dm-yellow text-dm-ink' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
                   >
                     {cat}
                   </button>
@@ -340,11 +340,11 @@ export default function CalcoloFoodCost() {
                           key={ing.id}
                           type="button"
                           onClick={() => addIngredient(ing)}
-                          className="w-full text-left px-4 py-2.5 hover:bg-blue-50 border-b border-slate-50 last:border-0 flex items-center justify-between gap-3 group transition-colors"
+                          className="w-full text-left px-4 py-2.5 hover:bg-dm-cream border-b border-slate-50 last:border-0 flex items-center justify-between gap-3 group transition-colors"
                         >
                           <div className="flex items-center gap-2 min-w-0">
-                            <Plus size={12} className="text-slate-300 group-hover:text-blue-500 shrink-0 transition-colors" />
-                            <span className="text-sm text-slate-700 truncate">{ing.name}</span>
+                            <Plus size={12} className="text-slate-300 group-hover:text-dm-maroon shrink-0 transition-colors" />
+                            <span className="text-sm text-dm-ink/80 truncate">{ing.name}</span>
                           </div>
                           <div className="text-right shrink-0">
                             <span className="text-xs font-medium text-slate-600">{fmt(ing.cost_per_unit)}</span>
@@ -364,7 +364,7 @@ export default function CalcoloFoodCost() {
         <div className="space-y-3">
           <div className="card p-0 overflow-hidden">
             <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
-              <h2 className="text-sm font-semibold text-slate-700">
+              <h2 className="text-sm font-semibold text-dm-ink/80">
                 Ingredienti ricetta
                 {dishName && <span className="ml-2 text-slate-400 font-normal">— {dishName}</span>}
               </h2>
@@ -401,11 +401,11 @@ export default function CalcoloFoodCost() {
                     const rowTotal = row.quantity * row.cost_per_unit
                     const missing = row.cost_per_unit === 0
                     return (
-                      <tr key={row._key} className="border-b border-slate-50 hover:bg-blue-50/40 transition-colors">
+                      <tr key={row._key} className="border-b border-slate-50 hover:bg-dm-cream transition-colors">
                         <td className="py-1.5 px-3">
                           {row.fromDB ? (
                             <div>
-                              <div className="text-xs font-medium text-slate-700">{row.name}</div>
+                              <div className="text-xs font-medium text-dm-ink/80">{row.name}</div>
                               {missing && <div className="text-[10px] text-amber-500">⚠ costo 0</div>}
                             </div>
                           ) : (
@@ -464,7 +464,7 @@ export default function CalcoloFoodCost() {
                             }}
                           />
                         </td>
-                        <td className="py-1.5 px-2 text-right text-xs font-semibold text-slate-800">
+                        <td className="py-1.5 px-2 text-right text-xs font-semibold text-dm-ink">
                           {missing ? <span className="text-amber-400">—</span> : fmt(rowTotal)}
                         </td>
                         <td className="py-1.5 px-2">
@@ -487,8 +487,8 @@ export default function CalcoloFoodCost() {
                   </div>
                 )}
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-semibold text-slate-700">Totale Food Cost</span>
-                  <span className="text-xl font-bold text-slate-800">{fmt(totalCost)}</span>
+                  <span className="text-sm font-semibold text-dm-ink/80">Totale Food Cost</span>
+                  <span className="text-xl font-bold text-dm-ink">{fmt(totalCost)}</span>
                 </div>
                 <div className="flex items-end gap-3">
                   <div className="flex-1">
