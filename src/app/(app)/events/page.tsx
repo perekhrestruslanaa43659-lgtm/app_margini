@@ -22,6 +22,7 @@ interface EventWithMargin extends Event {
 
 const STATUS_OPTIONS: { value: string; label: string }[] = [
   { value: '', label: 'Tutti gli stati' },
+  { value: 'richiesta', label: 'Richiesta' },
   { value: 'bozza', label: 'Bozza' },
   { value: 'confermato', label: 'Confermato' },
   { value: 'concluso', label: 'Concluso' },

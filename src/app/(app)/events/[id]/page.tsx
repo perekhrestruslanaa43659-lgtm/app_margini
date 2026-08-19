@@ -23,7 +23,7 @@ interface DraftItem extends Omit<EventItem, 'id' | 'event_id'> {
   id?: string
 }
 
-const STATUS_OPTIONS: EventStatus[] = ['bozza', 'confermato', 'concluso', 'annullato']
+const STATUS_OPTIONS: EventStatus[] = ['richiesta', 'bozza', 'confermato', 'concluso', 'annullato']
 
 function EventDetailPageInner() {
   const { id } = useParams<{ id: string }>()
@@ -273,7 +273,24 @@ function EventDetailPageInner() {
             {event.event_date && <span>· {event.event_date}</span>}
             {event.location && <span>· {event.location}</span>}
             {event.guests_count && <span>· {event.guests_count} ospiti</span>}
+            {(event.budget_min || event.budget_max) && (
+              <span>· Budget {event.budget_min ? formatCurrency(event.budget_min) : '—'} – {event.budget_max ? formatCurrency(event.budget_max) : '—'}</span>
+            )}
           </div>
+          {(event.allergies || event.special_requests) && (
+            <div className="flex flex-col gap-1 mt-2 text-sm">
+              {event.allergies && (
+                <p className="text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-1.5 inline-block w-fit">
+                  ⚠ Allergie: {event.allergies}
+                </p>
+              )}
+              {event.special_requests && (
+                <p className="text-slate-600 bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 inline-block w-fit">
+                  📝 Richieste particolari: {event.special_requests}
+                </p>
+              )}
+            </div>
+          )}
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           <select

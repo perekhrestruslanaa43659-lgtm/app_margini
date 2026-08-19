@@ -1,4 +1,4 @@
-export type EventStatus = 'bozza' | 'confermato' | 'concluso' | 'annullato'
+export type EventStatus = 'richiesta' | 'bozza' | 'confermato' | 'concluso' | 'annullato'
 export type ItemType = 'costo' | 'ricavo'
 
 export interface Event {
@@ -12,6 +12,10 @@ export interface Event {
   guests_count: number | null
   status: EventStatus
   notes: string | null
+  allergies: string | null
+  special_requests: string | null
+  budget_min: number | null
+  budget_max: number | null
   created_at: string
 }
 

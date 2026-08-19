@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { ChevronRight, ChevronLeft, Check, Save, CalendarPlus, Zap } from 'lucide-react'
+import { ChevronRight, ChevronLeft, Check, Save, CalendarPlus, Zap, Paperclip } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { isSupabaseConfigured } from '@/lib/supabase/config'
 import type { Event, EventItem, CatalogItem, ItemType } from '@/lib/supabase/types'
@@ -10,7 +10,9 @@ import { computeMargin } from '@/lib/margin'
 import { ItemsTable } from '@/components/events/ItemsTable'
 import { MarginSummaryPanel } from '@/components/events/MarginSummaryPanel'
 import { CatalogImportModal } from '@/components/events/CatalogImportModal'
+import { QuoteAttachment } from '@/components/events/QuoteAttachment'
 import { SetupBanner } from '@/components/ui/SetupBanner'
+import type { ExtractedQuote } from '@/app/api/extract-quote/route'
 
 interface DraftItem extends Omit<EventItem, 'id' | 'event_id'> {
   _key: string
@@ -53,7 +55,12 @@ function NewEventPageInner() {
   const [eventDate, setEventDate] = useState('')
   const [location, setLocation] = useState('')
   const [guestsCount, setGuestsCount] = useState<number | ''>('')
+  const [budgetMin, setBudgetMin] = useState<number | ''>('')
+  const [budgetMax, setBudgetMax] = useState<number | ''>('')
+  const [allergies, setAllergies] = useState('')
+  const [specialRequests, setSpecialRequests] = useState('')
   const [notes, setNotes] = useState('')
+  const [attachOpen, setAttachOpen] = useState(false)
 
   const [revenues, setRevenues] = useState<DraftItem[]>([newDraftItem('ricavo')])
   const [costs, setCosts] = useState<DraftItem[]>([newDraftItem('costo')])
@@ -80,6 +87,10 @@ function NewEventPageInner() {
       event_date: eventDate || null,
       location: location || null,
       guests_count: guestsCount !== '' ? Number(guestsCount) : null,
+      budget_min: budgetMin !== '' ? Number(budgetMin) : null,
+      budget_max: budgetMax !== '' ? Number(budgetMax) : null,
+      allergies: allergies || null,
+      special_requests: specialRequests || null,
       status: 'bozza' as const,
       notes: notes || null,
     }
@@ -122,6 +133,19 @@ function NewEventPageInner() {
       console.error('persistDraft error', err)
       return null
     }
+  }
+
+  function applyExtracted(data: ExtractedQuote) {
+    if (data.clientName) setClientName(data.clientName)
+    if (data.clientEmail) setClientEmail(data.clientEmail)
+    if (data.clientPhone) setClientPhone(data.clientPhone)
+    if (data.eventDate) setEventDate(data.eventDate)
+    if (data.location) setLocation(data.location)
+    if (data.guestsCount != null) setGuestsCount(data.guestsCount)
+    if (data.budgetMin != null) setBudgetMin(data.budgetMin)
+    if (data.budgetMax != null) setBudgetMax(data.budgetMax)
+    if (data.allergies) setAllergies(data.allergies)
+    if (data.specialRequests) setSpecialRequests(data.specialRequests)
   }
 
   function scheduleAutoSave() {
@@ -313,7 +337,16 @@ function NewEventPageInner() {
           {/* STEP 0 – Info base */}
           {step === 0 && (
             <div className="card">
-              <h2 className="font-semibold text-slate-700 mb-4">Informazioni evento</h2>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="font-semibold text-slate-700">Informazioni evento</h2>
+                <button
+                  type="button"
+                  onClick={() => setAttachOpen(true)}
+                  className="flex items-center gap-1.5 text-xs font-medium text-violet-600 hover:text-violet-700 border border-violet-200 hover:border-violet-300 hover:bg-violet-50 rounded-lg px-3 py-1.5 transition-colors"
+                >
+                  <Paperclip size={13} /> Allega preventivo
+                </button>
+              </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="sm:col-span-2">
                   <label className="label">Nome evento *</label>
@@ -342,6 +375,22 @@ function NewEventPageInner() {
                 <div>
                   <label className="label">N° ospiti</label>
                   <input type="number" min="0" className="input" placeholder="0" value={guestsCount} onChange={(e) => setGuestsCount(e.target.value ? parseInt(e.target.value) : '')} />
+                </div>
+                <div>
+                  <label className="label">Budget minimo (€)</label>
+                  <input type="number" min="0" className="input" placeholder="0" value={budgetMin} onChange={(e) => setBudgetMin(e.target.value ? parseFloat(e.target.value) : '')} />
+                </div>
+                <div>
+                  <label className="label">Budget massimo (€)</label>
+                  <input type="number" min="0" className="input" placeholder="0" value={budgetMax} onChange={(e) => setBudgetMax(e.target.value ? parseFloat(e.target.value) : '')} />
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="label">Allergie / intolleranze</label>
+                  <textarea className="input" rows={2} placeholder="Es. glutine, lattosio..." value={allergies} onChange={(e) => setAllergies(e.target.value)} />
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="label">Richieste particolari</label>
+                  <textarea className="input" rows={2} placeholder="Menù speciale, allestimento..." value={specialRequests} onChange={(e) => setSpecialRequests(e.target.value)} />
                 </div>
                 <div className="sm:col-span-2">
                   <label className="label">Note</label>
@@ -523,6 +572,12 @@ function NewEventPageInner() {
         type={catalogModal.type}
         onImport={(items) => importCatalog(catalogModal.type, items)}
         onClose={() => setCatalogModal((p) => ({ ...p, open: false }))}
+      />
+
+      <QuoteAttachment
+        open={attachOpen}
+        onClose={() => setAttachOpen(false)}
+        onExtracted={applyExtracted}
       />
     </div>
   )
