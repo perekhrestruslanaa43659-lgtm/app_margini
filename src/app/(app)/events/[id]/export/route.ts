@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { renderToBuffer } from '@react-pdf/renderer'
 import * as XLSX from 'xlsx'
-import type { Event, EventItem } from '@/lib/supabase/types'
+import type { Event, EventItem, Room } from '@/lib/supabase/types'
 import { computeMargin, formatCurrency } from '@/lib/margin'
 import { getCompanyInfo } from '@/lib/company'
 import { QuotePdfDocument } from '@/lib/pdf/QuotePdfDocument'
@@ -31,6 +31,12 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     return NextResponse.json({ error: 'Evento non trovato' }, { status: 404 })
   }
 
+  let roomName: string | null = null
+  if (event.room_id) {
+    const { data: room } = await supabase.from('rooms').select('*').eq('id', event.room_id).single()
+    roomName = (room as unknown as Room | null)?.name ?? null
+  }
+
   const revenues = items.filter((i) => i.type === 'ricavo')
   const costs = items.filter((i) => i.type === 'costo')
   const summary = computeMargin(items, event.guests_count ?? 1)
@@ -39,7 +45,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 
   if (format === 'pdf') {
     const buffer = await renderToBuffer(
-      QuotePdfDocument({ event, revenues, totalRevenue: summary.totalRevenue, companyInfo })
+      QuotePdfDocument({ event, revenues, totalRevenue: summary.totalRevenue, companyInfo, roomName })
     )
     return new NextResponse(buffer as unknown as BodyInit, {
       headers: {

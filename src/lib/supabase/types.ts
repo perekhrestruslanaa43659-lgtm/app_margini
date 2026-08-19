@@ -31,6 +31,16 @@ export interface Event {
   special_requests: string | null
   budget_min: number | null
   budget_max: number | null
+  deposit_date: string | null
+  room_id: string | null
+  created_at: string
+}
+
+export interface Room {
+  id: string
+  name: string
+  location: string | null
+  notes: string | null
   created_at: string
 }
 
@@ -180,6 +190,12 @@ export type Database = {
         Row: CompanySettings
         Insert: Partial<Omit<CompanySettings, 'updated_at'>>
         Update: Partial<Omit<CompanySettings, 'id' | 'updated_at'>>
+        Relationships: []
+      }
+      rooms: {
+        Row: Room
+        Insert: Omit<Room, 'id' | 'created_at'>
+        Update: Partial<Omit<Room, 'id' | 'created_at'>>
         Relationships: []
       }
     }

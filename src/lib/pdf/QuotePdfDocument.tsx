@@ -45,6 +45,7 @@ const styles = StyleSheet.create({
   grandTotalValue: { fontSize: 12, color: YELLOW, fontFamily: 'Helvetica-Bold' },
   notesBox: { backgroundColor: CREAM, borderRadius: 8, padding: 10, marginTop: 4, borderLeftWidth: 3, borderLeftColor: YELLOW },
   notesText: { fontSize: 9, color: '#5a4a1a' },
+  depositText: { fontFamily: 'Helvetica-Bold', color: MAROON, marginBottom: 3 },
   footer: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: INK, paddingHorizontal: 40, paddingVertical: 14 },
   footerRow: { flexDirection: 'row', justifyContent: 'space-between' },
   footerCol: { flex: 1 },
@@ -62,9 +63,10 @@ interface Props {
   revenues: EventItem[]
   totalRevenue: number
   companyInfo: CompanyInfo
+  roomName: string | null
 }
 
-export function QuotePdfDocument({ event, revenues, totalRevenue, companyInfo }: Props) {
+export function QuotePdfDocument({ event, revenues, totalRevenue, companyInfo, roomName }: Props) {
   const vatByRate = new Map<number, number>()
   for (const r of revenues) {
     const net = r.quantity * r.unit_price
@@ -103,6 +105,7 @@ export function QuotePdfDocument({ event, revenues, totalRevenue, companyInfo }:
             {event.client_phone ? <Text style={styles.clientLine}>Telefono: {event.client_phone}</Text> : null}
             <Text style={styles.clientLine}>Data evento: {formatDate(event.event_date)}</Text>
             {event.location ? <Text style={styles.clientLine}>Location: {event.location}</Text> : null}
+            {roomName ? <Text style={styles.clientLine}>Saletta: {roomName}</Text> : null}
             {event.guests_count ? <Text style={styles.clientLine}>Numero ospiti: {event.guests_count}</Text> : null}
           </View>
         </View>
@@ -144,11 +147,16 @@ export function QuotePdfDocument({ event, revenues, totalRevenue, companyInfo }:
         </View>
 
         {/* Payment terms */}
-        {companyInfo.paymentTerms ? (
+        {(companyInfo.paymentTerms || event.deposit_date) ? (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Condizioni di pagamento</Text>
             <View style={styles.notesBox}>
-              <Text style={styles.notesText}>{companyInfo.paymentTerms}</Text>
+              {event.deposit_date ? (
+                <Text style={[styles.notesText, styles.depositText]}>
+                  Acconto da versare entro il {formatDate(event.deposit_date)}
+                </Text>
+              ) : null}
+              {companyInfo.paymentTerms ? <Text style={styles.notesText}>{companyInfo.paymentTerms}</Text> : null}
             </View>
           </View>
         ) : null}

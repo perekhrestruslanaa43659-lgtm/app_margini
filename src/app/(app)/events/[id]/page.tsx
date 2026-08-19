@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { ArrowLeft, Download, FileSpreadsheet, Plus, Trash2, Mail, MessageCircle, CalendarDays, Zap, AlertTriangle } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { isSupabaseConfigured } from '@/lib/supabase/config'
-import type { Event, EventItem, MarginScenario, ScenarioOverride, EventStatus, CatalogItem, ItemType } from '@/lib/supabase/types'
+import type { Event, EventItem, MarginScenario, ScenarioOverride, EventStatus, CatalogItem, ItemType, Room } from '@/lib/supabase/types'
 import { computeMargin, formatCurrency } from '@/lib/margin'
 import { MarginBadge } from '@/components/ui/MarginBadge'
 import { MarginSummaryPanel } from '@/components/events/MarginSummaryPanel'
@@ -40,6 +40,7 @@ function EventDetailPageInner() {
   const [tab, setTab] = useState<Tab>('preventivo')
   const [event, setEvent] = useState<Event | null>(null)
   const [items, setItems] = useState<DraftItem[]>([])
+  const [rooms, setRooms] = useState<Room[]>([])
   const [scenarios, setScenarios] = useState<MarginScenario[]>([])
   const [overrides, setOverrides] = useState<ScenarioOverride[]>([])
   const [editingScenario, setEditingScenario] = useState<string | null>(null)
@@ -55,17 +56,20 @@ function EventDetailPageInner() {
 
   async function fetchAll() {
     setLoading(true)
-    const [{ data: ev }, { data: it }, { data: sc }] = await Promise.all([
+    const [{ data: ev }, { data: it }, { data: sc }, { data: rm }] = await Promise.all([
       sb.from('events').select('*').eq('id', id).single(),
       sb.from('event_items').select('*').eq('event_id', id),
       sb.from('margin_scenarios').select('*').eq('event_id', id),
+      sb.from('rooms').select('*').order('name'),
     ])
     const evTyped = ev as unknown as Event | null
     const itTyped = (it ?? []) as unknown as EventItem[]
     const scTyped = (sc ?? []) as unknown as MarginScenario[]
+    const rmTyped = (rm ?? []) as unknown as Room[]
     if (evTyped) { setEvent(evTyped); setNoteText(evTyped.notes ?? '') }
     setItems(itTyped.map((i) => ({ ...i, _key: i.id })))
     setScenarios(scTyped)
+    setRooms(rmTyped)
 
     if (scTyped.length > 0) {
       const { data: ov } = await sb
@@ -103,6 +107,17 @@ function EventDetailPageInner() {
     return fields
   }, [event, revenues])
 
+  const availableRooms = useMemo(() => {
+    if (!event?.location) return rooms
+    const loc = event.location.trim().toLowerCase()
+    if (!loc) return rooms
+    const matches = rooms.filter((r) => {
+      const rLoc = (r.location ?? '').trim().toLowerCase()
+      return rLoc && (rLoc.includes(loc) || loc.includes(rLoc))
+    })
+    return matches.length > 0 ? matches : rooms
+  }, [rooms, event])
+
   async function saveMissingField(key: keyof Event, type: string) {
     const raw = missingDraft[key]
     if (!raw) return
@@ -117,6 +132,18 @@ function EventDetailPageInner() {
   async function updateStatus(status: EventStatus) {
     await sb.from('events').update({ status }).eq('id', id)
     setEvent((e) => e ? { ...e, status } : e)
+  }
+
+  async function updateDepositDate(value: string) {
+    const depositDate = value || null
+    await sb.from('events').update({ deposit_date: depositDate }).eq('id', id)
+    setEvent((e) => e ? { ...e, deposit_date: depositDate } : e)
+  }
+
+  async function updateRoom(value: string) {
+    const roomId = value || null
+    await sb.from('events').update({ room_id: roomId }).eq('id', id)
+    setEvent((e) => e ? { ...e, room_id: roomId } : e)
   }
 
   async function saveItems() {
@@ -371,6 +398,36 @@ function EventDetailPageInner() {
             {(event.budget_min || event.budget_max) && (
               <span>· Budget {event.budget_min ? formatCurrency(event.budget_min) : '—'} – {event.budget_max ? formatCurrency(event.budget_max) : '—'}</span>
             )}
+          </div>
+          <div className="flex flex-wrap items-end gap-4 mt-3">
+            <div>
+              <label className="label">Data acconto</label>
+              <input
+                type="date"
+                className="input py-1.5 text-sm w-40"
+                value={event.deposit_date ?? ''}
+                onChange={(e) => updateDepositDate(e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="label">Saletta / tavolo</label>
+              {availableRooms.length > 0 ? (
+                <select
+                  className="input py-1.5 text-sm w-48"
+                  value={event.room_id ?? ''}
+                  onChange={(e) => updateRoom(e.target.value)}
+                >
+                  <option value="">Nessuna</option>
+                  {availableRooms.map((r) => (
+                    <option key={r.id} value={r.id}>{r.name}{r.location ? ` (${r.location})` : ''}</option>
+                  ))}
+                </select>
+              ) : (
+                <p className="text-xs text-slate-400">
+                  Nessuna saletta configurata. <Link href="/settings" className="text-dm-maroon hover:underline">Aggiungila in Impostazioni</Link>
+                </p>
+              )}
+            </div>
           </div>
           {(event.allergies || event.special_requests) && (
             <div className="flex flex-col gap-1 mt-2 text-sm">
