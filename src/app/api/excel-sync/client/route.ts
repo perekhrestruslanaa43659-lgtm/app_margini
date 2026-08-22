@@ -58,7 +58,7 @@ function buildIcs(opts: {
     'BEGIN:VALARM',
     'ACTION:DISPLAY',
     'DESCRIPTION:Promemoria evento',
-    'TRIGGER:-P1D',
+    'TRIGGER:-P7D',
     'END:VALARM',
     'END:VEVENT',
     'END:VCALENDAR',
