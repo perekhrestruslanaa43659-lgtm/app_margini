@@ -241,7 +241,9 @@ export function ProposalQuotePdfDocument({ client, sections, companyInfo, quoteR
                     {!isChoice ? (
                       group.items.map((it) => (
                         <Text style={styles.dishRow} key={it.catalogId}>
-                          <Text style={styles.dishName}>{it.name}</Text>{it.desc ? ` — ${it.desc}` : ''}
+                          <Text style={styles.dishName}>{it.name}</Text>
+                          {it.sharedAmong && it.sharedAmong > 1 ? ` (ogni ${it.sharedAmong} persone)` : ''}
+                          {it.desc ? ` — ${it.desc}` : ''}
                         </Text>
                       ))
                     ) : (
@@ -250,7 +252,9 @@ export function ProposalQuotePdfDocument({ client, sections, companyInfo, quoteR
                           <Text style={styles.menuSubTitle}>{subcat}</Text>
                           {dishes.map((d) => (
                             <Text style={styles.dishRow} key={d.catalogId}>
-                              <Text style={styles.dishName}>{d.name}</Text>{d.desc ? ` — ${d.desc}` : ''}
+                              <Text style={styles.dishName}>{d.name}</Text>
+                              {d.sharedAmong && d.sharedAmong > 1 ? ` (ogni ${d.sharedAmong} persone)` : ''}
+                              {d.desc ? ` — ${d.desc}` : ''}
                             </Text>
                           ))}
                         </View>

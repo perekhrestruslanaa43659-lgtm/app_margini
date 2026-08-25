@@ -4,6 +4,8 @@ export interface PlanItem {
   desc: string
   price: number
   category: string
+  /** Se impostato, il piatto e' condiviso ogni N persone: il contributo al prezzo a testa e' price / sharedAmong invece del prezzo pieno. */
+  sharedAmong?: number
 }
 
 export type GroupPricingMode = 'fisso' | 'media'
@@ -27,10 +29,15 @@ export interface PricePlan {
   groups: PlanGroup[]
 }
 
+/** Prezzo effettivo di un piatto: diviso per sharedAmong se il piatto e' condiviso tra piu' persone. */
+export function itemEffectivePrice(item: PlanItem): number {
+  return item.sharedAmong && item.sharedAmong > 1 ? item.price / item.sharedAmong : item.price
+}
+
 /** Prezzo medio dei piatti di un gruppo 'a scelta' (o il prezzo dell'unico piatto se il gruppo e' 'fisso'). */
 export function groupPrice(group: PlanGroup): number {
   if (group.items.length === 0) return 0
-  const sum = group.items.reduce((acc, it) => acc + it.price, 0)
+  const sum = group.items.reduce((acc, it) => acc + itemEffectivePrice(it), 0)
   return group.pricingMode === 'media' ? sum / group.items.length : sum
 }
 
@@ -85,7 +92,7 @@ function renderItemsList(items: PlanItem[]): string {
     <ul class="plan-items">
       ${items.map((it) => `
         <li>
-          <p class="plan-item-name">${esc(it.name)}</p>
+          <p class="plan-item-name">${esc(it.name)}${it.sharedAmong && it.sharedAmong > 1 ? ` <span class="plan-item-shared">(ogni ${it.sharedAmong} persone)</span>` : ''}</p>
           ${it.desc ? `<p class="plan-item-desc">${esc(it.desc)}</p>` : ''}
         </li>
       `).join('')}
@@ -237,6 +244,7 @@ export function buildProposalHtml(sections: MealSection[]): string {
   .plan-items { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
   .plan-item-name { font-weight: 600; font-size: .98rem; margin: 0; }
   .plan-item-desc { font-size: .85rem; color: var(--muted); line-height: 1.45; margin: 2px 0 0; }
+  .plan-item-shared { font-weight: 400; font-size: .8rem; color: var(--muted); }
   .info-strip { display: grid; grid-template-columns: repeat(3,1fr); gap: 18px; margin-top: 36px; }
   @media (max-width: 780px) { .info-strip { grid-template-columns: 1fr; } }
   .info-card { background: var(--mint); border: 3px solid var(--ink); border-radius: 18px; box-shadow: 6px 6px 0 var(--ink); padding: 18px 20px; }
