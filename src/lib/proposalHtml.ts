@@ -69,7 +69,7 @@ function esc(s: string): string {
 }
 
 /** Raggruppa i piatti di un gruppo 'a scelta' per categoria di catalogo (es. Paste, Pizze, Burger). */
-function dishesBySubcategory(group: PlanGroup): Map<string, PlanItem[]> {
+export function dishesBySubcategory(group: PlanGroup): Map<string, PlanItem[]> {
   const map = new Map<string, PlanItem[]>()
   for (const it of group.items) {
     const key = it.category || group.label

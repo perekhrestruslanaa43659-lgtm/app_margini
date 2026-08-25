@@ -1,6 +1,6 @@
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer'
 import { formatCurrency } from '@/lib/margin'
-import { planPrice, type MealSection, type PlanGroup } from '@/lib/proposalHtml'
+import { planPrice, dishesBySubcategory, type MealSection } from '@/lib/proposalHtml'
 import type { CompanyInfo } from '@/lib/company'
 
 // Palette dello skill "Preventivo Evento" (SKILLS-PREVENTIVO.md): stessi token
@@ -137,18 +137,6 @@ interface Props {
   quoteRef: string
   offerDate: string
   clauses: ContractClause[]
-}
-
-/** Raggruppa i piatti di un gruppo 'a scelta' per categoria di catalogo (es. Paste, Pizze, Burger). */
-function dishesBySubcategory(group: PlanGroup): Map<string, typeof group.items> {
-  const map = new Map<string, typeof group.items>()
-  for (const it of group.items) {
-    const key = it.category || group.label
-    const list = map.get(key) ?? []
-    list.push(it)
-    map.set(key, list)
-  }
-  return map
 }
 
 export function ProposalQuotePdfDocument({ client, sections, companyInfo, quoteRef, offerDate, clauses }: Props) {

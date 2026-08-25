@@ -8,7 +8,7 @@ import { isSupabaseConfigured } from '@/lib/supabase/config'
 import type { CatalogItem } from '@/lib/supabase/types'
 import { formatCurrency } from '@/lib/margin'
 import { SetupBanner } from '@/components/ui/SetupBanner'
-import { buildProposalHtml, planPrice, groupPrice, type MealSection, type PricePlan, type PlanGroup } from '@/lib/proposalHtml'
+import { buildProposalHtml, planPrice, groupPrice, dishesBySubcategory, type MealSection, type PricePlan, type PlanGroup } from '@/lib/proposalHtml'
 import { saveDraftProposal } from '@/lib/proposalDraft'
 
 const MEAL_PRESETS = [
@@ -417,21 +417,38 @@ function ProposteInner() {
                           </div>
                         )}
 
-                        {group.items.length > 0 && (
-                          <ul className="space-y-1 mb-2">
-                            {group.items.map((it) => (
-                              <li key={it.catalogId} className="flex items-center justify-between text-xs bg-dm-cream/60 rounded-md px-2 py-1">
-                                <span className="text-dm-ink/80">{it.name}</span>
-                                <span className="flex items-center gap-2">
-                                  <span className="text-slate-400">{formatCurrency(it.price)}</span>
-                                  <button className="text-slate-300 hover:text-red-500" onClick={() => removeDishFromGroup(section.id, plan.id, group.id, it.catalogId)}>
-                                    <X size={12} />
-                                  </button>
-                                </span>
-                              </li>
-                            ))}
-                          </ul>
-                        )}
+                        {group.items.length > 0 && (() => {
+                          const isChoice = group.pricingMode === 'media' && group.items.length > 1
+                          const subcats = isChoice ? dishesBySubcategory(group) : null
+                          const showSubcats = subcats ? subcats.size > 1 : false
+
+                          const renderDish = (it: (typeof group.items)[number]) => (
+                            <li key={it.catalogId} className="flex items-center justify-between text-xs bg-dm-cream/60 rounded-md px-2 py-1">
+                              <span className="text-dm-ink/80">{it.name}</span>
+                              <span className="flex items-center gap-2">
+                                <span className="text-slate-400">{formatCurrency(it.price)}</span>
+                                <button className="text-slate-300 hover:text-red-500" onClick={() => removeDishFromGroup(section.id, plan.id, group.id, it.catalogId)}>
+                                  <X size={12} />
+                                </button>
+                              </span>
+                            </li>
+                          )
+
+                          if (!showSubcats) {
+                            return <ul className="space-y-1 mb-2">{group.items.map(renderDish)}</ul>
+                          }
+
+                          return (
+                            <div className="space-y-2 mb-2">
+                              {Array.from(subcats!.entries()).map(([subcat, dishes]) => (
+                                <div key={subcat}>
+                                  <p className="text-[10px] font-semibold uppercase tracking-wide text-dm-wood mb-1">{subcat}</p>
+                                  <ul className="space-y-1">{dishes.map(renderDish)}</ul>
+                                </div>
+                              ))}
+                            </div>
+                          )
+                        })()}
 
                         <button
                           className="w-full text-xs text-dm-maroon hover:bg-dm-maroon/5 rounded-md py-1.5 flex items-center justify-center gap-1 border border-dashed border-dm-maroon/30"
