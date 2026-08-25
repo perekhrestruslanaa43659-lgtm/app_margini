@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { CalendarDays, LayoutDashboard, BookOpen, Calculator, Home, Menu, X, ShieldCheck, FlaskConical, LogOut, Building2 } from 'lucide-react'
+import { CalendarDays, LayoutDashboard, BookOpen, Calculator, Home, Menu, X, ShieldCheck, FlaskConical, LogOut, Building2, FileText } from 'lucide-react'
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 
@@ -11,6 +11,7 @@ const nav = [
   { href: '/events', label: 'Eventi', icon: CalendarDays },
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/catalog', label: 'Catalogo Voci', icon: BookOpen },
+  { href: '/proposte', label: 'Proposte Eventi', icon: FileText },
   { href: '/allergens', label: 'Allergeni', icon: ShieldCheck },
   { href: '/recipes', label: 'Food Cost', icon: FlaskConical },
   { href: '/calculator', label: 'Calcolatrice', icon: Calculator },
