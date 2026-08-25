@@ -68,25 +68,52 @@ function esc(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 }
 
+/** Raggruppa i piatti di un gruppo 'a scelta' per categoria di catalogo (es. Paste, Pizze, Burger). */
+function dishesBySubcategory(group: PlanGroup): Map<string, PlanItem[]> {
+  const map = new Map<string, PlanItem[]>()
+  for (const it of group.items) {
+    const key = it.category || group.label
+    const list = map.get(key) ?? []
+    list.push(it)
+    map.set(key, list)
+  }
+  return map
+}
+
+function renderItemsList(items: PlanItem[]): string {
+  return `
+    <ul class="plan-items">
+      ${items.map((it) => `
+        <li>
+          <p class="plan-item-name">${esc(it.name)}</p>
+          ${it.desc ? `<p class="plan-item-desc">${esc(it.desc)}</p>` : ''}
+        </li>
+      `).join('')}
+    </ul>
+  `
+}
+
 function renderPlan(plan: PricePlan): string {
   const groupsHtml = plan.groups
     .filter((g) => g.items.length > 0)
     .map((g) => {
-      const choiceNote = g.pricingMode === 'media' && g.items.length > 1
-        ? `<p class="plan-item-desc">A scelta tra: ${g.items.map((it) => esc(it.name)).join(', ')}</p>`
-        : ''
+      const isChoice = g.pricingMode === 'media' && g.items.length > 1
+      const subcategories = isChoice ? dishesBySubcategory(g) : null
+      const hasMultipleSubcats = subcategories ? subcategories.size > 1 : false
+
+      const itemsHtml = !isChoice
+        ? renderItemsList(g.items)
+        : hasMultipleSubcats
+          ? Array.from(subcategories!.entries()).map(([subcat, dishes]) => `
+              <p class="plan-subgroup-label">${esc(subcat)}</p>
+              ${renderItemsList(dishes)}
+            `).join('')
+          : renderItemsList(g.items)
+
       return `
-        <p class="plan-group-label">${esc(g.label || 'Voci')}</p>
+        <p class="plan-group-label">${esc(g.label || 'Voci')}${isChoice ? ' (a scelta)' : ''}</p>
         ${g.tag ? `<span class="plan-group-tag">${esc(g.tag)}</span>` : ''}
-        ${choiceNote}
-        <ul class="plan-items">
-          ${g.items.map((it) => `
-            <li>
-              <p class="plan-item-name">${esc(it.name)}</p>
-              ${it.desc ? `<p class="plan-item-desc">${esc(it.desc)}</p>` : ''}
-            </li>
-          `).join('')}
-        </ul>
+        ${itemsHtml}
       `
     }).join('')
 
@@ -206,6 +233,7 @@ export function buildProposalHtml(sections: MealSection[]): string {
   .plan-divider { border: none; border-top: 2px dashed #D8D2C4; margin: 4px 0; }
   .plan-group-label { font-weight: 700; font-size: .72rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 6px 0 2px; }
   .plan-group-tag { display: inline-block; font-family: 'Kalam', cursive; font-weight: 700; font-size: .78rem; background: #EFEAE0; color: var(--muted); padding: 2px 10px; border-radius: 999px; margin: 2px 0 8px; transform: rotate(-1deg); }
+  .plan-subgroup-label { font-weight: 700; font-size: .78rem; color: var(--green); margin: 8px 0 2px; }
   .plan-items { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
   .plan-item-name { font-weight: 600; font-size: .98rem; margin: 0; }
   .plan-item-desc { font-size: .85rem; color: var(--muted); line-height: 1.45; margin: 2px 0 0; }
