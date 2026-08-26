@@ -1,5 +1,5 @@
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer'
-import { planPrice, dishesBySubcategory, type MealSection } from '@/lib/proposalHtml'
+import { planPrice, dishesBySubcategory, itemSharedAmong, type MealSection } from '@/lib/proposalHtml'
 
 // Stile "sticker & marker" (SKILLS-STILE.md) adattato a PDF: card a bordo netto,
 // badge prezzo, accento colorato per sezione. E' il documento "menu allegato"
@@ -98,24 +98,30 @@ export function ProposalMenuPdfDocument({ clientName, sections }: Props) {
                           <View key={g.id}>
                             <Text style={styles.groupLabel}>{g.label}{isChoice ? ' (a scelta)' : ''}</Text>
                             {!showSubcats ? (
-                              g.items.map((it) => (
-                                <Text style={styles.dishRow} key={it.catalogId}>
-                                  <Text style={styles.dishName}>{it.name}</Text>
-                                  {it.sharedAmong && it.sharedAmong > 1 ? ` (ogni ${it.sharedAmong} persone)` : ''}
-                                  {it.desc ? ` — ${it.desc}` : ''}
-                                </Text>
-                              ))
+                              g.items.map((it) => {
+                                const shared = itemSharedAmong(it, g)
+                                return (
+                                  <Text style={styles.dishRow} key={it.catalogId}>
+                                    <Text style={styles.dishName}>{it.name}</Text>
+                                    {shared && shared > 1 ? ` (ogni ${shared} persone)` : ''}
+                                    {it.desc ? ` — ${it.desc}` : ''}
+                                  </Text>
+                                )
+                              })
                             ) : (
                               Array.from(subgroups!.entries()).map(([subcat, dishes]) => (
                                 <View key={subcat}>
                                   <Text style={styles.subLabel}>{subcat}</Text>
-                                  {dishes.map((d) => (
-                                    <Text style={styles.dishRow} key={d.catalogId}>
-                                      <Text style={styles.dishName}>{d.name}</Text>
-                                      {d.sharedAmong && d.sharedAmong > 1 ? ` (ogni ${d.sharedAmong} persone)` : ''}
-                                      {d.desc ? ` — ${d.desc}` : ''}
-                                    </Text>
-                                  ))}
+                                  {dishes.map((d) => {
+                                    const shared = itemSharedAmong(d, g)
+                                    return (
+                                      <Text style={styles.dishRow} key={d.catalogId}>
+                                        <Text style={styles.dishName}>{d.name}</Text>
+                                        {shared && shared > 1 ? ` (ogni ${shared} persone)` : ''}
+                                        {d.desc ? ` — ${d.desc}` : ''}
+                                      </Text>
+                                    )
+                                  })}
                                 </View>
                               ))
                             )}

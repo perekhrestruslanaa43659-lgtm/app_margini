@@ -4,7 +4,9 @@ export interface PlanItem {
   desc: string
   price: number
   category: string
-  /** Se impostato, il piatto e' condiviso ogni N persone: il contributo al prezzo a testa e' price / sharedAmong invece del prezzo pieno. */
+  /** Etichetta di sotto-gruppo scelta manualmente (es. "Pizze"). Se assente, si usa 'category' come fallback per il raggruppamento visivo. */
+  subgroup?: string
+  /** Se impostato, il piatto e' condiviso ogni N persone: il contributo al prezzo a testa e' price / sharedAmong invece del prezzo pieno. Sovrascrive il default del gruppo. */
   sharedAmong?: number
 }
 
@@ -15,7 +17,14 @@ export interface PlanGroup {
   label: string
   tag: string
   pricingMode: GroupPricingMode
+  /** Default "ogni N persone" per tutti i piatti del gruppo; un piatto puo' sovrascriverlo col proprio sharedAmong. */
+  defaultSharedAmong?: number
   items: PlanItem[]
+}
+
+/** Numero di persone che condividono un piatto: quello specifico sul piatto, altrimenti il default del gruppo. */
+export function itemSharedAmong(item: PlanItem, group: PlanGroup): number | undefined {
+  return item.sharedAmong ?? group.defaultSharedAmong
 }
 
 export interface PricePlan {
@@ -29,15 +38,16 @@ export interface PricePlan {
   groups: PlanGroup[]
 }
 
-/** Prezzo effettivo di un piatto: diviso per sharedAmong se il piatto e' condiviso tra piu' persone. */
-export function itemEffectivePrice(item: PlanItem): number {
-  return item.sharedAmong && item.sharedAmong > 1 ? item.price / item.sharedAmong : item.price
+/** Prezzo effettivo di un piatto: diviso per il numero di persone che lo condividono (piatto o default del gruppo). */
+export function itemEffectivePrice(item: PlanItem, group?: PlanGroup): number {
+  const shared = group ? itemSharedAmong(item, group) : item.sharedAmong
+  return shared && shared > 1 ? item.price / shared : item.price
 }
 
 /** Prezzo medio dei piatti di un gruppo 'a scelta' (o il prezzo dell'unico piatto se il gruppo e' 'fisso'). */
 export function groupPrice(group: PlanGroup): number {
   if (group.items.length === 0) return 0
-  const sum = group.items.reduce((acc, it) => acc + itemEffectivePrice(it), 0)
+  const sum = group.items.reduce((acc, it) => acc + itemEffectivePrice(it, group), 0)
   return group.pricingMode === 'media' ? sum / group.items.length : sum
 }
 
@@ -75,11 +85,11 @@ function esc(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 }
 
-/** Raggruppa i piatti di un gruppo 'a scelta' per categoria di catalogo (es. Paste, Pizze, Burger). */
+/** Raggruppa i piatti di un gruppo 'a scelta' per sotto-gruppo (scelto manualmente, o dedotto dalla categoria catalogo). */
 export function dishesBySubcategory(group: PlanGroup): Map<string, PlanItem[]> {
   const map = new Map<string, PlanItem[]>()
   for (const it of group.items) {
-    const key = it.category || group.label
+    const key = it.subgroup || it.category || group.label
     const list = map.get(key) ?? []
     list.push(it)
     map.set(key, list)
@@ -87,15 +97,18 @@ export function dishesBySubcategory(group: PlanGroup): Map<string, PlanItem[]> {
   return map
 }
 
-function renderItemsList(items: PlanItem[]): string {
+function renderItemsList(items: PlanItem[], group: PlanGroup): string {
   return `
     <ul class="plan-items">
-      ${items.map((it) => `
+      ${items.map((it) => {
+        const shared = itemSharedAmong(it, group)
+        return `
         <li>
-          <p class="plan-item-name">${esc(it.name)}${it.sharedAmong && it.sharedAmong > 1 ? ` <span class="plan-item-shared">(ogni ${it.sharedAmong} persone)</span>` : ''}</p>
+          <p class="plan-item-name">${esc(it.name)}${shared && shared > 1 ? ` <span class="plan-item-shared">(ogni ${shared} persone)</span>` : ''}</p>
           ${it.desc ? `<p class="plan-item-desc">${esc(it.desc)}</p>` : ''}
         </li>
-      `).join('')}
+      `
+      }).join('')}
     </ul>
   `
 }
@@ -109,13 +122,13 @@ function renderPlan(plan: PricePlan): string {
       const hasMultipleSubcats = subcategories ? subcategories.size > 1 : false
 
       const itemsHtml = !isChoice
-        ? renderItemsList(g.items)
+        ? renderItemsList(g.items, g)
         : hasMultipleSubcats
           ? Array.from(subcategories!.entries()).map(([subcat, dishes]) => `
               <p class="plan-subgroup-label">${esc(subcat)}</p>
-              ${renderItemsList(dishes)}
+              ${renderItemsList(dishes, g)}
             `).join('')
-          : renderItemsList(g.items)
+          : renderItemsList(g.items, g)
 
       return `
         <p class="plan-group-label">${esc(g.label || 'Voci')}${isChoice ? ' (a scelta)' : ''}</p>

@@ -8,7 +8,7 @@ import { isSupabaseConfigured } from '@/lib/supabase/config'
 import type { CatalogItem } from '@/lib/supabase/types'
 import { formatCurrency } from '@/lib/margin'
 import { SetupBanner } from '@/components/ui/SetupBanner'
-import { buildProposalHtml, planPrice, groupPrice, dishesBySubcategory, itemEffectivePrice, type MealSection, type PricePlan, type PlanGroup } from '@/lib/proposalHtml'
+import { buildProposalHtml, planPrice, groupPrice, dishesBySubcategory, itemEffectivePrice, itemSharedAmong, type MealSection, type PricePlan, type PlanGroup } from '@/lib/proposalHtml'
 import { saveDraftProposal } from '@/lib/proposalDraft'
 
 const MEAL_PRESETS = [
@@ -183,6 +183,25 @@ function ProposteInner() {
             groups: p.groups.map((g) => {
               if (g.id !== groupId) return g
               return { ...g, items: g.items.map((it) => (it.catalogId === catalogId ? { ...it, sharedAmong } : it)) }
+            }),
+          }
+        }),
+      }
+    }))
+  }
+
+  function updateDishSubgroup(sectionId: string, planId: string, groupId: string, catalogId: string, subgroup: string | undefined) {
+    setSections((prev) => prev.map((s) => {
+      if (s.id !== sectionId) return s
+      return {
+        ...s,
+        plans: s.plans.map((p) => {
+          if (p.id !== planId) return p
+          return {
+            ...p,
+            groups: p.groups.map((g) => {
+              if (g.id !== groupId) return g
+              return { ...g, items: g.items.map((it) => (it.catalogId === catalogId ? { ...it, subgroup } : it)) }
             }),
           }
         }),
@@ -455,42 +474,74 @@ function ProposteInner() {
                           </div>
                         )}
 
+                        <div className="flex items-center gap-1 text-[10px] text-slate-400 mb-2">
+                          <span>Da condividere ogni</span>
+                          <input
+                            type="number"
+                            min={1}
+                            className="w-8 text-center bg-transparent border-b border-slate-300 focus:outline-none focus:border-dm-maroon py-0"
+                            placeholder="1"
+                            value={group.defaultSharedAmong ?? ''}
+                            onChange={(e) => {
+                              const v = e.target.value ? parseInt(e.target.value, 10) : undefined
+                              updateGroup(section.id, plan.id, group.id, { defaultSharedAmong: v && v > 1 ? v : undefined })
+                            }}
+                          />
+                          <span>persone (default per tutto il gruppo, sovrascrivibile per piatto)</span>
+                        </div>
+
                         {group.items.length > 0 && (() => {
                           const isChoice = group.pricingMode === 'media' && group.items.length > 1
                           const subcats = isChoice ? dishesBySubcategory(group) : null
                           const showSubcats = subcats ? subcats.size > 1 : false
 
-                          const renderDish = (it: (typeof group.items)[number]) => (
-                            <li key={it.catalogId} className="flex items-center justify-between gap-2 text-xs bg-dm-cream/60 rounded-md px-2 py-1">
-                              <span className="text-dm-ink/80 truncate">{it.name}</span>
-                              <span className="flex items-center gap-1.5 shrink-0">
-                                <span className="text-slate-400">
-                                  {formatCurrency(itemEffectivePrice(it))}
-                                  {it.sharedAmong && it.sharedAmong > 1 && (
-                                    <span className="text-slate-300"> ({formatCurrency(it.price)}/{it.sharedAmong})</span>
-                                  )}
-                                </span>
-                                <span className="flex items-center gap-0.5 text-slate-400">
-                                  <span className="text-[10px]">ogni</span>
-                                  <input
-                                    type="number"
-                                    min={1}
-                                    className="w-8 text-center bg-transparent border-b border-slate-300 focus:outline-none focus:border-dm-maroon py-0"
-                                    placeholder="1"
-                                    value={it.sharedAmong ?? ''}
-                                    onChange={(e) => {
-                                      const v = e.target.value ? parseInt(e.target.value, 10) : undefined
-                                      updateDishSharing(section.id, plan.id, group.id, it.catalogId, v && v > 1 ? v : undefined)
-                                    }}
-                                  />
-                                  <span className="text-[10px]">pax</span>
-                                </span>
-                                <button className="text-slate-300 hover:text-red-500" onClick={() => removeDishFromGroup(section.id, plan.id, group.id, it.catalogId)}>
-                                  <X size={12} />
-                                </button>
-                              </span>
-                            </li>
-                          )
+                          const renderDish = (it: (typeof group.items)[number]) => {
+                            const effectiveShared = itemSharedAmong(it, group)
+                            return (
+                              <li key={it.catalogId} className="flex flex-col gap-1 text-xs bg-dm-cream/60 rounded-md px-2 py-1.5">
+                                <div className="flex items-center justify-between gap-2">
+                                  <span className="text-dm-ink/80 truncate">{it.name}</span>
+                                  <span className="flex items-center gap-1.5 shrink-0">
+                                    <span className="text-slate-400">
+                                      {formatCurrency(itemEffectivePrice(it, group))}
+                                      {effectiveShared && effectiveShared > 1 && (
+                                        <span className="text-slate-300"> ({formatCurrency(it.price)}/{effectiveShared})</span>
+                                      )}
+                                    </span>
+                                    <button className="text-slate-300 hover:text-red-500" onClick={() => removeDishFromGroup(section.id, plan.id, group.id, it.catalogId)}>
+                                      <X size={12} />
+                                    </button>
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-2 text-[10px] text-slate-400">
+                                  <span className="flex items-center gap-0.5">
+                                    <span>ogni</span>
+                                    <input
+                                      type="number"
+                                      min={1}
+                                      className="w-8 text-center bg-transparent border-b border-slate-300 focus:outline-none focus:border-dm-maroon py-0"
+                                      placeholder={group.defaultSharedAmong ? String(group.defaultSharedAmong) : '1'}
+                                      value={it.sharedAmong ?? ''}
+                                      onChange={(e) => {
+                                        const v = e.target.value ? parseInt(e.target.value, 10) : undefined
+                                        updateDishSharing(section.id, plan.id, group.id, it.catalogId, v && v > 1 ? v : undefined)
+                                      }}
+                                    />
+                                    <span>pax</span>
+                                  </span>
+                                  <span className="flex items-center gap-0.5 flex-1">
+                                    <span>sotto-gruppo</span>
+                                    <input
+                                      className="flex-1 min-w-0 bg-transparent border-b border-slate-300 focus:outline-none focus:border-dm-maroon py-0"
+                                      placeholder={it.category || 'nessuno'}
+                                      value={it.subgroup ?? ''}
+                                      onChange={(e) => updateDishSubgroup(section.id, plan.id, group.id, it.catalogId, e.target.value || undefined)}
+                                    />
+                                  </span>
+                                </div>
+                              </li>
+                            )
+                          }
 
                           if (!showSubcats) {
                             return <ul className="space-y-1 mb-2">{group.items.map(renderDish)}</ul>
