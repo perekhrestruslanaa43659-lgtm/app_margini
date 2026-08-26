@@ -9,7 +9,7 @@ import type { CatalogItem, ProposalTemplate } from '@/lib/supabase/types'
 import { formatCurrency } from '@/lib/margin'
 import { SetupBanner } from '@/components/ui/SetupBanner'
 import { buildProposalHtml, planPrice, groupPrice, dishesBySubcategory, itemEffectivePrice, itemSharedAmong, type MealSection, type PricePlan, type PlanGroup } from '@/lib/proposalHtml'
-import { saveDraftProposal } from '@/lib/proposalDraft'
+import { saveDraftProposal, saveWorkingProposal, loadWorkingProposal, clearWorkingProposal } from '@/lib/proposalDraft'
 
 const MEAL_PRESETS = [
   { label: 'Pranzo', hours: '12:00 – 15:00' },
@@ -65,9 +65,11 @@ function ProposteInner() {
 
   const [catalog, setCatalog] = useState<CatalogItem[]>([])
   const [loading, setLoading] = useState(true)
-  const [sections, setSections] = useState<MealSection[]>([
-    emptySection(MEAL_PRESETS[0], 'green'),
-  ])
+  const [sections, setSections] = useState<MealSection[]>(() => {
+    if (typeof window === 'undefined') return [emptySection(MEAL_PRESETS[0], 'green')]
+    return loadWorkingProposal() ?? [emptySection(MEAL_PRESETS[0], 'green')]
+  })
+  const [restoredNotice, setRestoredNotice] = useState(false)
   const [pickerFor, setPickerFor] = useState<{ sectionId: string; planId: string; groupId: string } | null>(null)
   const [extraPickerFor, setExtraPickerFor] = useState<string | null>(null)
   const [pickerSearch, setPickerSearch] = useState('')
@@ -75,6 +77,7 @@ function ProposteInner() {
 
   const [mergeModeFor, setMergeModeFor] = useState<{ sectionId: string; planId: string } | null>(null)
   const [mergeSelection, setMergeSelection] = useState<string[]>([])
+  const [mergeNewLabel, setMergeNewLabel] = useState('')
 
   const [templates, setTemplates] = useState<ProposalTemplate[]>([])
   const [activeTemplateId, setActiveTemplateId] = useState<string | null>(null)
@@ -95,8 +98,22 @@ function ProposteInner() {
       setLoading(false)
     }
     load()
+    if (loadWorkingProposal()) setRestoredNotice(true)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  // Autosalvataggio: ogni modifica alla proposta viene tenuta in sessionStorage,
+  // cosi' navigare via (indietro nel browser, cambio pagina) e tornare non perde il lavoro.
+  useEffect(() => {
+    saveWorkingProposal(sections)
+  }, [sections])
+
+  function startNewProposal() {
+    clearWorkingProposal()
+    setSections([emptySection(MEAL_PRESETS[0], 'green')])
+    setActiveTemplateId(null)
+    setRestoredNotice(false)
+  }
 
   async function saveAsNewTemplate() {
     if (!newTemplateName.trim()) return
@@ -345,6 +362,15 @@ function ProposteInner() {
 
   return (
     <div className="max-w-6xl mx-auto pb-16">
+      {restoredNotice && (
+        <div className="card mb-4 flex items-center justify-between gap-3 bg-amber-50/60 border-amber-100">
+          <p className="text-xs text-amber-800">Ripristinata l&apos;ultima proposta su cui stavi lavorando.</p>
+          <button className="text-xs text-amber-800 underline shrink-0" onClick={() => setRestoredNotice(false)}>
+            Ok, capito
+          </button>
+        </div>
+      )}
+
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div className="flex items-center gap-3">
           <div className="w-11 h-11 bg-amber-100 rounded-xl flex items-center justify-center shrink-0">
@@ -358,6 +384,9 @@ function ProposteInner() {
         <div className="flex gap-2 flex-wrap">
           <button className="btn-secondary flex items-center gap-2" onClick={addSection}>
             <Plus size={15} /> Aggiungi momento
+          </button>
+          <button className="btn-secondary flex items-center gap-2" onClick={startNewProposal}>
+            <FileText size={15} /> Nuova proposta
           </button>
 
           <div className="relative">
@@ -565,22 +594,29 @@ function ProposteInner() {
                   </div>
 
                   {plan.groups.length > 1 && (
-                    <div className="flex items-center gap-2 mb-3 p-2 bg-slate-50 rounded-lg border border-slate-200">
+                    <div className="flex items-center gap-2 mb-3 p-2 bg-slate-50 rounded-lg border border-slate-200 flex-wrap">
                       {mergeModeFor?.sectionId === section.id && mergeModeFor?.planId === plan.id ? (
                         <>
                           <span className="text-xs font-medium text-slate-600">Seleziona i gruppi da unire ({mergeSelection.length} selezionati)</span>
+                          <input
+                            className="input py-1 text-xs w-40"
+                            placeholder="Nome nuovo gruppo (es. Main)"
+                            value={mergeNewLabel}
+                            onChange={(e) => setMergeNewLabel(e.target.value)}
+                          />
                           <button
                             className="text-xs font-medium text-white bg-dm-maroon rounded-full px-3 py-1.5 disabled:opacity-40 ml-auto"
                             disabled={mergeSelection.length < 2}
                             onClick={() => {
-                              mergeGroups(section.id, plan.id, mergeSelection, '')
+                              mergeGroups(section.id, plan.id, mergeSelection, mergeNewLabel)
                               setMergeModeFor(null)
                               setMergeSelection([])
+                              setMergeNewLabel('')
                             }}
                           >
                             Unisci selezionati
                           </button>
-                          <button className="text-xs text-slate-500 hover:text-dm-ink" onClick={() => { setMergeModeFor(null); setMergeSelection([]) }}>
+                          <button className="text-xs text-slate-500 hover:text-dm-ink" onClick={() => { setMergeModeFor(null); setMergeSelection([]); setMergeNewLabel('') }}>
                             Annulla
                           </button>
                         </>

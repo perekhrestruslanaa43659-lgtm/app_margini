@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft, FileCheck, Lock, Loader2, ChevronDown, ChevronUp } from 'lucide-react'
-import { loadDraftProposal, clearDraftProposal } from '@/lib/proposalDraft'
+import { loadDraftProposal, clearDraftProposal, clearWorkingProposal } from '@/lib/proposalDraft'
 import { planPrice, type MealSection } from '@/lib/proposalHtml'
 import { formatCurrency } from '@/lib/margin'
 
@@ -129,6 +129,7 @@ export default function PreventivoPage() {
       }
 
       clearDraftProposal()
+      clearWorkingProposal()
       router.push('/events')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Errore nella generazione del preventivo')
