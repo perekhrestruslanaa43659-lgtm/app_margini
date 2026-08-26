@@ -154,6 +154,15 @@ export function ProposalQuotePdfDocument({ client, sections, companyInfo, quoteR
   const allPlans = sections.flatMap((s) => s.plans.filter((p) => p.groups.some((g) => g.items.length > 0)).map((p) => ({ section: s, plan: p })))
   const allExtras = sections.flatMap((s) => s.extras.map((ex) => ({ section: s, extra: ex })))
   const hasMenu = allPlans.length > 0
+  const guests = client.guestsCount ?? 0
+
+  const menuPricePerGuest = hasMenu
+    ? allPlans.reduce((sum, { plan }) => sum + planPrice(plan), 0) / Math.max(allPlans.length, 1)
+    : 0
+  const menuTotal = menuPricePerGuest * guests
+  const extrasTotal = allExtras.reduce((sum, { extra }) => sum + (extra.unit === 'a_persona' ? extra.price * guests : extra.price), 0)
+  const grandTotal = menuTotal + extrasTotal
+  const totalKnown = guests > 0 && (menuPricePerGuest > 0 || extrasTotal > 0)
 
   return (
     <Document title={`${t.docTitle} ${client.name}`}>
@@ -215,8 +224,8 @@ export function ProposalQuotePdfDocument({ client, sections, companyInfo, quoteR
                   </Text>
                 </View>
                 <Text style={styles.tdMin}>{client.guestsCount ? `${client.guestsCount} ${t.pax}` : t.pax}</Text>
-                <Text style={styles.tdPrice}>{formatCurrency(allPlans.reduce((sum, { plan }) => sum + planPrice(plan), 0) / Math.max(allPlans.length, 1))}</Text>
-                <Text style={styles.tdTotal}> </Text>
+                <Text style={styles.tdPrice}>{formatCurrency(menuPricePerGuest)}</Text>
+                <Text style={styles.tdTotal}>{guests > 0 ? formatCurrency(menuTotal) : ' '}</Text>
               </View>
             ) : (
               <View style={styles.tableRow}>
@@ -230,21 +239,25 @@ export function ProposalQuotePdfDocument({ client, sections, companyInfo, quoteR
               </View>
             )}
 
-            {allExtras.map(({ extra }) => (
-              <View style={styles.tableRow} key={extra.catalogId}>
-                <View style={styles.tdDescWrap}>
-                  <Text style={styles.tdName}>{extra.name}</Text>
-                  <Text style={styles.tdDesc}>{t.additionalService}</Text>
+            {allExtras.map(({ extra }) => {
+              const extraTotal = extra.unit === 'a_persona' ? extra.price * guests : extra.price
+              const extraTotalKnown = extra.price > 0 && (extra.unit === 'fisso' || guests > 0)
+              return (
+                <View style={styles.tableRow} key={extra.catalogId}>
+                  <View style={styles.tdDescWrap}>
+                    <Text style={styles.tdName}>{extra.name}</Text>
+                    <Text style={styles.tdDesc}>{t.additionalService}</Text>
+                  </View>
+                  <Text style={styles.tdMin}>—</Text>
+                  <Text style={styles.tdPrice}>{extra.price > 0 ? `${formatCurrency(extra.price)}${extra.unit === 'a_persona' ? `/${t.pax}` : ''}` : t.onRequest}</Text>
+                  <Text style={styles.tdTotal}>{extraTotalKnown ? formatCurrency(extraTotal) : ' '}</Text>
                 </View>
-                <Text style={styles.tdMin}>—</Text>
-                <Text style={styles.tdPrice}>{extra.price > 0 ? `${formatCurrency(extra.price)}${extra.unit === 'a_persona' ? `/${t.pax}` : ''}` : t.onRequest}</Text>
-                <Text style={styles.tdTotal}> </Text>
-              </View>
-            ))}
+              )
+            })}
 
             <View style={styles.totalRow}>
               <Text style={styles.totalLabel}>{t.total}</Text>
-              <Text style={styles.totalValue}> </Text>
+              <Text style={styles.totalValue}>{totalKnown ? formatCurrency(grandTotal) : ' '}</Text>
             </View>
 
             <Text style={styles.menuAttachedNote}>{t.menuAttachedFootnote}</Text>

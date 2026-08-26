@@ -37,5 +37,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|richiesta-preventivo|api/public|api/extract-quote|api/excel-sync).*)'],
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|brand/|richiesta-preventivo|api/public|api/extract-quote|api/excel-sync).*)'],
 }

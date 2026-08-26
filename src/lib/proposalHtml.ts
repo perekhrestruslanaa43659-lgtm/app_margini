@@ -394,6 +394,20 @@ export function buildProposalHtml(sections: MealSection[]): string {
   }
   .extras-title { font-family: 'Archivo Black', Arial, sans-serif; font-size: 14px; margin: 0 0 10px; text-transform: uppercase; letter-spacing: 1px; }
   .extras-row { display: flex; justify-content: space-between; font-size: 13px; padding: 6px 0; border-top: 1px dashed #E2DCCB; }
+
+  /* Con 1-2 fasce c'e' piu' larghezza per card: testo e badge scalati di conseguenza */
+  .cards--single .card, .cards--double .card { padding-top: 58px; }
+  .cards--single .price-badge, .cards--double .price-badge { width: 104px; height: 104px; top: -52px; }
+  .cards--single .price-badge .num, .cards--double .price-badge .num { font-size: 32px; }
+  .cards--single .price-badge .cur, .cards--double .price-badge .cur { font-size: 11px; }
+  .cards--single .tier-name, .cards--double .tier-name { font-size: 32px; }
+  .cards--single .question, .cards--double .question { font-size: 20px; }
+  .cards--single .section-label, .cards--double .section-label { font-size: 14px; margin-top: 20px; }
+  .cards--single .tag, .cards--double .tag { font-size: 17px; }
+  .cards--single .item h4, .cards--double .item h4 { font-size: 16px; }
+  .cards--single .item p, .cards--double .item p { font-size: 14px; }
+  .cards--single .item, .cards--double .item { margin-bottom: 14px; }
+  .cards--single .shared-note, .cards--double .shared-note { font-size: 13px; }
   .extras-row:first-of-type { border-top: none; }
 
   .foot-note { max-width: 900px; margin: 64px auto 0; padding: 0 24px; text-align: center; color: #6b6b63; font-size: 13px; line-height: 1.6; }
