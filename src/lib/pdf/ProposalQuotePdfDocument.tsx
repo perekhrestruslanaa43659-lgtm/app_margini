@@ -1,34 +1,38 @@
-import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer'
+import { Document, Page, Text, View, StyleSheet, Image } from '@react-pdf/renderer'
 import { formatCurrency } from '@/lib/margin'
-import { planPrice, dishesBySubcategory, type MealSection } from '@/lib/proposalHtml'
+import { planPrice, type MealSection } from '@/lib/proposalHtml'
 import type { CompanyInfo } from '@/lib/company'
 
 // Palette dello skill "Preventivo Evento" (SKILLS-PREVENTIVO.md): stessi token
 // cromatici di SKILLS-STILE.md, ma registro sobrio/istituzionale — niente ombre
 // piene o rotazioni, corallo e verde alternati come colore-titolo di sezione.
+// Il menu dettagliato NON compare in questo documento: viene allegato come
+// file separato (vedi buildProposalHtml / la pagina di anteprima proposta).
 const INK = '#1C1B18'
 const CORAL = '#E1543F'
 const GREEN = '#6FA84B'
 const YELLOW = '#F0B429'
-const CREAM = '#FBF6EC'
 const MUTED = '#6B6558'
 
 const styles = StyleSheet.create({
-  page: { fontSize: 9.5, color: INK, fontFamily: 'Helvetica', backgroundColor: CREAM },
+  page: { fontSize: 9.5, color: INK, fontFamily: 'Helvetica', backgroundColor: '#FFFFFF' },
 
-  heroBand: { backgroundColor: '#BFE0D2', paddingHorizontal: 40, paddingVertical: 26, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
-  companyName: { fontSize: 20, fontFamily: 'Helvetica-Bold', color: INK },
-  companyTag: { fontSize: 9, color: INK, opacity: 0.75, marginTop: 2 },
-  statusBadge: { borderWidth: 1.5, borderColor: INK, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 5, alignSelf: 'flex-end' },
-  statusBadgeText: { fontSize: 9, fontFamily: 'Helvetica-Bold', letterSpacing: 0.4 },
-  courtesyText: { fontSize: 8, fontFamily: 'Helvetica-Bold', color: INK, textAlign: 'right', marginTop: 8 },
-  metaText: { fontSize: 8, color: INK, opacity: 0.75, textAlign: 'right', marginTop: 3 },
+  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', paddingHorizontal: 40, paddingTop: 32, paddingBottom: 16 },
+  logo: { width: 130, height: 68, objectFit: 'contain' },
+  docTitle: { fontSize: 17, fontFamily: 'Helvetica-Bold', color: INK, textAlign: 'right' },
+  courtesyText: { fontSize: 8, color: MUTED, textAlign: 'right', marginTop: 4, letterSpacing: 0.3 },
+  metaRow: { marginTop: 8, alignItems: 'flex-end' },
+  metaText: { fontSize: 8.5, color: INK, textAlign: 'right', marginTop: 2 },
+  metaLabel: { fontFamily: 'Helvetica-Bold' },
+  headerRule: { borderBottomWidth: 2, borderBottomColor: INK, marginHorizontal: 40, marginBottom: 20 },
 
-  body: { paddingHorizontal: 32, paddingTop: 20 },
+  body: { paddingHorizontal: 32 },
 
   card: { backgroundColor: '#FFFDF9', borderWidth: 2, borderColor: INK, borderRadius: 18, padding: 16, marginBottom: 14 },
-  cardTitleCoral: { fontSize: 10.5, fontFamily: 'Helvetica-Bold', color: CORAL, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 },
-  cardTitleGreen: { fontSize: 10.5, fontFamily: 'Helvetica-Bold', color: GREEN, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 },
+  cardTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 10 },
+  cardTitleBar: { width: 3, height: 12, borderRadius: 2 },
+  cardTitleCoral: { fontSize: 10.5, fontFamily: 'Helvetica-Bold', color: CORAL, textTransform: 'uppercase', letterSpacing: 0.5 },
+  cardTitleGreen: { fontSize: 10.5, fontFamily: 'Helvetica-Bold', color: GREEN, textTransform: 'uppercase', letterSpacing: 0.5 },
 
   twoColRow: { flexDirection: 'row', gap: 14 },
   col: { flex: 1 },
@@ -54,21 +58,15 @@ const styles = StyleSheet.create({
   totalLabel: { fontSize: 9.5, fontFamily: 'Helvetica-Bold', color: CORAL, textTransform: 'uppercase' },
   totalValue: { fontSize: 10, fontFamily: 'Helvetica-Bold', color: CORAL, borderBottomWidth: 1, borderBottomColor: CORAL, minWidth: 80, textAlign: 'right' },
 
-  menuSection: { marginBottom: 8 },
-  menuSectionTitle: { fontSize: 9.5, fontFamily: 'Helvetica-Bold', color: CORAL, textTransform: 'uppercase', marginBottom: 3 },
-  menuBodyText: { fontSize: 8.5, color: '#3a3a3a', lineHeight: 1.4 },
-  menuSubTitle: { fontSize: 8.5, fontFamily: 'Helvetica-Bold', color: GREEN, marginTop: 4, marginBottom: 2 },
-  dishRow: { fontSize: 8.5, color: '#3a3a3a', marginTop: 2, lineHeight: 1.35 },
-  dishName: { fontFamily: 'Helvetica-Bold', color: INK },
-  noteBadge: { alignSelf: 'flex-start', borderWidth: 1, borderColor: GREEN, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 3, marginTop: 4, marginBottom: 2 },
-  noteBadgeText: { fontSize: 7.5, color: GREEN, fontFamily: 'Helvetica-Bold' },
+  menuAttachedNote: { fontSize: 8.5, fontStyle: 'italic', color: MUTED, marginTop: 8 },
 
-  clauseRow: { flexDirection: 'row', marginBottom: 6 },
+  clauseRow: { flexDirection: 'row', marginBottom: 7 },
   clauseNum: { width: 14, fontSize: 8.5, fontFamily: 'Helvetica-Bold', color: INK },
   clauseText: { flex: 1, fontSize: 8.5, color: '#3a3a3a', lineHeight: 1.4 },
   clauseTitle: { fontFamily: 'Helvetica-Bold', color: INK },
 
-  disclaimer: { fontSize: 7.5, color: MUTED, textAlign: 'center', marginTop: 8, lineHeight: 1.4 },
+  bankCard: { backgroundColor: '#FFFDF9', borderWidth: 1.5, borderColor: '#BDB6A4', borderStyle: 'dashed', borderRadius: 14, padding: 16, marginBottom: 14 },
+  disclaimer: { fontSize: 7.5, fontStyle: 'italic', color: MUTED, textAlign: 'center', marginTop: 8, lineHeight: 1.4 },
 
   signatureText: { fontSize: 9, color: '#3a3a3a', lineHeight: 1.4, marginBottom: 20 },
   signatureRow: { flexDirection: 'row', gap: 24, marginBottom: 18 },
@@ -92,6 +90,15 @@ function Field({ label, value }: { label: string; value: string }) {
   )
 }
 
+function CardTitle({ text, color }: { text: string; color: 'coral' | 'green' }) {
+  return (
+    <View style={styles.cardTitleRow}>
+      <View style={[styles.cardTitleBar, { backgroundColor: color === 'coral' ? CORAL : GREEN }]} />
+      <Text style={color === 'coral' ? styles.cardTitleCoral : styles.cardTitleGreen}>{text}</Text>
+    </View>
+  )
+}
+
 export interface QuoteClient {
   name: string
   address: string
@@ -106,29 +113,34 @@ export interface QuoteClient {
   depositDate: string | null
 }
 
-export const DEFAULT_CONTRACT_CLAUSES = [
-  {
-    title: 'Minimo Garantito e Conteggio Ospiti:',
-    text: 'la fatturazione minima viene calcolata sul numero di persone garantito indicato dal cliente. Qualora i presenti fossero inferiori al minimo garantito, verrà comunque addebitata la quota calcolata su tale numero. In caso di partecipanti in esubero, verrà applicato il costo per persona in più indicato in tabella (oltre ai servizi aggiuntivi scelti). Si richiede di fornire un aggiornamento definitivo del conteggio a ridosso dell’evento.',
-  },
-  {
-    title: 'Comunicazione Preferenze Menu:',
-    text: 'per garantire un servizio fluido e tempi di uscita ottimali, si richiede gentilmente di comunicare la scelta del main course (e eventuali allergie/intolleranze) qualche giorno prima dell’evento.',
-  },
-  {
-    title: 'Caparra Confirmatoria:',
-    text: 'per confermare la prenotazione si richiede il versamento di una caparra, importo e termine come concordato via email.',
-  },
-  {
-    title: 'Saldo Finale e Pagamento:',
-    text: 'il saldo totale dovrà essere corrisposto come concordato, previa fattura, tramite bonifico bancario.',
-  },
-]
-
 export interface ContractClause {
   title: string
   text: string
 }
+
+/** Placeholder {{deposit_pct}} e {{deposit_days}} nel testo vengono sostituiti con i valori del form. */
+export const DEFAULT_CONTRACT_CLAUSES: ContractClause[] = [
+  {
+    title: 'Minimo garantito e conteggio ospiti.',
+    text: 'La fatturazione minima è calcolata sul numero di partecipanti garantito indicato dal cliente. Qualora il numero di presenti risultasse inferiore a tale soglia, resta comunque dovuto l’importo calcolato sul minimo garantito. In caso di partecipanti eccedenti, verrà applicato il costo unitario per persona indicato in tabella per ogni ospite aggiuntivo. Il cliente è tenuto a comunicare il numero definitivo di partecipanti entro i termini concordati e comunque non oltre 3 giorni lavorativi prima dell’evento.',
+  },
+  {
+    title: 'Comunicazione delle preferenze di menu.',
+    text: 'Al fine di garantire un servizio fluido e tempi di uscita adeguati, il cliente è tenuto a comunicare la scelta del main course, nonché eventuali allergie o intolleranze alimentari dei partecipanti, entro e non oltre 5 giorni prima della data dell’evento.',
+  },
+  {
+    title: 'Caparra confirmatoria.',
+    text: 'A conferma della prenotazione è richiesto il versamento di una caparra confirmatoria pari al {{deposit_pct}}% dell’importo totale stimato, da corrispondere entro e non oltre {{deposit_days}} giorni dalla data di accettazione del presente preventivo, tramite bonifico bancario sulle coordinate indicate. La mancata ricezione della caparra entro i termini indicati comporta la decadenza automatica dell’opzione sulla data e sulla sala.',
+  },
+  {
+    title: 'Saldo finale e modalità di pagamento.',
+    text: 'Il saldo residuo dovrà essere corrisposto entro e non oltre la data dell’evento, salvo diverso accordo scritto tra le parti, tramite bonifico bancario o le ulteriori modalità concordate. Il presente documento non costituisce fattura fiscale.',
+  },
+  {
+    title: 'Recesso e cancellazione.',
+    text: 'Eventuali disdette o modifiche alla prenotazione dovranno essere comunicate per iscritto. La caparra versata non è rimborsabile in caso di recesso comunicato a meno di 7 giorni dalla data dell’evento, salvo diverso accordo tra le parti.',
+  },
+]
 
 interface Props {
   client: QuoteClient
@@ -137,29 +149,30 @@ interface Props {
   quoteRef: string
   offerDate: string
   clauses: ContractClause[]
+  logoSrc?: string
 }
 
-export function ProposalQuotePdfDocument({ client, sections, companyInfo, quoteRef, offerDate, clauses }: Props) {
+export function ProposalQuotePdfDocument({ client, sections, companyInfo, quoteRef, offerDate, clauses, logoSrc }: Props) {
   const allPlans = sections.flatMap((s) => s.plans.filter((p) => p.groups.some((g) => g.items.length > 0)).map((p) => ({ section: s, plan: p })))
   const allExtras = sections.flatMap((s) => s.extras.map((ex) => ({ section: s, extra: ex })))
+  const hasMenu = allPlans.length > 0
 
   return (
     <Document title={`Preventivo ${client.name}`}>
       <Page size="A4" style={styles.page}>
-        <View style={styles.heroBand}>
+        <View style={styles.headerRow}>
+          {/* eslint-disable-next-line jsx-a11y/alt-text -- @react-pdf/renderer's Image is a PDF-only primitive, not an HTML <img> */}
+          {logoSrc ? <Image src={logoSrc} style={styles.logo} /> : <Text style={{ fontSize: 18, fontFamily: 'Helvetica-Bold' }}>{companyInfo.name}</Text>}
           <View>
-            <Text style={styles.companyName}>{companyInfo.name}</Text>
-            <Text style={styles.companyTag}>Birrificio con cucina</Text>
-          </View>
-          <View style={{ alignItems: 'flex-end' }}>
-            <View style={styles.statusBadge}>
-              <Text style={styles.statusBadgeText}>PREVENTIVO EVENTO</Text>
+            <Text style={styles.docTitle}>PREVENTIVO EVENTO</Text>
+            <Text style={styles.courtesyText}>COPIA DI CORTESIA / OFFERTA COMMERCIALE</Text>
+            <View style={styles.metaRow}>
+              <Text style={styles.metaText}><Text style={styles.metaLabel}>Data Offerta: </Text>{offerDate}</Text>
+              <Text style={styles.metaText}><Text style={styles.metaLabel}>N. Preventivo: </Text>{quoteRef}</Text>
             </View>
-            <Text style={styles.courtesyText}>Copia di cortesia / offerta commerciale</Text>
-            <Text style={styles.metaText}>Data Offerta: {offerDate}</Text>
-            <Text style={styles.metaText}>N. Preventivo: {quoteRef}</Text>
           </View>
         </View>
+        <View style={styles.headerRule} />
 
         <View style={[styles.body, { paddingBottom: 20 }]}>
 
@@ -167,14 +180,14 @@ export function ProposalQuotePdfDocument({ client, sections, companyInfo, quoteR
           <View style={styles.card}>
             <View style={styles.twoColRow}>
               <View style={styles.col}>
-                <Text style={styles.cardTitleCoral}>Dati Cliente</Text>
+                <CardTitle text="Dati Cliente" color="coral" />
                 <Field label="Intestatario:" value={client.name} />
                 <Field label="Indirizzo:" value={client.address} />
                 <Field label="P. IVA:" value={client.vatNumber} />
                 <Field label="Codice SDI:" value={client.sdiCode} />
               </View>
               <View style={styles.col}>
-                <Text style={styles.cardTitleGreen}>Dettagli Evento</Text>
+                <CardTitle text="Dettagli Evento" color="green" />
                 <Field label="Data Evento:" value={formatDate(client.eventDate)} />
                 <Field label="Orario:" value={client.eventTime} />
                 <Field label="Minimo Garantito:" value={client.guestsCount ? `${client.guestsCount} pax` : ''} />
@@ -185,7 +198,7 @@ export function ProposalQuotePdfDocument({ client, sections, companyInfo, quoteR
 
           {/* Riepilogo servizi e costi */}
           <View style={styles.card} wrap={false}>
-            <Text style={styles.cardTitleCoral}>Riepilogo Servizi e Costi</Text>
+            <CardTitle text="Riepilogo Servizi e Costi" color="coral" />
 
             <View style={styles.tableHeaderRow}>
               <Text style={styles.thDesc}>Descrizione Servizio</Text>
@@ -194,21 +207,30 @@ export function ProposalQuotePdfDocument({ client, sections, companyInfo, quoteR
               <Text style={styles.thTotal}>Importo Totale</Text>
             </View>
 
-            {allPlans.map(({ section, plan }) => {
-              const price = planPrice(plan)
-              const groupLabels = plan.groups.filter((g) => g.items.length > 0).map((g) => g.label).join(', ')
-              return (
-                <View style={styles.tableRow} key={plan.id}>
-                  <View style={styles.tdDescWrap}>
-                    <Text style={styles.tdName}>{section.label} — {plan.name || 'Menu Evento'}</Text>
-                    <Text style={styles.tdDesc}>{groupLabels}{section.duration ? ` — permanenza ${section.duration}` : ''}</Text>
-                  </View>
-                  <Text style={styles.tdMin}>{client.guestsCount ? `${client.guestsCount} pax` : 'pax'}</Text>
-                  <Text style={styles.tdPrice}>{price > 0 ? formatCurrency(price) : '—'}</Text>
-                  <Text style={styles.tdTotal}> </Text>
+            {hasMenu ? (
+              <View style={styles.tableRow}>
+                <View style={styles.tdDescWrap}>
+                  <Text style={styles.tdName}>Menu Evento</Text>
+                  <Text style={styles.tdDesc}>
+                    Il dettaglio del menu è allegato in un file separato
+                    {allPlans[0]?.section.duration ? ` — permanenza ${allPlans[0].section.duration}` : ''}
+                  </Text>
                 </View>
-              )
-            })}
+                <Text style={styles.tdMin}>{client.guestsCount ? `${client.guestsCount} pax` : 'pax'}</Text>
+                <Text style={styles.tdPrice}>{formatCurrency(allPlans.reduce((sum, { plan }) => sum + planPrice(plan), 0) / Math.max(allPlans.length, 1))}</Text>
+                <Text style={styles.tdTotal}> </Text>
+              </View>
+            ) : (
+              <View style={styles.tableRow}>
+                <View style={styles.tdDescWrap}>
+                  <Text style={styles.tdName}>Menu Evento</Text>
+                  <Text style={styles.tdDesc}>Il dettaglio del menu è allegato in un file separato</Text>
+                </View>
+                <Text style={styles.tdMin}>{client.guestsCount ? `${client.guestsCount} pax` : 'pax'}</Text>
+                <Text style={styles.tdPrice}>€</Text>
+                <Text style={styles.tdTotal}> </Text>
+              </View>
+            )}
 
             {allExtras.map(({ extra }) => (
               <View style={styles.tableRow} key={extra.catalogId}>
@@ -226,49 +248,13 @@ export function ProposalQuotePdfDocument({ client, sections, companyInfo, quoteR
               <Text style={styles.totalLabel}>Totale Stimato (IVA inclusa):</Text>
               <Text style={styles.totalValue}> </Text>
             </View>
-          </View>
 
-          {/* Dettaglio menu incluso */}
-          {sections.some((s) => s.plans.some((p) => p.groups.some((g) => g.items.length > 0))) && (
-            <View style={styles.card}>
-              <Text style={styles.cardTitleCoral}>Dettaglio Menu Incluso</Text>
-              {sections.flatMap((s) => s.plans).filter((p) => p.groups.some((g) => g.items.length > 0)).flatMap((p) => p.groups).filter((g) => g.items.length > 0).map((group) => {
-                const isChoice = group.pricingMode === 'media' && group.items.length > 1
-                const subgroups = isChoice ? dishesBySubcategory(group) : null
-                return (
-                  <View style={styles.menuSection} key={group.id} wrap={false}>
-                    <Text style={styles.menuSectionTitle}>{group.label}{isChoice ? ' (a scelta)' : ''}</Text>
-                    {!isChoice ? (
-                      group.items.map((it) => (
-                        <Text style={styles.dishRow} key={it.catalogId}>
-                          <Text style={styles.dishName}>{it.name}</Text>
-                          {it.sharedAmong && it.sharedAmong > 1 ? ` (ogni ${it.sharedAmong} persone)` : ''}
-                          {it.desc ? ` — ${it.desc}` : ''}
-                        </Text>
-                      ))
-                    ) : (
-                      Array.from(subgroups!.entries()).map(([subcat, dishes]) => (
-                        <View key={subcat}>
-                          <Text style={styles.menuSubTitle}>{subcat}</Text>
-                          {dishes.map((d) => (
-                            <Text style={styles.dishRow} key={d.catalogId}>
-                              <Text style={styles.dishName}>{d.name}</Text>
-                              {d.sharedAmong && d.sharedAmong > 1 ? ` (ogni ${d.sharedAmong} persone)` : ''}
-                              {d.desc ? ` — ${d.desc}` : ''}
-                            </Text>
-                          ))}
-                        </View>
-                      ))
-                    )}
-                  </View>
-                )
-              })}
-            </View>
-          )}
+            <Text style={styles.menuAttachedNote}>Il dettaglio completo del menu incluso è allegato in un file separato.</Text>
+          </View>
 
           {/* Clausole contrattuali */}
           <View style={styles.card}>
-            <Text style={styles.cardTitleCoral}>Clausole Contrattuali e Condizioni di Servizio</Text>
+            <CardTitle text="Clausole Contrattuali e Condizioni di Servizio" color="coral" />
             {clauses.map((c, i) => (
               <View style={styles.clauseRow} key={i}>
                 <Text style={styles.clauseNum}>{i + 1}.</Text>
@@ -278,8 +264,8 @@ export function ProposalQuotePdfDocument({ client, sections, companyInfo, quoteR
           </View>
 
           {/* Coordinate bancarie */}
-          <View style={styles.card}>
-            <Text style={styles.cardTitleGreen}>Coordinate Bancarie per il Pagamento</Text>
+          <View style={styles.bankCard}>
+            <CardTitle text="Coordinate Bancarie per il Pagamento" color="coral" />
             <Field label="Intestatario:" value={companyInfo.legalName || companyInfo.name} />
             <Field label="IBAN:" value={companyInfo.iban} />
             <Field label="Causale:" value={`Preventivo ${quoteRef} — ${client.name}`} />
@@ -294,7 +280,7 @@ export function ProposalQuotePdfDocument({ client, sections, companyInfo, quoteR
       <Page size="A4" style={styles.page}>
         <View style={[styles.body, { paddingTop: 32 }]}>
           <View style={styles.card}>
-            <Text style={styles.cardTitleCoral}>Conferma e Presa Visione del Preventivo</Text>
+            <CardTitle text="Conferma e Presa Visione del Preventivo" color="coral" />
             <Text style={styles.signatureText}>
               Con la presente firma, il cliente dichiara di aver preso visione del preventivo e di confermarne i contenuti e le condizioni di servizio.
             </Text>

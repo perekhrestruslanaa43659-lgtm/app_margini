@@ -22,6 +22,17 @@ interface QuoteRequestBody {
   }
   sections: MealSection[]
   clauses?: ContractClause[]
+  depositPct?: string
+  depositDays?: string
+}
+
+function applyClausePlaceholders(clauses: ContractClause[], depositPct: string, depositDays: string): ContractClause[] {
+  return clauses.map((c) => ({
+    ...c,
+    text: c.text
+      .replace(/\{\{deposit_pct\}\}/g, depositPct || '____')
+      .replace(/\{\{deposit_days\}\}/g, depositDays || '____'),
+  }))
 }
 
 export async function POST(req: NextRequest) {
@@ -136,10 +147,15 @@ export async function POST(req: NextRequest) {
   const companyInfo = await getCompanyInfo()
   const quoteRef = event.id.slice(0, 8).toUpperCase()
   const offerDate = new Date().toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' })
-  const clauses = body.clauses && body.clauses.length > 0 ? body.clauses : DEFAULT_CONTRACT_CLAUSES
+  const clauses = applyClausePlaceholders(
+    body.clauses && body.clauses.length > 0 ? body.clauses : DEFAULT_CONTRACT_CLAUSES,
+    body.depositPct ?? '',
+    body.depositDays ?? ''
+  )
+  const logoSrc = `${req.nextUrl.origin}/brand/doppio-malto-logo.jpg`
 
   const buffer = await renderToBuffer(
-    ProposalQuotePdfDocument({ client, sections: body.sections, companyInfo, quoteRef, offerDate, clauses })
+    ProposalQuotePdfDocument({ client, sections: body.sections, companyInfo, quoteRef, offerDate, clauses, logoSrc })
   )
 
   const fileBase = `preventivo-${client.name.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}`
