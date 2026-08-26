@@ -565,12 +565,12 @@ function ProposteInner() {
                   </div>
 
                   {plan.groups.length > 1 && (
-                    <div className="flex items-center gap-2 mb-2">
+                    <div className="flex items-center gap-2 mb-3 p-2 bg-slate-50 rounded-lg border border-slate-200">
                       {mergeModeFor?.sectionId === section.id && mergeModeFor?.planId === plan.id ? (
                         <>
-                          <span className="text-xs text-slate-500">{mergeSelection.length} selezionati</span>
+                          <span className="text-xs font-medium text-slate-600">Seleziona i gruppi da unire ({mergeSelection.length} selezionati)</span>
                           <button
-                            className="text-xs text-white bg-dm-maroon rounded-full px-2.5 py-1 disabled:opacity-40"
+                            className="text-xs font-medium text-white bg-dm-maroon rounded-full px-3 py-1.5 disabled:opacity-40 ml-auto"
                             disabled={mergeSelection.length < 2}
                             onClick={() => {
                               mergeGroups(section.id, plan.id, mergeSelection, '')
@@ -580,16 +580,16 @@ function ProposteInner() {
                           >
                             Unisci selezionati
                           </button>
-                          <button className="text-xs text-slate-400" onClick={() => { setMergeModeFor(null); setMergeSelection([]) }}>
+                          <button className="text-xs text-slate-500 hover:text-dm-ink" onClick={() => { setMergeModeFor(null); setMergeSelection([]) }}>
                             Annulla
                           </button>
                         </>
                       ) : (
                         <button
-                          className="text-xs text-slate-400 hover:text-dm-maroon transition-colors"
+                          className="text-xs font-medium text-dm-maroon border border-dm-maroon/40 rounded-full px-3 py-1.5 hover:bg-dm-maroon/5 transition-colors flex items-center gap-1.5"
                           onClick={() => { setMergeModeFor({ sectionId: section.id, planId: plan.id }); setMergeSelection([]) }}
                         >
-                          Unisci gruppi in uno (media unica)
+                          <GripVertical size={12} /> Unisci gruppi in uno (media unica)
                         </button>
                       )}
                     </div>
