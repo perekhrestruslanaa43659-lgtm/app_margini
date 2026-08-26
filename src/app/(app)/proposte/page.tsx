@@ -2,10 +2,10 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Plus, Trash2, Search, FileText, GripVertical, X, ArrowRight } from 'lucide-react'
+import { Plus, Trash2, Search, FileText, GripVertical, X, ArrowRight, BookmarkPlus, FolderOpen, Save } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { isSupabaseConfigured } from '@/lib/supabase/config'
-import type { CatalogItem } from '@/lib/supabase/types'
+import type { CatalogItem, ProposalTemplate } from '@/lib/supabase/types'
 import { formatCurrency } from '@/lib/margin'
 import { SetupBanner } from '@/components/ui/SetupBanner'
 import { buildProposalHtml, planPrice, groupPrice, dishesBySubcategory, itemEffectivePrice, itemSharedAmong, type MealSection, type PricePlan, type PlanGroup } from '@/lib/proposalHtml'
@@ -73,16 +73,65 @@ function ProposteInner() {
   const [pickerSearch, setPickerSearch] = useState('')
   const [pickerCategory, setPickerCategory] = useState('')
 
+  const [mergeModeFor, setMergeModeFor] = useState<{ sectionId: string; planId: string } | null>(null)
+  const [mergeSelection, setMergeSelection] = useState<string[]>([])
+
+  const [templates, setTemplates] = useState<ProposalTemplate[]>([])
+  const [activeTemplateId, setActiveTemplateId] = useState<string | null>(null)
+  const [showTemplateMenu, setShowTemplateMenu] = useState(false)
+  const [showSaveDialog, setShowSaveDialog] = useState(false)
+  const [newTemplateName, setNewTemplateName] = useState('')
+  const [templateSaving, setTemplateSaving] = useState(false)
+
   useEffect(() => {
     async function load() {
       setLoading(true)
-      const { data } = await sb.from('catalog_items').select('*').order('category').order('name')
-      setCatalog((data ?? []) as CatalogItem[])
+      const [{ data: catalogData }, { data: templateData }] = await Promise.all([
+        sb.from('catalog_items').select('*').order('category').order('name'),
+        sb.from('proposal_templates').select('*').order('name'),
+      ])
+      setCatalog((catalogData ?? []) as CatalogItem[])
+      setTemplates((templateData ?? []) as ProposalTemplate[])
       setLoading(false)
     }
     load()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  async function saveAsNewTemplate() {
+    if (!newTemplateName.trim()) return
+    setTemplateSaving(true)
+    const { data, error } = await sb.from('proposal_templates').insert({ name: newTemplateName.trim(), sections }).select().single()
+    setTemplateSaving(false)
+    if (!error && data) {
+      setTemplates((prev) => [...prev, data as ProposalTemplate].sort((a, b) => a.name.localeCompare(b.name)))
+      setActiveTemplateId(data.id)
+      setShowSaveDialog(false)
+      setNewTemplateName('')
+    }
+  }
+
+  async function updateActiveTemplate() {
+    if (!activeTemplateId) return
+    setTemplateSaving(true)
+    const { error } = await sb.from('proposal_templates').update({ sections, updated_at: new Date().toISOString() }).eq('id', activeTemplateId)
+    setTemplateSaving(false)
+    if (!error) {
+      setTemplates((prev) => prev.map((t) => (t.id === activeTemplateId ? { ...t, sections } : t)))
+    }
+  }
+
+  function loadTemplate(template: ProposalTemplate) {
+    setSections(template.sections as MealSection[])
+    setActiveTemplateId(template.id)
+    setShowTemplateMenu(false)
+  }
+
+  async function deleteTemplate(id: string) {
+    await sb.from('proposal_templates').delete().eq('id', id)
+    setTemplates((prev) => prev.filter((t) => t.id !== id))
+    if (activeTemplateId === id) setActiveTemplateId(null)
+  }
 
   const categories = useMemo(
     () => Array.from(new Set(catalog.map((c) => c.category ?? '').filter(Boolean))).sort(),
@@ -152,6 +201,34 @@ function ProposteInner() {
     setSections((prev) => prev.map((s) => {
       if (s.id !== sectionId) return s
       return { ...s, plans: s.plans.map((p) => (p.id === planId ? { ...p, groups: p.groups.filter((g) => g.id !== groupId) } : p)) }
+    }))
+  }
+
+  /** Fonde piu' gruppi in uno solo: i piatti restano distinguibili tramite subgroup (nome del gruppo di origine), la media si calcola su tutti insieme. */
+  function mergeGroups(sectionId: string, planId: string, groupIds: string[], newLabel: string) {
+    if (groupIds.length < 2) return
+    setSections((prev) => prev.map((s) => {
+      if (s.id !== sectionId) return s
+      return {
+        ...s,
+        plans: s.plans.map((p) => {
+          if (p.id !== planId) return p
+          const toMerge = p.groups.filter((g) => groupIds.includes(g.id))
+          const rest = p.groups.filter((g) => !groupIds.includes(g.id))
+          const mergedItems = toMerge.flatMap((g) =>
+            g.items.map((it) => ({ ...it, subgroup: it.subgroup || g.label }))
+          )
+          const merged: PlanGroup = {
+            id: nextId(),
+            label: newLabel || toMerge.map((g) => g.label).join(' / '),
+            tag: '',
+            pricingMode: 'media',
+            defaultSharedAmong: toMerge.find((g) => g.defaultSharedAmong)?.defaultSharedAmong,
+            items: mergedItems,
+          }
+          return { ...p, groups: [...rest, merged] }
+        }),
+      }
     }))
   }
 
@@ -278,10 +355,45 @@ function ProposteInner() {
             <p className="text-sm text-slate-500">Componi la proposta scegliendo i piatti dal catalogo</p>
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <button className="btn-secondary flex items-center gap-2" onClick={addSection}>
             <Plus size={15} /> Aggiungi momento
           </button>
+
+          <div className="relative">
+            <button className="btn-secondary flex items-center gap-2" onClick={() => setShowTemplateMenu((v) => !v)}>
+              <FolderOpen size={15} /> Template
+            </button>
+            {showTemplateMenu && (
+              <div className="absolute right-0 top-full mt-1 w-72 bg-white rounded-xl shadow-lg border border-slate-100 z-30 py-1">
+                {templates.length === 0 ? (
+                  <p className="px-3 py-2 text-xs text-slate-400">Nessun template salvato</p>
+                ) : (
+                  templates.map((t) => (
+                    <div key={t.id} className="flex items-center justify-between px-3 py-2 hover:bg-dm-cream text-sm">
+                      <button className="flex-1 text-left truncate text-dm-ink/90" onClick={() => loadTemplate(t)}>
+                        {t.name}
+                      </button>
+                      <button className="text-slate-300 hover:text-red-500 shrink-0 ml-2" onClick={() => deleteTemplate(t.id)}>
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
+          </div>
+
+          {activeTemplateId ? (
+            <button className="btn-secondary flex items-center gap-2" onClick={updateActiveTemplate} disabled={templateSaving}>
+              <Save size={15} /> Aggiorna template
+            </button>
+          ) : null}
+
+          <button className="btn-secondary flex items-center gap-2" onClick={() => { setShowSaveDialog(true); setNewTemplateName('') }}>
+            <BookmarkPlus size={15} /> Salva come template
+          </button>
+
           <button className="btn-secondary flex items-center gap-2" onClick={openProposal}>
             <FileText size={15} /> Anteprima proposta
           </button>
@@ -290,6 +402,28 @@ function ProposteInner() {
           </button>
         </div>
       </div>
+
+      {showSaveDialog && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={() => setShowSaveDialog(false)}>
+          <div className="bg-white rounded-2xl shadow-xl max-w-sm w-full p-5" onClick={(e) => e.stopPropagation()}>
+            <h3 className="font-semibold text-dm-ink mb-3">Salva come nuovo template</h3>
+            <input
+              autoFocus
+              className="input mb-3"
+              placeholder="Nome template (es. Aperitivo standard)"
+              value={newTemplateName}
+              onChange={(e) => setNewTemplateName(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') saveAsNewTemplate() }}
+            />
+            <div className="flex gap-2 justify-end">
+              <button className="btn-secondary" onClick={() => setShowSaveDialog(false)}>Annulla</button>
+              <button className="btn-primary" onClick={saveAsNewTemplate} disabled={templateSaving || !newTemplateName.trim()}>
+                {templateSaving ? 'Salvataggio...' : 'Salva'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="space-y-6">
         {sections.map((section) => (
@@ -430,10 +564,51 @@ function ProposteInner() {
                     ))}
                   </div>
 
+                  {plan.groups.length > 1 && (
+                    <div className="flex items-center gap-2 mb-2">
+                      {mergeModeFor?.sectionId === section.id && mergeModeFor?.planId === plan.id ? (
+                        <>
+                          <span className="text-xs text-slate-500">{mergeSelection.length} selezionati</span>
+                          <button
+                            className="text-xs text-white bg-dm-maroon rounded-full px-2.5 py-1 disabled:opacity-40"
+                            disabled={mergeSelection.length < 2}
+                            onClick={() => {
+                              mergeGroups(section.id, plan.id, mergeSelection, '')
+                              setMergeModeFor(null)
+                              setMergeSelection([])
+                            }}
+                          >
+                            Unisci selezionati
+                          </button>
+                          <button className="text-xs text-slate-400" onClick={() => { setMergeModeFor(null); setMergeSelection([]) }}>
+                            Annulla
+                          </button>
+                        </>
+                      ) : (
+                        <button
+                          className="text-xs text-slate-400 hover:text-dm-maroon transition-colors"
+                          onClick={() => { setMergeModeFor({ sectionId: section.id, planId: plan.id }); setMergeSelection([]) }}
+                        >
+                          Unisci gruppi in uno (media unica)
+                        </button>
+                      )}
+                    </div>
+                  )}
+
                   <div className="space-y-3">
-                    {plan.groups.map((group) => (
-                      <div key={group.id} className="bg-white rounded-lg border border-slate-100 p-2.5">
+                    {plan.groups.map((group) => {
+                      const merging = mergeModeFor?.sectionId === section.id && mergeModeFor?.planId === plan.id
+                      const selected = mergeSelection.includes(group.id)
+                      return (
+                      <div key={group.id} className={`bg-white rounded-lg border p-2.5 ${merging && selected ? 'border-dm-maroon ring-1 ring-dm-maroon' : 'border-slate-100'}`}>
                         <div className="flex items-center gap-1.5 mb-1.5">
+                          {merging && (
+                            <input
+                              type="checkbox"
+                              checked={selected}
+                              onChange={(e) => setMergeSelection((prev) => e.target.checked ? [...prev, group.id] : prev.filter((id) => id !== group.id))}
+                            />
+                          )}
                           <GripVertical size={12} className="text-slate-300 shrink-0" />
                           <input
                             className="input py-1 text-xs flex-1"
@@ -474,12 +649,12 @@ function ProposteInner() {
                           </div>
                         )}
 
-                        <div className="flex items-center gap-1 text-[10px] text-slate-400 mb-2">
+                        <div className="flex items-center gap-1.5 text-xs text-slate-500 mb-2">
                           <span>Da condividere ogni</span>
                           <input
                             type="number"
                             min={1}
-                            className="w-8 text-center bg-transparent border-b border-slate-300 focus:outline-none focus:border-dm-maroon py-0"
+                            className="w-11 text-center text-sm bg-white border border-slate-200 rounded-md focus:outline-none focus:border-dm-maroon py-0.5"
                             placeholder="1"
                             value={group.defaultSharedAmong ?? ''}
                             onChange={(e) => {
@@ -487,7 +662,7 @@ function ProposteInner() {
                               updateGroup(section.id, plan.id, group.id, { defaultSharedAmong: v && v > 1 ? v : undefined })
                             }}
                           />
-                          <span>persone (default per tutto il gruppo, sovrascrivibile per piatto)</span>
+                          <span>persone <span className="text-slate-400">(default per il gruppo, modificabile per piatto)</span></span>
                         </div>
 
                         {group.items.length > 0 && (() => {
@@ -513,13 +688,13 @@ function ProposteInner() {
                                     </button>
                                   </span>
                                 </div>
-                                <div className="flex items-center gap-2 text-[10px] text-slate-400">
-                                  <span className="flex items-center gap-0.5">
+                                <div className="flex items-center gap-3 text-xs text-slate-500">
+                                  <span className="flex items-center gap-1 shrink-0">
                                     <span>ogni</span>
                                     <input
                                       type="number"
                                       min={1}
-                                      className="w-8 text-center bg-transparent border-b border-slate-300 focus:outline-none focus:border-dm-maroon py-0"
+                                      className="w-10 text-center text-sm bg-white border border-slate-200 rounded-md focus:outline-none focus:border-dm-maroon py-0.5"
                                       placeholder={group.defaultSharedAmong ? String(group.defaultSharedAmong) : '1'}
                                       value={it.sharedAmong ?? ''}
                                       onChange={(e) => {
@@ -529,10 +704,10 @@ function ProposteInner() {
                                     />
                                     <span>pax</span>
                                   </span>
-                                  <span className="flex items-center gap-0.5 flex-1">
-                                    <span>sotto-gruppo</span>
+                                  <span className="flex items-center gap-1 flex-1 min-w-0">
+                                    <span className="shrink-0">sotto-gruppo</span>
                                     <input
-                                      className="flex-1 min-w-0 bg-transparent border-b border-slate-300 focus:outline-none focus:border-dm-maroon py-0"
+                                      className="flex-1 min-w-0 text-sm bg-white border border-slate-200 rounded-md focus:outline-none focus:border-dm-maroon py-0.5 px-1.5"
                                       placeholder={it.category || 'nessuno'}
                                       value={it.subgroup ?? ''}
                                       onChange={(e) => updateDishSubgroup(section.id, plan.id, group.id, it.catalogId, e.target.value || undefined)}
@@ -566,7 +741,8 @@ function ProposteInner() {
                           <Plus size={12} /> Aggiungi piatto dal menu
                         </button>
                       </div>
-                    ))}
+                      )
+                    })}
                     <button
                       className="text-xs text-slate-400 hover:text-dm-maroon transition-colors"
                       onClick={() => addGroup(section.id, plan.id)}

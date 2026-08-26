@@ -5,6 +5,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { getCompanyInfo } from '@/lib/company'
 import { ProposalQuotePdfDocument, DEFAULT_CONTRACT_CLAUSES, type QuoteClient, type ContractClause } from '@/lib/pdf/ProposalQuotePdfDocument'
 import { planPrice, type MealSection } from '@/lib/proposalHtml'
+import type { QuoteLang } from '@/lib/pdf/i18n'
 
 interface QuoteRequestBody {
   client: {
@@ -24,6 +25,7 @@ interface QuoteRequestBody {
   clauses?: ContractClause[]
   depositPct?: string
   depositDays?: string
+  lang?: QuoteLang
 }
 
 function applyClausePlaceholders(clauses: ContractClause[], depositPct: string, depositDays: string): ContractClause[] {
@@ -146,7 +148,8 @@ export async function POST(req: NextRequest) {
 
   const companyInfo = await getCompanyInfo()
   const quoteRef = event.id.slice(0, 8).toUpperCase()
-  const offerDate = new Date().toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' })
+  const lang: QuoteLang = body.lang === 'en' ? 'en' : 'it'
+  const offerDate = new Date().toLocaleDateString(lang === 'en' ? 'en-GB' : 'it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' })
   const clauses = applyClausePlaceholders(
     body.clauses && body.clauses.length > 0 ? body.clauses : DEFAULT_CONTRACT_CLAUSES,
     body.depositPct ?? '',
@@ -155,7 +158,7 @@ export async function POST(req: NextRequest) {
   const logoSrc = `${req.nextUrl.origin}/brand/doppio-malto-logo.jpg`
 
   const buffer = await renderToBuffer(
-    ProposalQuotePdfDocument({ client, sections: body.sections, companyInfo, quoteRef, offerDate, clauses, logoSrc })
+    ProposalQuotePdfDocument({ client, sections: body.sections, companyInfo, quoteRef, offerDate, clauses, logoSrc, lang })
   )
 
   const fileBase = `preventivo-${client.name.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}`

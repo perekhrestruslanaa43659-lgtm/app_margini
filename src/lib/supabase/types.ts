@@ -44,6 +44,15 @@ export interface EventMenuItem {
   sort_order: number
 }
 
+export interface ProposalTemplate {
+  id: string
+  name: string
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- struttura MealSection[] definita in src/lib/proposalHtml.ts, non importata qui per evitare un ciclo di dipendenze
+  sections: any
+  created_at: string
+  updated_at: string
+}
+
 export interface Event {
   id: string
   name: string
@@ -244,6 +253,12 @@ export type Database = {
         Row: EventMenuItem
         Insert: Omit<EventMenuItem, 'id'>
         Update: Partial<Omit<EventMenuItem, 'id'>>
+        Relationships: []
+      }
+      proposal_templates: {
+        Row: ProposalTemplate
+        Insert: Omit<ProposalTemplate, 'id' | 'created_at' | 'updated_at'>
+        Update: Partial<Omit<ProposalTemplate, 'id' | 'created_at'>>
         Relationships: []
       }
     }

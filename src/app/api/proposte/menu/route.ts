@@ -3,10 +3,12 @@ import { renderToBuffer } from '@react-pdf/renderer'
 import { createServerClient } from '@supabase/ssr'
 import { ProposalMenuPdfDocument } from '@/lib/pdf/ProposalMenuPdfDocument'
 import type { MealSection } from '@/lib/proposalHtml'
+import type { QuoteLang } from '@/lib/pdf/i18n'
 
 interface MenuRequestBody {
   clientName: string
   sections: MealSection[]
+  lang?: QuoteLang
 }
 
 export async function POST(req: NextRequest) {
@@ -33,9 +35,10 @@ export async function POST(req: NextRequest) {
   }
 
   const clientName = body.clientName?.trim() || 'Cliente'
+  const lang: QuoteLang = body.lang === 'en' ? 'en' : 'it'
 
   const buffer = await renderToBuffer(
-    ProposalMenuPdfDocument({ clientName, sections: body.sections })
+    ProposalMenuPdfDocument({ clientName, sections: body.sections, lang })
   )
 
   const fileBase = `menu-${clientName.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}`

@@ -1,5 +1,6 @@
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer'
 import { planPrice, dishesBySubcategory, itemSharedAmong, type MealSection } from '@/lib/proposalHtml'
+import { menuStrings, type QuoteLang } from './i18n'
 
 // Stile "sticker & marker" (SKILLS-STILE.md) adattato a PDF: card a bordo netto,
 // badge prezzo, accento colorato per sezione. E' il documento "menu allegato"
@@ -53,16 +54,18 @@ const styles = StyleSheet.create({
 interface Props {
   clientName: string
   sections: MealSection[]
+  lang?: QuoteLang
 }
 
-export function ProposalMenuPdfDocument({ clientName, sections }: Props) {
+export function ProposalMenuPdfDocument({ clientName, sections, lang = 'it' }: Props) {
+  const t = menuStrings[lang]
   return (
-    <Document title={`Menu proposta – ${clientName}`}>
+    <Document title={t.title(clientName)}>
       <Page size="A4" style={styles.page}>
         <View style={styles.hero}>
-          <Text style={styles.brandBadge}>DOPPIO MALTO</Text>
-          <Text style={styles.heroTitle}>Menu Evento — {clientName}</Text>
-          <Text style={styles.heroSub}>Allegato al preventivo — dettaglio completo delle formule e dei piatti proposti.</Text>
+          <Text style={styles.brandBadge}>{t.brandBadge}</Text>
+          <Text style={styles.heroTitle}>{t.title(clientName)}</Text>
+          <Text style={styles.heroSub}>{t.subtitle}</Text>
         </View>
 
         <View style={styles.body}>
@@ -96,14 +99,14 @@ export function ProposalMenuPdfDocument({ clientName, sections }: Props) {
 
                         return (
                           <View key={g.id}>
-                            <Text style={styles.groupLabel}>{g.label}{isChoice ? ' (a scelta)' : ''}</Text>
+                            <Text style={styles.groupLabel}>{g.label}{isChoice ? ` ${t.choice}` : ''}</Text>
                             {!showSubcats ? (
                               g.items.map((it) => {
                                 const shared = itemSharedAmong(it, g)
                                 return (
                                   <Text style={styles.dishRow} key={it.catalogId}>
                                     <Text style={styles.dishName}>{it.name}</Text>
-                                    {shared && shared > 1 ? ` (ogni ${shared} persone)` : ''}
+                                    {shared && shared > 1 ? ` ${t.sharedEvery(shared)}` : ''}
                                     {it.desc ? ` — ${it.desc}` : ''}
                                   </Text>
                                 )
@@ -117,7 +120,7 @@ export function ProposalMenuPdfDocument({ clientName, sections }: Props) {
                                     return (
                                       <Text style={styles.dishRow} key={d.catalogId}>
                                         <Text style={styles.dishName}>{d.name}</Text>
-                                        {shared && shared > 1 ? ` (ogni ${shared} persone)` : ''}
+                                        {shared && shared > 1 ? ` ${t.sharedEvery(shared)}` : ''}
                                         {d.desc ? ` — ${d.desc}` : ''}
                                       </Text>
                                     )
@@ -134,11 +137,11 @@ export function ProposalMenuPdfDocument({ clientName, sections }: Props) {
 
                 {section.extras.length > 0 && (
                   <View style={styles.extrasCard}>
-                    <Text style={styles.extrasTitle}>Servizi aggiuntivi</Text>
+                    <Text style={styles.extrasTitle}>{t.additionalServices}</Text>
                     {section.extras.map((ex) => (
                       <View style={styles.extraRow} key={ex.catalogId}>
                         <Text>{ex.name}</Text>
-                        <Text>{ex.price > 0 ? `${ex.price.toFixed(2).replace(/\.00$/, '')} €${ex.unit === 'a_persona' ? '/persona' : ''}` : 'su richiesta'}</Text>
+                        <Text>{ex.price > 0 ? `${ex.price.toFixed(2).replace(/\.00$/, '')} €${ex.unit === 'a_persona' ? `/${t.perPerson}` : ''}` : t.onRequest}</Text>
                       </View>
                     ))}
                   </View>
@@ -147,9 +150,7 @@ export function ProposalMenuPdfDocument({ clientName, sections }: Props) {
             )
           })}
 
-          <Text style={styles.footNote}>
-            I piatti “da condividere” sono indicati con il numero di persone per porzione. Prezzi IVA inclusa.
-          </Text>
+          <Text style={styles.footNote}>{t.footnote}</Text>
         </View>
       </Page>
     </Document>

@@ -63,6 +63,7 @@ export default function PreventivoPage() {
 
   const [clauses, setClauses] = useState(DEFAULT_CLAUSES)
   const [showClauses, setShowClauses] = useState(false)
+  const [lang, setLang] = useState<'it' | 'en'>('it')
 
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -106,7 +107,7 @@ export default function PreventivoPage() {
       const quoteRes = await fetch('/api/proposte/quote', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ client, sections, clauses, depositPct, depositDays }),
+        body: JSON.stringify({ client, sections, clauses, depositPct, depositDays, lang }),
       })
 
       if (!quoteRes.ok) {
@@ -120,7 +121,7 @@ export default function PreventivoPage() {
       const menuRes = await fetch('/api/proposte/menu', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ clientName: name.trim(), sections }),
+        body: JSON.stringify({ clientName: name.trim(), sections, lang }),
       })
 
       if (menuRes.ok) {
@@ -253,6 +254,24 @@ export default function PreventivoPage() {
             ))}
           </div>
         )}
+      </div>
+
+      <div className="card mb-4">
+        <h2 className="text-sm font-semibold text-dm-ink mb-2">Lingua documenti</h2>
+        <div className="flex rounded-lg border border-slate-200 overflow-hidden text-sm w-fit">
+          <button
+            className={`px-4 py-1.5 ${lang === 'it' ? 'bg-dm-yellow text-dm-ink font-medium' : 'bg-white text-slate-500'}`}
+            onClick={() => setLang('it')}
+          >
+            Italiano
+          </button>
+          <button
+            className={`px-4 py-1.5 ${lang === 'en' ? 'bg-dm-yellow text-dm-ink font-medium' : 'bg-white text-slate-500'}`}
+            onClick={() => setLang('en')}
+          >
+            English
+          </button>
+        </div>
       </div>
 
       {error && <p className="text-sm text-red-600 mb-3">{error}</p>}

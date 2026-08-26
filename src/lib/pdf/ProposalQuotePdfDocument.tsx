@@ -2,6 +2,7 @@ import { Document, Page, Text, View, StyleSheet, Image } from '@react-pdf/render
 import { formatCurrency } from '@/lib/margin'
 import { planPrice, type MealSection } from '@/lib/proposalHtml'
 import type { CompanyInfo } from '@/lib/company'
+import { quoteStrings, formatQuoteDate, type QuoteLang } from './i18n'
 
 // Palette dello skill "Preventivo Evento" (SKILLS-PREVENTIVO.md): stessi token
 // cromatici di SKILLS-STILE.md, ma registro sobrio/istituzionale — niente ombre
@@ -76,11 +77,6 @@ const styles = StyleSheet.create({
   pageNum: { fontSize: 8, color: MUTED, textAlign: 'center', marginTop: 24 },
 })
 
-function formatDate(d: string | null) {
-  if (!d) return ''
-  return new Date(d).toLocaleDateString('it-IT', { day: '2-digit', month: 'long', year: 'numeric' })
-}
-
 function Field({ label, value }: { label: string; value: string }) {
   return (
     <View>
@@ -150,25 +146,27 @@ interface Props {
   offerDate: string
   clauses: ContractClause[]
   logoSrc?: string
+  lang?: QuoteLang
 }
 
-export function ProposalQuotePdfDocument({ client, sections, companyInfo, quoteRef, offerDate, clauses, logoSrc }: Props) {
+export function ProposalQuotePdfDocument({ client, sections, companyInfo, quoteRef, offerDate, clauses, logoSrc, lang = 'it' }: Props) {
+  const t = quoteStrings[lang]
   const allPlans = sections.flatMap((s) => s.plans.filter((p) => p.groups.some((g) => g.items.length > 0)).map((p) => ({ section: s, plan: p })))
   const allExtras = sections.flatMap((s) => s.extras.map((ex) => ({ section: s, extra: ex })))
   const hasMenu = allPlans.length > 0
 
   return (
-    <Document title={`Preventivo ${client.name}`}>
+    <Document title={`${t.docTitle} ${client.name}`}>
       <Page size="A4" style={styles.page}>
         <View style={styles.headerRow}>
           {/* eslint-disable-next-line jsx-a11y/alt-text -- @react-pdf/renderer's Image is a PDF-only primitive, not an HTML <img> */}
           {logoSrc ? <Image src={logoSrc} style={styles.logo} /> : <Text style={{ fontSize: 18, fontFamily: 'Helvetica-Bold' }}>{companyInfo.name}</Text>}
           <View>
-            <Text style={styles.docTitle}>PREVENTIVO EVENTO</Text>
-            <Text style={styles.courtesyText}>COPIA DI CORTESIA / OFFERTA COMMERCIALE</Text>
+            <Text style={styles.docTitle}>{t.docTitle}</Text>
+            <Text style={styles.courtesyText}>{t.courtesy}</Text>
             <View style={styles.metaRow}>
-              <Text style={styles.metaText}><Text style={styles.metaLabel}>Data Offerta: </Text>{offerDate}</Text>
-              <Text style={styles.metaText}><Text style={styles.metaLabel}>N. Preventivo: </Text>{quoteRef}</Text>
+              <Text style={styles.metaText}><Text style={styles.metaLabel}>{t.offerDate}: </Text>{offerDate}</Text>
+              <Text style={styles.metaText}><Text style={styles.metaLabel}>{t.quoteRef}: </Text>{quoteRef}</Text>
             </View>
           </View>
         </View>
@@ -180,53 +178,53 @@ export function ProposalQuotePdfDocument({ client, sections, companyInfo, quoteR
           <View style={styles.card}>
             <View style={styles.twoColRow}>
               <View style={styles.col}>
-                <CardTitle text="Dati Cliente" color="coral" />
-                <Field label="Intestatario:" value={client.name} />
-                <Field label="Indirizzo:" value={client.address} />
-                <Field label="P. IVA:" value={client.vatNumber} />
-                <Field label="Codice SDI:" value={client.sdiCode} />
+                <CardTitle text={t.clientData} color="coral" />
+                <Field label={t.intestatario} value={client.name} />
+                <Field label={t.address} value={client.address} />
+                <Field label={t.vatNumber} value={client.vatNumber} />
+                <Field label={t.sdiCode} value={client.sdiCode} />
               </View>
               <View style={styles.col}>
-                <CardTitle text="Dettagli Evento" color="green" />
-                <Field label="Data Evento:" value={formatDate(client.eventDate)} />
-                <Field label="Orario:" value={client.eventTime} />
-                <Field label="Minimo Garantito:" value={client.guestsCount ? `${client.guestsCount} pax` : ''} />
-                <Field label="Stato Prenotazione:" value={client.bookingStatus} />
+                <CardTitle text={t.eventDetails} color="green" />
+                <Field label={t.eventDate} value={formatQuoteDate(client.eventDate, lang)} />
+                <Field label={t.eventTime} value={client.eventTime} />
+                <Field label={t.minGuaranteed} value={client.guestsCount ? `${client.guestsCount} ${t.pax}` : ''} />
+                <Field label={t.bookingStatus} value={client.bookingStatus} />
               </View>
             </View>
           </View>
 
           {/* Riepilogo servizi e costi */}
           <View style={styles.card} wrap={false}>
-            <CardTitle text="Riepilogo Servizi e Costi" color="coral" />
+            <CardTitle text={t.servicesRecap} color="coral" />
 
             <View style={styles.tableHeaderRow}>
-              <Text style={styles.thDesc}>Descrizione Servizio</Text>
-              <Text style={styles.thMin}>Min. Garantito</Text>
-              <Text style={styles.thPrice}>Prezzo Unit.</Text>
-              <Text style={styles.thTotal}>Importo Totale</Text>
+              <Text style={styles.thDesc}>{t.thDesc}</Text>
+              <Text style={styles.thMin}>{t.thMin}</Text>
+              <Text style={styles.thPrice}>{t.thPrice}</Text>
+              <Text style={styles.thTotal}>{t.thTotal}</Text>
             </View>
 
             {hasMenu ? (
               <View style={styles.tableRow}>
                 <View style={styles.tdDescWrap}>
-                  <Text style={styles.tdName}>Menu Evento</Text>
+                  <Text style={styles.tdName}>{t.menuEvent}</Text>
                   <Text style={styles.tdDesc}>
-                    Il dettaglio del menu è allegato in un file separato
-                    {allPlans[0]?.section.duration ? ` — permanenza ${allPlans[0].section.duration}` : ''}
+                    {t.menuAttached}
+                    {allPlans[0]?.section.duration ? ` — ${allPlans[0].section.duration}` : ''}
                   </Text>
                 </View>
-                <Text style={styles.tdMin}>{client.guestsCount ? `${client.guestsCount} pax` : 'pax'}</Text>
+                <Text style={styles.tdMin}>{client.guestsCount ? `${client.guestsCount} ${t.pax}` : t.pax}</Text>
                 <Text style={styles.tdPrice}>{formatCurrency(allPlans.reduce((sum, { plan }) => sum + planPrice(plan), 0) / Math.max(allPlans.length, 1))}</Text>
                 <Text style={styles.tdTotal}> </Text>
               </View>
             ) : (
               <View style={styles.tableRow}>
                 <View style={styles.tdDescWrap}>
-                  <Text style={styles.tdName}>Menu Evento</Text>
-                  <Text style={styles.tdDesc}>Il dettaglio del menu è allegato in un file separato</Text>
+                  <Text style={styles.tdName}>{t.menuEvent}</Text>
+                  <Text style={styles.tdDesc}>{t.menuAttached}</Text>
                 </View>
-                <Text style={styles.tdMin}>{client.guestsCount ? `${client.guestsCount} pax` : 'pax'}</Text>
+                <Text style={styles.tdMin}>{client.guestsCount ? `${client.guestsCount} ${t.pax}` : t.pax}</Text>
                 <Text style={styles.tdPrice}>€</Text>
                 <Text style={styles.tdTotal}> </Text>
               </View>
@@ -236,25 +234,25 @@ export function ProposalQuotePdfDocument({ client, sections, companyInfo, quoteR
               <View style={styles.tableRow} key={extra.catalogId}>
                 <View style={styles.tdDescWrap}>
                   <Text style={styles.tdName}>{extra.name}</Text>
-                  <Text style={styles.tdDesc}>Servizio aggiuntivo — opzionale</Text>
+                  <Text style={styles.tdDesc}>{t.additionalService}</Text>
                 </View>
                 <Text style={styles.tdMin}>—</Text>
-                <Text style={styles.tdPrice}>{extra.price > 0 ? `${formatCurrency(extra.price)}${extra.unit === 'a_persona' ? '/pax' : ''}` : 'su richiesta'}</Text>
+                <Text style={styles.tdPrice}>{extra.price > 0 ? `${formatCurrency(extra.price)}${extra.unit === 'a_persona' ? `/${t.pax}` : ''}` : t.onRequest}</Text>
                 <Text style={styles.tdTotal}> </Text>
               </View>
             ))}
 
             <View style={styles.totalRow}>
-              <Text style={styles.totalLabel}>Totale Stimato (IVA inclusa):</Text>
+              <Text style={styles.totalLabel}>{t.total}</Text>
               <Text style={styles.totalValue}> </Text>
             </View>
 
-            <Text style={styles.menuAttachedNote}>Il dettaglio completo del menu incluso è allegato in un file separato.</Text>
+            <Text style={styles.menuAttachedNote}>{t.menuAttachedFootnote}</Text>
           </View>
 
           {/* Clausole contrattuali */}
           <View style={styles.card}>
-            <CardTitle text="Clausole Contrattuali e Condizioni di Servizio" color="coral" />
+            <CardTitle text={t.contractClauses} color="coral" />
             {clauses.map((c, i) => (
               <View style={styles.clauseRow} key={i}>
                 <Text style={styles.clauseNum}>{i + 1}.</Text>
@@ -265,13 +263,11 @@ export function ProposalQuotePdfDocument({ client, sections, companyInfo, quoteR
 
           {/* Coordinate bancarie */}
           <View style={styles.bankCard}>
-            <CardTitle text="Coordinate Bancarie per il Pagamento" color="coral" />
-            <Field label="Intestatario:" value={companyInfo.legalName || companyInfo.name} />
+            <CardTitle text={t.bankDetails} color="coral" />
+            <Field label={t.intestatario} value={companyInfo.legalName || companyInfo.name} />
             <Field label="IBAN:" value={companyInfo.iban} />
-            <Field label="Causale:" value={`Preventivo ${quoteRef} — ${client.name}`} />
-            <Text style={styles.disclaimer}>
-              Documento proforma (copia di cortesia), non valido ai fini fiscali. La fattura fiscale verrà emessa a seguito della ricezione dei pagamenti.
-            </Text>
+            <Field label={t.causale} value={`${quoteRef} — ${client.name}`} />
+            <Text style={styles.disclaimer}>{t.disclaimer}</Text>
           </View>
 
         </View>
@@ -280,26 +276,24 @@ export function ProposalQuotePdfDocument({ client, sections, companyInfo, quoteR
       <Page size="A4" style={styles.page}>
         <View style={[styles.body, { paddingTop: 32 }]}>
           <View style={styles.card}>
-            <CardTitle text="Conferma e Presa Visione del Preventivo" color="coral" />
-            <Text style={styles.signatureText}>
-              Con la presente firma, il cliente dichiara di aver preso visione del preventivo e di confermarne i contenuti e le condizioni di servizio.
-            </Text>
+            <CardTitle text={t.confirmTitle} color="coral" />
+            <Text style={styles.signatureText}>{t.confirmText}</Text>
             <View style={styles.signatureRow}>
               <View style={styles.signatureCol}>
                 <View style={styles.signatureLine} />
-                <Text style={styles.signatureCaption}>Nome e Cognome / Ragione Sociale</Text>
+                <Text style={styles.signatureCaption}>{t.signName}</Text>
               </View>
               <View style={styles.signatureCol}>
                 <View style={styles.signatureLine} />
-                <Text style={styles.signatureCaption}>Firma</Text>
+                <Text style={styles.signatureCaption}>{t.signature}</Text>
               </View>
             </View>
             <View style={{ width: 200 }}>
               <View style={styles.signatureLine} />
-              <Text style={styles.signatureCaption}>Data</Text>
+              <Text style={styles.signatureCaption}>{t.date}</Text>
             </View>
           </View>
-          <Text style={styles.pageNum}>Pagina 2 di 2</Text>
+          <Text style={styles.pageNum}>{t.pageOf(2, 2)}</Text>
         </View>
       </Page>
     </Document>
