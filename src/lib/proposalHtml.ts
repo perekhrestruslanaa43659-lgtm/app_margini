@@ -318,12 +318,12 @@ export function buildProposalHtml(sections: MealSection[]): string {
     border: 3px solid var(--ink);
     border-radius: 20px;
     box-shadow: 8px 8px 0 var(--ink);
-    padding: 46px 24px 28px;
+    padding: 58px 26px 30px;
     position: relative;
   }
   .price-badge {
-    width: 88px;
-    height: 88px;
+    width: 104px;
+    height: 104px;
     border-radius: 50%;
     border: 3px solid var(--ink);
     box-shadow: 5px 5px 0 var(--ink);
@@ -334,11 +334,11 @@ export function buildProposalHtml(sections: MealSection[]): string {
     justify-content: center;
     font-family: 'Archivo Black', Arial, sans-serif;
     position: absolute;
-    top: -44px;
-    left: 24px;
+    top: -52px;
+    left: 26px;
   }
-  .price-badge .num { font-size: 26px; line-height: 1; }
-  .price-badge .cur { font-size: 9px; letter-spacing: 1px; margin-top: 2px; }
+  .price-badge .num { font-size: 32px; line-height: 1; }
+  .price-badge .cur { font-size: 11px; letter-spacing: 1px; margin-top: 2px; }
   .card.classico .price-badge { background: var(--green); }
   .card.preferito .price-badge { background: var(--coral); }
   .card.generoso .price-badge { background: var(--yellow); color: var(--ink); }
@@ -347,7 +347,7 @@ export function buildProposalHtml(sections: MealSection[]): string {
     font-family: 'Caveat', cursive;
     font-weight: 700;
     font-style: italic;
-    font-size: 26px;
+    font-size: 32px;
     margin: 0 0 12px;
   }
   .card.classico .tier-name { color: var(--green); }
@@ -359,16 +359,16 @@ export function buildProposalHtml(sections: MealSection[]): string {
     font-style: italic;
     font-weight: 700;
     color: var(--coral);
-    font-size: 17px;
+    font-size: 20px;
     margin: 0 0 14px;
   }
 
   .section-label {
-    font-size: 12px;
+    font-size: 14px;
     font-weight: bold;
     letter-spacing: 1px;
     color: #555;
-    margin: 16px 0 8px;
+    margin: 20px 0 8px;
   }
   .choice-note { font-family: Arial, sans-serif; font-weight: normal; letter-spacing: 0; color: #8a8a80; }
 
@@ -377,37 +377,23 @@ export function buildProposalHtml(sections: MealSection[]): string {
     font-family: 'Caveat', cursive;
     font-weight: 700;
     font-style: italic;
-    font-size: 15px;
+    font-size: 17px;
     background: var(--mint);
     border: 1.5px solid var(--ink);
     border-radius: 14px;
     padding: 2px 12px;
     margin: 6px 0 12px;
   }
-  .item { margin-bottom: 12px; }
-  .item h4 { margin: 0 0 2px; font-size: 14px; }
-  .item p { margin: 0; font-size: 12.5px; color: #4c4a44; line-height: 1.4; }
-  .shared-note { font-family: Arial, sans-serif; font-weight: normal; font-size: 12px; color: #8a8a80; }
+  .item { margin-bottom: 14px; }
+  .item h4 { margin: 0 0 2px; font-size: 16px; }
+  .item p { margin: 0; font-size: 14px; color: #4c4a44; line-height: 1.4; }
+  .shared-note { font-family: Arial, sans-serif; font-weight: normal; font-size: 13px; color: #8a8a80; }
 
   .extras-card {
     margin-top: 40px; background: var(--paper); border: 2px dashed var(--ink); border-radius: 18px; padding: 20px 24px;
   }
   .extras-title { font-family: 'Archivo Black', Arial, sans-serif; font-size: 14px; margin: 0 0 10px; text-transform: uppercase; letter-spacing: 1px; }
   .extras-row { display: flex; justify-content: space-between; font-size: 13px; padding: 6px 0; border-top: 1px dashed #E2DCCB; }
-
-  /* Con 1-2 fasce c'e' piu' larghezza per card: testo e badge scalati di conseguenza */
-  .cards--single .card, .cards--double .card { padding-top: 58px; }
-  .cards--single .price-badge, .cards--double .price-badge { width: 104px; height: 104px; top: -52px; }
-  .cards--single .price-badge .num, .cards--double .price-badge .num { font-size: 32px; }
-  .cards--single .price-badge .cur, .cards--double .price-badge .cur { font-size: 11px; }
-  .cards--single .tier-name, .cards--double .tier-name { font-size: 32px; }
-  .cards--single .question, .cards--double .question { font-size: 20px; }
-  .cards--single .section-label, .cards--double .section-label { font-size: 14px; margin-top: 20px; }
-  .cards--single .tag, .cards--double .tag { font-size: 17px; }
-  .cards--single .item h4, .cards--double .item h4 { font-size: 16px; }
-  .cards--single .item p, .cards--double .item p { font-size: 14px; }
-  .cards--single .item, .cards--double .item { margin-bottom: 14px; }
-  .cards--single .shared-note, .cards--double .shared-note { font-size: 13px; }
   .extras-row:first-of-type { border-top: none; }
 
   .foot-note { max-width: 900px; margin: 64px auto 0; padding: 0 24px; text-align: center; color: #6b6b63; font-size: 13px; line-height: 1.6; }
