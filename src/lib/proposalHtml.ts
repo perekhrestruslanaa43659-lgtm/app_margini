@@ -198,135 +198,115 @@ export function buildProposalHtml(sections: MealSection[]): string {
 <title>Proposte Eventi Doppio Malto</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Archivo+Black&family=Caveat:wght@500;700&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Archivo+Black&family=Caveat:wght@600;700&family=Poppins:wght@400;500;600;700;800&display=swap');
 
   :root {
-    --mint: #BFE0D2;
-    --cream: #FBF6EC;
-    --paper: #FFFDF9;
+    --yellow: #F4D000;
     --ink: #1C1B18;
     --coral: #E1543F;
-    --green: #6FA84B;
-    --yellow: #F0B429;
+    --green: #4E9A4A;
+    --blue: #58C6DE;
+    --cream: #FFFDF9;
   }
   * { box-sizing: border-box; }
   body {
     margin: 0;
-    background: var(--cream);
-    font-family: Arial, Helvetica, sans-serif;
+    background: var(--yellow);
+    font-family: 'Poppins', Arial, sans-serif;
     color: var(--ink);
   }
 
   /* HERO */
   .hero {
-    background: var(--mint);
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 40px 24px 0;
     text-align: center;
-    padding: 36px 20px 100px;
-    position: relative;
-  }
-  .hero::after {
-    content: "";
-    position: absolute;
-    bottom: -1px;
-    left: 0;
-    right: 0;
-    height: 60px;
-    background: var(--cream);
-    border-radius: 100% 100% 0 0 / 60px 60px 0 0;
   }
   .logo-pill {
     display: inline-block;
     background: var(--ink);
-    color: var(--paper);
+    color: var(--cream);
     font-family: 'Archivo Black', Arial, sans-serif;
-    font-size: 15px;
+    font-size: 13px;
     letter-spacing: 1px;
-    padding: 10px 24px;
-    border-radius: 30px;
+    padding: 8px 18px;
+    border-radius: 22px;
   }
   .eyebrow {
     font-family: 'Caveat', cursive;
     font-weight: 700;
-    font-style: italic;
-    color: var(--coral);
-    font-size: 26px;
-    margin: 18px 0 6px;
+    font-size: 24px;
+    margin: 10px 0 4px;
   }
   .headline {
     font-family: 'Archivo Black', Arial, sans-serif;
     font-size: 34px;
-    line-height: 1.15;
-    margin: 0;
+    line-height: 1.05;
+    margin: 6px 0 4px;
   }
-  .headline mark {
-    background: var(--yellow);
-    color: var(--ink);
-    padding: 2px 10px;
-    border-radius: 6px;
-    box-decoration-break: clone;
-    -webkit-box-decoration-break: clone;
-  }
+  .headline .amount { color: var(--coral); }
   .tagline {
-    max-width: 560px;
-    margin: 16px auto 0;
-    font-size: 15px;
-    line-height: 1.5;
+    max-width: 480px;
+    margin: 6px auto 24px;
+    font-size: 14px;
+    font-weight: 700;
   }
 
   /* MEAL SECTIONS */
   .wrap {
-    max-width: 1180px;
+    max-width: 900px;
     margin: 0 auto;
-    padding: 0 24px 50px;
+    padding: 0 24px 40px;
   }
-  .meal-section { margin-top: 60px; }
-  .meal-section:first-child { margin-top: 24px; }
+  .meal-section { margin-top: 40px; }
+  .meal-section:first-child { margin-top: 8px; }
 
-  .meal-head { display: flex; justify-content: center; align-items: baseline; gap: 16px; flex-wrap: wrap; margin-bottom: 6px; }
+  .meal-head { display: flex; justify-content: center; align-items: baseline; gap: 16px; flex-wrap: wrap; margin-bottom: 4px; }
   .meal-tag {
-    font-family: 'Caveat', cursive; font-weight: 700; font-style: italic; font-size: 18px;
-    padding: 4px 16px; border-radius: 999px; border: 2px solid var(--ink); background: var(--paper);
+    font-family: 'Caveat', cursive; font-weight: 700; font-size: 17px;
+    padding: 3px 14px; border-radius: 999px; border: 2px solid var(--ink); background: var(--cream);
   }
   .meal-title {
-    font-family: 'Archivo Black', Arial, sans-serif; font-size: 26px; text-align: center; margin: 6px 0 0;
+    font-family: 'Archivo Black', Arial, sans-serif; font-size: 22px; text-align: center; margin: 4px 0 0;
   }
-  .meal-meta { color: #6b6b63; font-size: 14px; text-align: center; max-width: 62ch; margin: 6px auto 0; line-height: 1.5; }
+  .meal-meta { color: #3a3934; font-size: 13px; text-align: center; max-width: 62ch; margin: 6px auto 0; line-height: 1.5; }
 
-  .info-strip { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 16px; }
-  .info-pill { font-size: 13px; font-weight: bold; background: var(--paper); border: 2px solid var(--ink); border-radius: 999px; padding: 5px 14px; white-space: nowrap; }
+  .info-strip { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 14px; }
+  .info-pill { font-size: 12px; font-weight: 700; background: var(--cream); border: 2px solid var(--ink); border-radius: 999px; padding: 5px 14px; white-space: nowrap; }
 
   /* CARDS */
   .cards {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 30px;
+    gap: 24px;
     align-items: start;
-    margin-top: 44px;
+    margin-top: 36px;
   }
   /* Una sola fascia: centrata e piu' larga, non schiacciata in una colonna stretta */
   .cards--single {
-    grid-template-columns: minmax(0, 520px);
+    grid-template-columns: minmax(0, 480px);
     justify-content: center;
   }
   /* Due fasce: centrate, colonne piu' larghe di quelle a 3 */
   .cards--double {
-    grid-template-columns: repeat(2, minmax(0, 420px));
+    grid-template-columns: repeat(2, minmax(0, 400px));
     justify-content: center;
   }
   .card {
-    background: var(--paper);
+    background: var(--cream);
     border: 3px solid var(--ink);
-    border-radius: 20px;
+    border-radius: 22px;
     box-shadow: 8px 8px 0 var(--ink);
-    padding: 58px 26px 30px;
+    padding: 50px 22px 26px;
     position: relative;
   }
   .price-badge {
-    width: 104px;
-    height: 104px;
+    width: 92px;
+    height: 92px;
     border-radius: 50%;
     border: 3px solid var(--ink);
-    box-shadow: 5px 5px 0 var(--ink);
+    box-shadow: 4px 4px 0 var(--ink);
     color: white;
     display: flex;
     flex-direction: column;
@@ -334,76 +314,82 @@ export function buildProposalHtml(sections: MealSection[]): string {
     justify-content: center;
     font-family: 'Archivo Black', Arial, sans-serif;
     position: absolute;
-    top: -52px;
-    left: 26px;
+    top: -46px;
+    left: 22px;
   }
-  .price-badge .num { font-size: 32px; line-height: 1; }
-  .price-badge .cur { font-size: 11px; letter-spacing: 1px; margin-top: 2px; }
+  .price-badge .num { font-size: 26px; line-height: 1; }
+  .price-badge .cur { font-size: 9px; letter-spacing: 1px; margin-top: 2px; }
   .card.classico .price-badge { background: var(--green); }
   .card.preferito .price-badge { background: var(--coral); }
-  .card.generoso .price-badge { background: var(--yellow); color: var(--ink); }
+  .card.generoso .price-badge { background: var(--blue); color: var(--ink); }
 
   .tier-name {
     font-family: 'Caveat', cursive;
     font-weight: 700;
-    font-style: italic;
-    font-size: 32px;
-    margin: 0 0 12px;
+    font-size: 28px;
+    margin: 0 0 10px;
   }
   .card.classico .tier-name { color: var(--green); }
   .card.preferito .tier-name { color: var(--coral); }
-  .card.generoso .tier-name { color: #C98A00; }
+  .card.generoso .tier-name { color: #2E8FA6; }
 
   .question {
     font-family: 'Caveat', cursive;
-    font-style: italic;
     font-weight: 700;
     color: var(--coral);
-    font-size: 20px;
-    margin: 0 0 14px;
+    font-size: 18px;
+    margin: 0 0 12px;
   }
 
   .section-label {
-    font-size: 14px;
-    font-weight: bold;
-    letter-spacing: 1px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.6px;
     color: #555;
-    margin: 20px 0 8px;
+    margin: 16px 0 6px;
   }
-  .choice-note { font-family: Arial, sans-serif; font-weight: normal; letter-spacing: 0; color: #8a8a80; }
+  .choice-note { font-family: 'Poppins', sans-serif; font-weight: 400; letter-spacing: 0; color: #8a8a80; }
 
   .tag {
     display: inline-block;
     font-family: 'Caveat', cursive;
     font-weight: 700;
-    font-style: italic;
-    font-size: 17px;
-    background: var(--mint);
+    font-size: 15px;
+    background: var(--blue);
     border: 1.5px solid var(--ink);
     border-radius: 14px;
     padding: 2px 12px;
-    margin: 6px 0 12px;
+    margin: 4px 0 10px;
   }
-  .item { margin-bottom: 14px; }
-  .item h4 { margin: 0 0 2px; font-size: 16px; }
-  .item p { margin: 0; font-size: 14px; color: #4c4a44; line-height: 1.4; }
-  .shared-note { font-family: Arial, sans-serif; font-weight: normal; font-size: 13px; color: #8a8a80; }
+  .item { margin-bottom: 12px; }
+  .item h4 { margin: 0 0 2px; font-size: 14px; font-weight: 700; }
+  .item p { margin: 0; font-size: 12.5px; color: #4c4a44; line-height: 1.4; }
+  .shared-note { font-family: 'Poppins', sans-serif; font-weight: 400; font-size: 11.5px; color: #8a8a80; }
 
   .extras-card {
-    margin-top: 40px; background: var(--paper); border: 2px dashed var(--ink); border-radius: 18px; padding: 20px 24px;
+    margin-top: 32px; background: var(--cream); border: 2px dashed var(--ink); border-radius: 18px; padding: 18px 22px;
   }
-  .extras-title { font-family: 'Archivo Black', Arial, sans-serif; font-size: 14px; margin: 0 0 10px; text-transform: uppercase; letter-spacing: 1px; }
-  .extras-row { display: flex; justify-content: space-between; font-size: 13px; padding: 6px 0; border-top: 1px dashed #E2DCCB; }
+  .extras-title { font-family: 'Archivo Black', Arial, sans-serif; font-size: 12px; margin: 0 0 8px; text-transform: uppercase; letter-spacing: 1px; }
+  .extras-row { display: flex; justify-content: space-between; font-size: 12.5px; padding: 5px 0; border-top: 1px dashed #E2DCCB; }
   .extras-row:first-of-type { border-top: none; }
 
-  .foot-note { max-width: 900px; margin: 64px auto 0; padding: 0 24px; text-align: center; color: #6b6b63; font-size: 13px; line-height: 1.6; }
+  .foot-note { max-width: 700px; margin: 44px auto 0; padding: 0 24px; text-align: center; color: #3a3934; font-size: 11.5px; line-height: 1.6; }
   .foot-note strong { color: var(--ink); }
 
-  @media (max-width: 900px) {
+  footer {
+    background: var(--ink);
+    border-radius: 26px 26px 0 0;
+    margin-top: 36px;
+    padding: 26px 24px 30px;
+    text-align: center;
+  }
+  footer .logo-pill { background: var(--cream); color: var(--ink); }
+  footer .foot-text { color: #cfcabf; font-size: 12px; margin-top: 10px; }
+
+  @media (max-width: 700px) {
     .cards { grid-template-columns: 1fr; }
   }
   @media print {
-    .hero::after { display: none; }
     .meal-section { page-break-inside: avoid; }
   }
 </style>
@@ -413,7 +399,7 @@ export function buildProposalHtml(sections: MealSection[]): string {
   <div class="hero">
     <span class="logo-pill">DOPPIO MALTO</span>
     <div class="eyebrow">Birrificio con cucina</div>
-    <h1 class="headline">PROPOSTE <mark>EVENTI</mark> DI GRUPPO</h1>
+    <h1 class="headline">PROPOSTE <span class="amount">EVENTI</span> DI GRUPPO</h1>
     <p class="tagline">Formule su misura per la tua compagnia — bevanda, sfizi da condividere e la sala giusta per ogni occasione.</p>
   </div>
 
@@ -421,6 +407,11 @@ export function buildProposalHtml(sections: MealSection[]): string {
     ${sectionsHtml}
     <p class="foot-note"><strong>Nota:</strong> i piatti "da condividere" sono calcolati per persona salvo diversa indicazione. Prezzi IVA inclusa.</p>
   </div>
+
+  <footer>
+    <span class="logo-pill">DOPPIO MALTO</span>
+    <div class="foot-text">Prezzi IVA inclusa · doppiomalto.com</div>
+  </footer>
 
 </body>
 </html>`

@@ -1,68 +1,95 @@
-import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer'
+import { Document, Page, Text, View, StyleSheet, Font } from '@react-pdf/renderer'
 import { planPrice, dishesBySubcategory, itemSharedAmong, type MealSection } from '@/lib/proposalHtml'
 import { menuStrings, type QuoteLang } from './i18n'
 
-// Segue esattamente il template di riferimento (menu-eventi-di-gruppo.html): pill
-// di testo nero come logo (nessuna immagine), badge prezzo a cerchio sovrapposto
-// in alto a sinistra della card, tier verde/corallo/giallo per fascia. E' il
-// documento "menu allegato" che accompagna il preventivo formale
-// (ProposalQuotePdfDocument), che invece non elenca piu' i piatti nel corpo.
+// Segue il template di riferimento dello studio (menu-proposta-*.html): sfondo
+// giallo pieno, pill di testo nero come logo (nessuna immagine), badge prezzo a
+// cerchio sovrapposto in alto a sinistra della card, tier verde/corallo/blu per
+// fascia, Archivo Black per i titoli display, Caveat per gli accenti "scritti a
+// mano", Poppins per il corpo testo. E' il documento "menu allegato" che
+// accompagna il preventivo formale (ProposalQuotePdfDocument), che invece non
+// elenca piu' i piatti nel corpo.
+Font.register({
+  family: 'Archivo Black',
+  src: 'https://fonts.gstatic.com/s/archivoblack/v23/HTxqL289NzCGg4MzN6KJ7eW6OYs.ttf',
+})
+Font.register({
+  family: 'Caveat',
+  fonts: [
+    { src: 'https://fonts.gstatic.com/s/caveat/v23/WnznHAc5bAfYB2QRah7pcpNvOx-pjSx6SII.ttf', fontWeight: 600 },
+    { src: 'https://fonts.gstatic.com/s/caveat/v23/WnznHAc5bAfYB2QRah7pcpNvOx-pjRV6SII.ttf', fontWeight: 700 },
+  ],
+})
+Font.register({
+  family: 'Poppins',
+  fonts: [
+    { src: 'https://fonts.gstatic.com/s/poppins/v24/pxiEyp8kv8JHgFVrFJA.ttf', fontWeight: 400 },
+    { src: 'https://fonts.gstatic.com/s/poppins/v24/pxiByp8kv8JHgFVrLEj6V1s.ttf', fontWeight: 600 },
+    { src: 'https://fonts.gstatic.com/s/poppins/v24/pxiByp8kv8JHgFVrLCz7V1s.ttf', fontWeight: 700 },
+  ],
+})
+
 const INK = '#1C1B18'
 const CORAL = '#E1543F'
-const GREEN = '#6FA84B'
-const YELLOW = '#F0B429'
-const MINT = '#BFE0D2'
-const PAPER = '#FFFDF9'
-const MUTED = '#6b6b63'
+const GREEN = '#4E9A4A'
+const BLUE = '#58C6DE'
+const YELLOW = '#F4D000'
+const CREAM = '#FFFDF9'
+const MUTED = '#3a3934'
 
-const TIER_ACCENT = [GREEN, CORAL, YELLOW] as const
-const TIER_ACCENT_TEXT = [GREEN, CORAL, '#C98A00'] as const
+const TIER_ACCENT = [GREEN, CORAL, BLUE] as const
+const TIER_ACCENT_TEXT = [GREEN, CORAL, '#2E8FA6'] as const
 
 const styles = StyleSheet.create({
-  page: { fontSize: 9.5, color: INK, fontFamily: 'Helvetica', backgroundColor: '#FBF6EC' },
+  page: { fontSize: 9.5, color: INK, fontFamily: 'Poppins', backgroundColor: YELLOW },
 
-  hero: { backgroundColor: MINT, alignItems: 'center', paddingHorizontal: 30, paddingTop: 28, paddingBottom: 34 },
-  logoPill: { backgroundColor: INK, color: PAPER, fontFamily: 'Helvetica-Bold', fontSize: 11, letterSpacing: 1, paddingHorizontal: 16, paddingVertical: 6, borderRadius: 20 },
-  heroEyebrow: { fontFamily: 'Helvetica-BoldOblique', color: CORAL, fontSize: 13, marginTop: 12, marginBottom: 4 },
-  heroTitle: { fontFamily: 'Helvetica-Bold', fontSize: 18, textAlign: 'center', marginTop: 2 },
-  heroTagline: { fontSize: 9, textAlign: 'center', maxWidth: 360, marginTop: 8, lineHeight: 1.4 },
+  hero: { alignItems: 'center', paddingHorizontal: 30, paddingTop: 28, paddingBottom: 6 },
+  logoPill: { backgroundColor: INK, color: CREAM, fontFamily: 'Archivo Black', fontSize: 10, letterSpacing: 1, paddingHorizontal: 14, paddingVertical: 6, borderRadius: 18 },
+  heroEyebrow: { fontFamily: 'Caveat', fontWeight: 700, color: INK, fontSize: 15, marginTop: 10, marginBottom: 2 },
+  heroTitle: { fontFamily: 'Archivo Black', fontSize: 19, textAlign: 'center', marginTop: 2 },
+  heroTitleAmount: { color: CORAL },
+  heroTagline: { fontFamily: 'Poppins', fontWeight: 700, fontSize: 9, textAlign: 'center', maxWidth: 320, marginTop: 6, lineHeight: 1.4 },
 
-  body: { paddingHorizontal: 28, paddingTop: 18, paddingBottom: 20 },
+  body: { paddingHorizontal: 28, paddingTop: 14, paddingBottom: 20 },
 
   mealHead: { alignItems: 'center', marginBottom: 4 },
-  mealTag: { fontFamily: 'Helvetica-BoldOblique', color: INK, fontSize: 9.5, borderWidth: 1.5, borderColor: INK, backgroundColor: PAPER, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 3, marginBottom: 6 },
-  mealTitle: { fontFamily: 'Helvetica-Bold', fontSize: 15, textAlign: 'center' },
-  mealMeta: { fontSize: 8, color: MUTED, marginTop: 3, textAlign: 'center', maxWidth: 420 },
+  mealTag: { fontFamily: 'Caveat', fontWeight: 700, color: INK, fontSize: 10.5, borderWidth: 1.5, borderColor: INK, backgroundColor: CREAM, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 3, marginBottom: 6 },
+  mealTitle: { fontFamily: 'Archivo Black', fontSize: 14, textAlign: 'center' },
+  mealMeta: { fontFamily: 'Poppins', fontSize: 8, color: MUTED, marginTop: 3, textAlign: 'center', maxWidth: 420 },
 
-  plansRow: { flexDirection: 'row', gap: 12, marginTop: 30, alignItems: 'flex-start', justifyContent: 'center' },
+  plansRow: { flexDirection: 'row', gap: 12, marginTop: 28, alignItems: 'flex-start', justifyContent: 'center' },
   planCol: { flex: 1, position: 'relative', paddingTop: 20 },
   planColSingle: { flex: 0, width: '70%', position: 'relative', paddingTop: 20 },
   planColDouble: { flex: 0, width: '46%', position: 'relative', paddingTop: 20 },
   priceBadge: {
-    position: 'absolute', top: -6, left: 8, width: 60, height: 60, borderRadius: 30,
+    position: 'absolute', top: -6, left: 8, width: 58, height: 58, borderRadius: 29,
     borderWidth: 2, borderColor: INK, alignItems: 'center', justifyContent: 'center', zIndex: 1,
   },
-  priceBadgeNum: { fontFamily: 'Helvetica-Bold', fontSize: 15, color: '#fff' },
-  priceBadgeCur: { fontSize: 5.5, letterSpacing: 0.4, color: '#fff', marginTop: 1 },
+  priceBadgeNum: { fontFamily: 'Archivo Black', fontSize: 14, color: '#fff' },
+  priceBadgeCur: { fontFamily: 'Poppins', fontSize: 5.5, letterSpacing: 0.4, color: '#fff', marginTop: 1 },
 
-  planCard: { width: '100%', borderWidth: 2, borderColor: INK, borderRadius: 12, padding: 12, paddingTop: 30, backgroundColor: PAPER },
-  tierName: { fontFamily: 'Helvetica-BoldOblique', fontSize: 15, marginBottom: 5 },
-  question: { fontFamily: 'Helvetica-BoldOblique', color: CORAL, fontSize: 8.5, marginBottom: 7 },
+  planCard: { width: '100%', borderWidth: 2, borderColor: INK, borderRadius: 12, padding: 12, paddingTop: 30, backgroundColor: CREAM },
+  tierName: { fontFamily: 'Caveat', fontWeight: 700, fontSize: 16, marginBottom: 5 },
+  question: { fontFamily: 'Caveat', fontWeight: 700, color: CORAL, fontSize: 9.5, marginBottom: 7 },
 
-  sectionLabel: { fontSize: 8, fontFamily: 'Helvetica-Bold', letterSpacing: 0.4, color: '#555', marginTop: 9, marginBottom: 4 },
-  choiceNote: { fontFamily: 'Helvetica', fontWeight: 'normal', color: '#8a8a80' },
-  tag: { fontFamily: 'Helvetica-BoldOblique', fontSize: 8, backgroundColor: MINT, borderWidth: 1, borderColor: INK, borderRadius: 8, paddingHorizontal: 6, paddingVertical: 1, alignSelf: 'flex-start', marginBottom: 7 },
+  sectionLabel: { fontSize: 8, fontFamily: 'Poppins', fontWeight: 700, letterSpacing: 0.4, color: '#555', marginTop: 9, marginBottom: 4 },
+  choiceNote: { fontFamily: 'Poppins', fontWeight: 400, color: '#8a8a80' },
+  tag: { fontFamily: 'Caveat', fontWeight: 700, fontSize: 9, backgroundColor: BLUE, borderWidth: 1, borderColor: INK, borderRadius: 8, paddingHorizontal: 6, paddingVertical: 1, alignSelf: 'flex-start', marginBottom: 7 },
 
-  dishName: { fontSize: 8.8, fontFamily: 'Helvetica-Bold', color: INK },
-  dishDesc: { fontSize: 7.6, color: '#4c4a44', marginTop: 1, lineHeight: 1.3 },
+  dishName: { fontSize: 8.8, fontFamily: 'Poppins', fontWeight: 700, color: INK },
+  dishDesc: { fontFamily: 'Poppins', fontSize: 7.6, color: '#4c4a44', marginTop: 1, lineHeight: 1.3 },
   dishBlock: { marginBottom: 6 },
-  sharedNote: { fontFamily: 'Helvetica', fontWeight: 'normal', fontSize: 7.2, color: '#8a8a80' },
+  sharedNote: { fontFamily: 'Poppins', fontWeight: 400, fontSize: 7.2, color: '#8a8a80' },
 
-  extrasCard: { borderWidth: 1.5, borderColor: INK, borderStyle: 'dashed', borderRadius: 12, padding: 10, marginTop: 16 },
-  extrasTitle: { fontSize: 9, fontFamily: 'Helvetica-Bold', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 },
-  extraRow: { flexDirection: 'row', justifyContent: 'space-between', fontSize: 8, color: '#3a3a3a', marginTop: 2 },
+  extrasCard: { borderWidth: 1.5, borderColor: INK, borderStyle: 'dashed', borderRadius: 12, padding: 10, marginTop: 16, backgroundColor: CREAM },
+  extrasTitle: { fontSize: 9, fontFamily: 'Archivo Black', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 },
+  extraRow: { flexDirection: 'row', justifyContent: 'space-between', fontFamily: 'Poppins', fontSize: 8, color: '#3a3a3a', marginTop: 2 },
 
-  footNote: { fontSize: 8, color: MUTED, textAlign: 'center', marginTop: 20, lineHeight: 1.4 },
+  footNote: { fontFamily: 'Poppins', fontSize: 8, color: MUTED, textAlign: 'center', marginTop: 20, lineHeight: 1.4 },
+
+  footer: { backgroundColor: INK, borderTopLeftRadius: 22, borderTopRightRadius: 22, alignItems: 'center', paddingTop: 20, paddingBottom: 24, marginTop: 10 },
+  footerLogoPill: { backgroundColor: CREAM, color: INK, fontFamily: 'Archivo Black', fontSize: 9, letterSpacing: 1, paddingHorizontal: 14, paddingVertical: 6, borderRadius: 18 },
+  footerText: { fontFamily: 'Poppins', color: '#cfcabf', fontSize: 7.5, marginTop: 8 },
 })
 
 interface Props {
@@ -79,7 +106,9 @@ export function ProposalMenuPdfDocument({ sections, lang = 'it' }: Props) {
         <View style={styles.hero}>
           <Text style={styles.logoPill}>DOPPIO MALTO</Text>
           <Text style={styles.heroEyebrow}>Birrificio con cucina</Text>
-          <Text style={styles.heroTitle}>PROPOSTE EVENTI DI GRUPPO</Text>
+          <Text style={styles.heroTitle}>
+            PROPOSTE <Text style={styles.heroTitleAmount}>EVENTI</Text> DI GRUPPO
+          </Text>
           <Text style={styles.heroTagline}>{t.subtitle}</Text>
         </View>
 
@@ -170,6 +199,11 @@ export function ProposalMenuPdfDocument({ sections, lang = 'it' }: Props) {
           })}
 
           <Text style={styles.footNote}>{t.footnote}</Text>
+        </View>
+
+        <View style={styles.footer}>
+          <Text style={styles.footerLogoPill}>DOPPIO MALTO</Text>
+          <Text style={styles.footerText}>Prezzi IVA inclusa · doppiomalto.com</Text>
         </View>
       </Page>
     </Document>
