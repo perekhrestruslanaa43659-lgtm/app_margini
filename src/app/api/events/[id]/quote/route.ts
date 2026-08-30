@@ -5,9 +5,9 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { getCompanyInfo } from '@/lib/company'
 import { ProposalQuotePdfDocument, DEFAULT_CONTRACT_CLAUSES, type QuoteClient, type ContractClause } from '@/lib/pdf/ProposalQuotePdfDocument'
 import { ProposalMenuPdfDocument } from '@/lib/pdf/ProposalMenuPdfDocument'
-import type { MealSection, PricePlan, PlanGroup } from '@/lib/proposalHtml'
+import { loadEventMealSections } from '@/lib/eventMenu'
 import type { QuoteLang } from '@/lib/pdf/i18n'
-import type { Event, EventMenuCategory, EventMenuItem } from '@/lib/supabase/types'
+import type { Event } from '@/lib/supabase/types'
 
 // Genera il PDF "Preventivo Evento" (e il menu allegato) partendo da un evento
 // GIA' registrato in /events, precompilando i dati cliente/evento dal record
@@ -29,67 +29,6 @@ function applyClausePlaceholders(clauses: ContractClause[], depositPct: string, 
       .replace(/\{\{deposit_pct\}\}/g, depositPct || '____')
       .replace(/\{\{deposit_days\}\}/g, depositDays || '____'),
   }))
-}
-
-/** Converte il menu "a categorie" dell'evento (event_menu_categories/items) nel formato
- *  MealSection[] usato dai generatori PDF di Proposte. Un evento ha una sola fascia di
- *  prezzo (non Classico/Preferito/Generoso): ogni categoria diventa un gruppo di piatti
- *  dentro quell'unica fascia, il cui prezzo e' la somma dei price_per_guest delle
- *  categorie "a scelta" piu' la somma dei prezzi piatto delle categorie "tutti inclusi". */
-function menuToMealSections(
-  event: Event,
-  categories: EventMenuCategory[],
-  itemsByCategory: Map<string, EventMenuItem[]>
-): MealSection[] {
-  if (categories.length === 0) return []
-
-  const groups: PlanGroup[] = categories.map((cat) => {
-    const items = itemsByCategory.get(cat.id) ?? []
-    return {
-      id: cat.id,
-      label: cat.name || 'Voce menu',
-      tag: '',
-      pricingMode: cat.selection_type === 'a_scelta' ? 'media' : 'fisso',
-      items: items.map((it) => ({
-        catalogId: it.id,
-        name: it.dish_name,
-        desc: '',
-        price: it.unit_price,
-        category: cat.name || '',
-      })),
-    }
-  })
-
-  const fixedPrice = categories.reduce((sum, cat) => {
-    if (cat.selection_type === 'a_scelta') return sum + (cat.price_per_guest ?? 0)
-    const items = itemsByCategory.get(cat.id) ?? []
-    return sum + items.reduce((s, it) => s + it.unit_price, 0)
-  }, 0)
-
-  const plan: PricePlan = {
-    id: 'evento',
-    name: '',
-    price: String(fixedPrice),
-    pricingMode: 'fisso',
-    note: '',
-    groups,
-  }
-
-  return [
-    {
-      id: 'evento',
-      label: event.name || 'Evento',
-      hours: '',
-      meta: '',
-      accent: 'green',
-      plans: [plan],
-      extras: [],
-      room: '',
-      duration: '',
-      extraHour: '',
-      formula: '',
-    },
-  ]
 }
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -127,21 +66,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: 'Il nome del cliente non è compilato per questo evento' }, { status: 400 })
   }
 
-  const { data: mc } = await supabase.from('event_menu_categories').select('*').eq('event_id', id).order('sort_order')
-  const menuCategories = (mc ?? []) as unknown as EventMenuCategory[]
-
-  let itemsByCategory = new Map<string, EventMenuItem[]>()
-  if (menuCategories.length > 0) {
-    const { data: mi } = await supabase
-      .from('event_menu_items')
-      .select('*')
-      .in('category_id', menuCategories.map((c) => c.id))
-      .order('sort_order')
-    const menuItems = (mi ?? []) as unknown as EventMenuItem[]
-    itemsByCategory = new Map(menuCategories.map((c) => [c.id, menuItems.filter((i) => i.category_id === c.id)]))
-  }
-
-  const sections = menuToMealSections(event, menuCategories, itemsByCategory)
+  const sections = await loadEventMealSections(supabase, event)
 
   const body: QuoteFromEventBody = await req.json().catch(() => ({}))
   const lang: QuoteLang = body.lang === 'en' ? 'en' : 'it'

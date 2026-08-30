@@ -71,6 +71,8 @@ function EventDetailPageInner() {
   const [emailModalOpen, setEmailModalOpen] = useState(false)
   const [generatingQuote, setGeneratingQuote] = useState(false)
   const [quoteError, setQuoteError] = useState<string | null>(null)
+  const [generatingMenu, setGeneratingMenu] = useState(false)
+  const [menuPdfError, setMenuPdfError] = useState<string | null>(null)
   const [missingDraft, setMissingDraft] = useState<Record<string, string>>({})
   const [savingMissing, setSavingMissing] = useState(false)
   const [menuPhase, setMenuPhase] = useState<MenuPhase>('categorie')
@@ -581,9 +583,7 @@ function EventDetailPageInner() {
     window.open(`/events/${id}/export?format=excel${scenarioParam}`, '_blank')
   }
 
-  function downloadBase64Pdf(base64: string, filename: string) {
-    const bytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0))
-    const blob = new Blob([bytes], { type: 'application/pdf' })
+  function downloadBlob(blob: Blob, filename: string) {
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
@@ -592,6 +592,11 @@ function EventDetailPageInner() {
     a.click()
     a.remove()
     URL.revokeObjectURL(url)
+  }
+
+  function downloadBase64Pdf(base64: string, filename: string) {
+    const bytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0))
+    downloadBlob(new Blob([bytes], { type: 'application/pdf' }), filename)
   }
 
   // Genera il preventivo PDF formale (e il menu allegato, se l'evento ha voci menu)
@@ -620,6 +625,32 @@ function EventDetailPageInner() {
       setQuoteError(err instanceof Error ? err.message : 'Errore nella generazione del preventivo')
     } finally {
       setGeneratingQuote(false)
+    }
+  }
+
+  // Genera SOLO il PDF "menu proposta" (stile SKILLS-STILE.md) dai piatti/categorie
+  // compilati nel tab Menu — passaggio intermedio prima di procedere al preventivo
+  // formale nel tab Export, che genera entrambi i documenti insieme.
+  async function generateMenuPdf() {
+    setMenuPdfError(null)
+    setGeneratingMenu(true)
+    try {
+      const res = await fetch(`/api/events/${id}/menu`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
+      })
+      if (!res.ok) {
+        const body = await res.json().catch(() => null)
+        throw new Error(body?.error || 'Errore nella generazione del menu')
+      }
+      const blob = await res.blob()
+      const filename = res.headers.get('Content-Disposition')?.match(/filename="(.+)"/)?.[1] || 'menu.pdf'
+      downloadBlob(blob, filename)
+    } catch (err) {
+      setMenuPdfError(err instanceof Error ? err.message : 'Errore nella generazione del menu')
+    } finally {
+      setGeneratingMenu(false)
     }
   }
 
@@ -954,22 +985,34 @@ function EventDetailPageInner() {
           {/* Tab: Menu */}
           {tab === 'menu' && (
             <div className="card">
-              <div className="flex items-center gap-1 mb-5 bg-slate-50 rounded-xl p-1 border border-slate-100 w-fit">
-                {([
-                  { key: 'categorie', label: '1. Categorie' },
-                  { key: 'piatti', label: '2. Piatti' },
-                  { key: 'margini', label: '3. Margini' },
-                ] as { key: MenuPhase; label: string }[]).map(({ key, label }) => (
-                  <button
-                    key={key}
-                    onClick={() => setMenuPhase(key)}
-                    className={`px-3.5 py-1.5 rounded-lg text-xs font-medium transition-colors
-                      ${menuPhase === key ? 'bg-dm-yellow text-dm-ink' : 'text-slate-500 hover:text-dm-ink'}`}
-                  >
-                    {label}
-                  </button>
-                ))}
+              <div className="flex items-center justify-between gap-3 flex-wrap mb-5">
+                <div className="flex items-center gap-1 bg-slate-50 rounded-xl p-1 border border-slate-100 w-fit">
+                  {([
+                    { key: 'categorie', label: '1. Categorie' },
+                    { key: 'piatti', label: '2. Piatti' },
+                    { key: 'margini', label: '3. Margini' },
+                  ] as { key: MenuPhase; label: string }[]).map(({ key, label }) => (
+                    <button
+                      key={key}
+                      onClick={() => setMenuPhase(key)}
+                      className={`px-3.5 py-1.5 rounded-lg text-xs font-medium transition-colors
+                        ${menuPhase === key ? 'bg-dm-yellow text-dm-ink' : 'text-slate-500 hover:text-dm-ink'}`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  onClick={generateMenuPdf}
+                  disabled={generatingMenu || menuCategories.length === 0}
+                  className="flex items-center gap-1.5 text-xs font-medium bg-dm-ink hover:bg-dm-maroon-dark text-white px-3.5 py-2 rounded-lg transition-colors disabled:opacity-40"
+                >
+                  {generatingMenu ? <Loader2 size={13} className="animate-spin" /> : <FileCheck size={13} />}
+                  {generatingMenu ? 'Generazione...' : 'Genera menu PDF'}
+                </button>
               </div>
+              {menuPdfError && <p className="text-xs text-red-600 mb-4">{menuPdfError}</p>}
 
               {/* Fase 1: Categorie */}
               {menuPhase === 'categorie' && (

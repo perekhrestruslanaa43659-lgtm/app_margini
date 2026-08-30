@@ -3,54 +3,62 @@ import type { Event, EventItem, EventMenuCategory, EventMenuItem } from '@/lib/s
 import { formatCurrency } from '@/lib/margin'
 import type { CompanyInfo } from '@/lib/company'
 
-const INK = '#1A1A1A'
-const YELLOW = '#F5C518'
-const MAROON = '#8B2E2E'
-const CREAM = '#FBF6EC'
-const GREY_100 = '#ece5d6'
+// Palette e registro dello skill "Preventivo Evento" (SKILLS-PREVENTIVO.md): stessi
+// token cromatici di ProposalQuotePdfDocument.tsx (il preventivo formale cliente) —
+// niente giallo pieno da sfondo, niente badge quadrato "DM", card a bordo netto senza
+// ombra. Questo documento resta un export "tecnico" per uso interno (voci di margine,
+// non le clausole/firma del preventivo formale), ma condivide lo stesso registro visivo
+// istituzionale invece della vecchia palette gialla non allineata alle altre skill.
+const INK = '#1C1B18'
+const CORAL = '#E1543F'
+const GREEN = '#6FA84B'
+const YELLOW = '#F0B429'
+const MUTED = '#6B6558'
+const CREAM = '#FFFDF9'
+const LINE = '#BDB6A4'
 
 const styles = StyleSheet.create({
-  page: { fontSize: 10, color: INK, fontFamily: 'Helvetica' },
-  headerBand: { backgroundColor: YELLOW, paddingHorizontal: 40, paddingVertical: 24, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 },
-  logoBadge: { width: 40, height: 40, backgroundColor: INK, borderRadius: 8, alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
-  logoText: { color: YELLOW, fontSize: 16, fontFamily: 'Helvetica-Bold' },
+  page: { fontSize: 10, color: INK, fontFamily: 'Helvetica', backgroundColor: '#FFFFFF' },
+  headerBand: { paddingHorizontal: 40, paddingTop: 32, paddingBottom: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
   companyName: { fontSize: 14, fontFamily: 'Helvetica-Bold', color: INK },
-  small: { fontSize: 8, color: INK, opacity: 0.65, marginTop: 1 },
-  docTitle: { fontSize: 22, fontFamily: 'Helvetica-Bold', color: INK, textAlign: 'right', letterSpacing: 1 },
-  docMeta: { fontSize: 9, color: INK, opacity: 0.7, textAlign: 'right', marginTop: 2 },
-  body: { paddingHorizontal: 40 },
-  section: { marginBottom: 18 },
-  sectionTitle: { fontSize: 9, fontFamily: 'Helvetica-Bold', color: MAROON, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 },
-  clientBox: { backgroundColor: CREAM, borderRadius: 8, padding: 12, borderLeftWidth: 3, borderLeftColor: MAROON },
+  small: { fontSize: 8, color: MUTED, marginTop: 1 },
+  docTitle: { fontSize: 17, fontFamily: 'Helvetica-Bold', color: INK, textAlign: 'right' },
+  docMeta: { fontSize: 8.5, color: INK, textAlign: 'right', marginTop: 2 },
+  headerRule: { borderBottomWidth: 2, borderBottomColor: INK, marginHorizontal: 40, marginBottom: 20 },
+  body: { paddingHorizontal: 32 },
+  section: { marginBottom: 14 },
+  cardTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 10 },
+  cardTitleBar: { width: 3, height: 12, borderRadius: 2, backgroundColor: CORAL },
+  sectionTitle: { fontSize: 10.5, fontFamily: 'Helvetica-Bold', color: CORAL, textTransform: 'uppercase', letterSpacing: 0.5 },
+  clientBox: { backgroundColor: CREAM, borderWidth: 2, borderColor: INK, borderRadius: 18, padding: 16 },
   clientName: { fontSize: 12, fontFamily: 'Helvetica-Bold', marginBottom: 3 },
   clientLine: { fontSize: 9, color: '#3a3a3a', marginTop: 1 },
   table: { marginTop: 4 },
-  tableHeaderRow: { flexDirection: 'row', backgroundColor: INK, borderRadius: 4, paddingVertical: 7, paddingHorizontal: 6, marginBottom: 2 },
-  tableRow: { flexDirection: 'row', borderBottomWidth: 0.5, borderBottomColor: GREY_100, paddingVertical: 6, paddingHorizontal: 6 },
-  tableRowAlt: { flexDirection: 'row', borderBottomWidth: 0.5, borderBottomColor: GREY_100, paddingVertical: 6, paddingHorizontal: 6, backgroundColor: CREAM },
-  thName: { flex: 3, fontSize: 8, fontFamily: 'Helvetica-Bold', color: YELLOW, textTransform: 'uppercase' },
-  thQty: { flex: 1, fontSize: 8, fontFamily: 'Helvetica-Bold', color: YELLOW, textTransform: 'uppercase', textAlign: 'center' },
-  thPrice: { flex: 1.3, fontSize: 8, fontFamily: 'Helvetica-Bold', color: YELLOW, textTransform: 'uppercase', textAlign: 'right' },
-  thTotal: { flex: 1.3, fontSize: 8, fontFamily: 'Helvetica-Bold', color: YELLOW, textTransform: 'uppercase', textAlign: 'right' },
+  tableHeaderRow: { flexDirection: 'row', backgroundColor: INK, borderRadius: 6, paddingVertical: 7, paddingHorizontal: 8, marginBottom: 2 },
+  tableRow: { flexDirection: 'row', borderTopWidth: 1.2, borderTopColor: GREEN, borderStyle: 'dashed', paddingVertical: 7, paddingHorizontal: 8 },
+  thName: { flex: 3, fontSize: 7.5, fontFamily: 'Helvetica-Bold', color: YELLOW, textTransform: 'uppercase' },
+  thQty: { flex: 1, fontSize: 7.5, fontFamily: 'Helvetica-Bold', color: YELLOW, textTransform: 'uppercase', textAlign: 'center' },
+  thPrice: { flex: 1.3, fontSize: 7.5, fontFamily: 'Helvetica-Bold', color: YELLOW, textTransform: 'uppercase', textAlign: 'right' },
+  thTotal: { flex: 1.3, fontSize: 7.5, fontFamily: 'Helvetica-Bold', color: YELLOW, textTransform: 'uppercase', textAlign: 'right' },
   tdName: { flex: 3, fontSize: 9.5 },
-  tdQty: { flex: 1, fontSize: 9.5, textAlign: 'center' },
-  tdPrice: { flex: 1.3, fontSize: 9.5, textAlign: 'right' },
-  tdTotal: { flex: 1.3, fontSize: 9.5, textAlign: 'right', fontFamily: 'Helvetica-Bold' },
+  tdQty: { flex: 1, fontSize: 9, textAlign: 'center', color: MUTED },
+  tdPrice: { flex: 1.3, fontSize: 9, textAlign: 'right' },
+  tdTotal: { flex: 1.3, fontSize: 9, textAlign: 'right', fontFamily: 'Helvetica-Bold', borderBottomWidth: 1, borderBottomColor: LINE },
   totalsBox: { alignSelf: 'flex-end', width: 220, marginTop: 12 },
   totalsRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 3 },
   totalsLabel: { fontSize: 9, color: '#3a3a3a' },
   totalsValue: { fontSize: 9 },
-  grandTotalRow: { flexDirection: 'row', justifyContent: 'space-between', backgroundColor: MAROON, borderRadius: 6, paddingVertical: 8, paddingHorizontal: 10, marginTop: 6 },
-  grandTotalLabel: { fontSize: 10, color: '#ffffff', fontFamily: 'Helvetica-Bold' },
-  grandTotalValue: { fontSize: 12, color: YELLOW, fontFamily: 'Helvetica-Bold' },
-  notesBox: { backgroundColor: CREAM, borderRadius: 8, padding: 10, marginTop: 4, borderLeftWidth: 3, borderLeftColor: YELLOW },
-  notesText: { fontSize: 9, color: '#5a4a1a' },
-  depositText: { fontFamily: 'Helvetica-Bold', color: MAROON, marginBottom: 3 },
-  menuCategoryBox: { marginBottom: 8, borderBottomWidth: 0.5, borderBottomColor: GREY_100, paddingBottom: 8 },
+  grandTotalRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#FCEACB', borderRadius: 6, paddingVertical: 8, paddingHorizontal: 10, marginTop: 6 },
+  grandTotalLabel: { fontSize: 9.5, fontFamily: 'Helvetica-Bold', color: CORAL, textTransform: 'uppercase' },
+  grandTotalValue: { fontSize: 11, fontFamily: 'Helvetica-Bold', color: CORAL },
+  notesBox: { backgroundColor: CREAM, borderWidth: 1.5, borderColor: LINE, borderStyle: 'dashed', borderRadius: 14, padding: 12 },
+  notesText: { fontSize: 9, color: '#3a3a3a', lineHeight: 1.4 },
+  depositText: { fontFamily: 'Helvetica-Bold', color: CORAL, marginBottom: 3 },
+  menuCategoryBox: { marginBottom: 8, borderTopWidth: 1.2, borderTopColor: GREEN, borderStyle: 'dashed', paddingTop: 8 },
   menuCategoryHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 2 },
   menuCategoryName: { fontSize: 10, fontFamily: 'Helvetica-Bold', color: INK },
-  menuCategoryPrice: { fontSize: 9.5, fontFamily: 'Helvetica-Bold', color: MAROON },
-  menuCategoryDishes: { fontSize: 9, color: '#3a3a3a' },
+  menuCategoryPrice: { fontSize: 9.5, fontFamily: 'Helvetica-Bold', color: CORAL },
+  menuCategoryDishes: { fontSize: 9, color: MUTED },
   footer: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: INK, paddingHorizontal: 40, paddingVertical: 14 },
   footerRow: { flexDirection: 'row', justifyContent: 'space-between' },
   footerCol: { flex: 1 },
@@ -107,10 +115,9 @@ export function QuotePdfDocument({ event, revenues, totalRevenue, companyInfo, r
   return (
     <Document title={`Preventivo ${event.name}`}>
       <Page size="A4" style={styles.page}>
-        {/* Header band */}
+        {/* Header */}
         <View style={styles.headerBand}>
           <View>
-            <View style={styles.logoBadge}><Text style={styles.logoText}>DM</Text></View>
             <Text style={styles.companyName}>{companyInfo.name}</Text>
             {companyInfo.address ? <Text style={styles.small}>{companyInfo.address}</Text> : null}
             {companyInfo.vatNumber ? <Text style={styles.small}>P.IVA {companyInfo.vatNumber}</Text> : null}
@@ -121,12 +128,16 @@ export function QuotePdfDocument({ event, revenues, totalRevenue, companyInfo, r
             <Text style={styles.docMeta}>{formatDate(new Date().toISOString())}</Text>
           </View>
         </View>
+        <View style={styles.headerRule} />
 
         <View style={[styles.body, { paddingBottom: 90 }]}>
 
         {/* Client + event info */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Evento</Text>
+          <View style={styles.cardTitleRow}>
+            <View style={styles.cardTitleBar} />
+            <Text style={styles.sectionTitle}>Evento</Text>
+          </View>
           <View style={styles.clientBox}>
             <Text style={styles.clientName}>{event.name}</Text>
             {event.client_name ? <Text style={styles.clientLine}>Cliente: {event.client_name}</Text> : null}
@@ -142,7 +153,10 @@ export function QuotePdfDocument({ event, revenues, totalRevenue, companyInfo, r
         {/* Menu */}
         {menuCategories.length > 0 ? (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Menu</Text>
+            <View style={styles.cardTitleRow}>
+              <View style={styles.cardTitleBar} />
+              <Text style={styles.sectionTitle}>Menu</Text>
+            </View>
             {menuCategories.map((cat) => {
               const dishes = menuItemsByCategory.get(cat.id) ?? []
               const dishNames = dishes.map((d) => d.dish_name).join(', ') || '—'
@@ -168,7 +182,10 @@ export function QuotePdfDocument({ event, revenues, totalRevenue, companyInfo, r
         {/* Items table */}
         {revenues.length > 0 ? (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Voci di preventivo</Text>
+            <View style={styles.cardTitleRow}>
+              <View style={styles.cardTitleBar} />
+              <Text style={styles.sectionTitle}>Voci di preventivo</Text>
+            </View>
             <View style={styles.table}>
               <View style={styles.tableHeaderRow}>
                 <Text style={styles.thName}>Descrizione</Text>
@@ -176,8 +193,8 @@ export function QuotePdfDocument({ event, revenues, totalRevenue, companyInfo, r
                 <Text style={styles.thPrice}>Prezzo unit.</Text>
                 <Text style={styles.thTotal}>Totale</Text>
               </View>
-              {revenues.map((item, i) => (
-                <View style={i % 2 === 1 ? styles.tableRowAlt : styles.tableRow} key={item.id}>
+              {revenues.map((item) => (
+                <View style={styles.tableRow} key={item.id}>
                   <Text style={styles.tdName}>{item.name}</Text>
                   <Text style={styles.tdQty}>{item.quantity}</Text>
                   <Text style={styles.tdPrice}>{formatCurrency(item.unit_price)}</Text>
@@ -211,7 +228,10 @@ export function QuotePdfDocument({ event, revenues, totalRevenue, companyInfo, r
         {/* Payment terms */}
         {(companyInfo.paymentTerms || event.deposit_date) ? (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Condizioni di pagamento</Text>
+            <View style={styles.cardTitleRow}>
+              <View style={styles.cardTitleBar} />
+              <Text style={styles.sectionTitle}>Condizioni di pagamento</Text>
+            </View>
             <View style={styles.notesBox}>
               {event.deposit_date ? (
                 <Text style={[styles.notesText, styles.depositText]}>
@@ -226,7 +246,10 @@ export function QuotePdfDocument({ event, revenues, totalRevenue, companyInfo, r
         {/* Contract terms */}
         {companyInfo.contractTerms ? (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Condizioni contrattuali</Text>
+            <View style={styles.cardTitleRow}>
+              <View style={styles.cardTitleBar} />
+              <Text style={styles.sectionTitle}>Condizioni contrattuali</Text>
+            </View>
             <View style={styles.notesBox}>
               <Text style={styles.notesText}>{companyInfo.contractTerms}</Text>
             </View>
