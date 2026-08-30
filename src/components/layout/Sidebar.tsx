@@ -54,20 +54,13 @@ export function Sidebar() {
           ${open ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0`}
       >
         {/* Logo */}
-        <div className="px-6 py-6 border-b border-white/10">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-dm-yellow rounded-xl flex items-center justify-center font-display font-bold text-lg text-dm-ink">
-              DM
-            </div>
-            <div>
-              <p className="font-display font-bold text-sm leading-tight uppercase tracking-wide">Doppio Malto</p>
-              <p className="text-xs text-white/40">Event Manager</p>
-            </div>
-          </div>
+        <div className="px-6 py-7 border-b border-white/10">
+          <p className="font-display font-semibold text-[15px] leading-tight uppercase tracking-wide">Doppio Malto</p>
+          <p className="text-[11px] text-white/40 mt-1 tracking-wide">Event Manager</p>
         </div>
 
         {/* Nav */}
-        <nav className="flex-1 px-3 py-4 space-y-1">
+        <nav className="flex-1 px-3.5 py-4 space-y-px">
           {nav.map(({ href, label, icon: Icon }) => {
             const active = href === '/' ? pathname === '/' : pathname.startsWith(href)
             return (
@@ -75,13 +68,13 @@ export function Sidebar() {
                 key={href}
                 href={href}
                 onClick={() => setOpen(false)}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors duration-150
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-md text-[13px] font-medium transition-colors duration-150
                   ${active
-                    ? 'bg-dm-yellow text-dm-ink font-semibold'
-                    : 'text-white/70 hover:bg-white/10 hover:text-white'
+                    ? 'bg-dm-yellow/10 text-dm-yellow font-semibold shadow-[inset_2px_0_0_theme(colors.dm.yellow)]'
+                    : 'text-white/55 hover:bg-white/[0.06] hover:text-white'
                   }`}
               >
-                <Icon size={18} />
+                <Icon size={17} />
                 {label}
               </Link>
             )

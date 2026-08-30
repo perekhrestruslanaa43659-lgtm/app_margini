@@ -4,14 +4,20 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Palette e componenti condivisi allineati al registro "premium nero/bianco" del
+   sito ufficiale Doppio Malto (vedi SKILLS-UI.md): sfondo chiaro, accenti neri,
+   giallo usato con parsimonia come unico colore vivo (stato attivo, CTA primaria).
+   Diverso in tono dal registro "sticker & marker" di SKILLS-STILE.md, che resta
+   riservato ai soli documenti PDF (menu/preventivo) — non a questa interfaccia. */
 :root {
   --dm-yellow: #F5C518;
   --dm-yellow-dark: #D9A800;
-  --dm-maroon: #8B2E2E;
-  --dm-maroon-dark: #6E2323;
-  --dm-ink: #1A1A1A;
-  --dm-cream: #FBF6EC;
-  --dm-wood: #A9784B;
+  --dm-maroon: #14140F;
+  --dm-maroon-dark: #2A2A22;
+  --dm-ink: #14140F;
+  --dm-cream: #FAFAF7;
+  --dm-wood: #7A7A6E;
+  --dm-line: #E4E2DA;
   --success: #10b981;
   --warning: #f59e0b;
   --danger: #ef4444;
@@ -29,19 +35,19 @@ h1, h2, h3, h4, .font-display {
 
 @layer components {
   .card {
-    @apply bg-white rounded-2xl shadow-sm border border-dm-ink/10 p-6;
+    @apply bg-white rounded-xl border border-dm-line p-6;
   }
   .btn-primary {
-    @apply bg-dm-yellow hover:bg-dm-yellow-dark text-dm-ink font-display font-semibold uppercase tracking-wide px-4 py-2 rounded-xl transition-colors duration-200 text-sm border border-dm-ink/10;
+    @apply bg-dm-ink hover:bg-dm-maroon-dark text-white font-medium px-4 py-2 rounded-lg transition-colors duration-200 text-sm border border-dm-ink;
   }
   .btn-secondary {
-    @apply bg-white hover:bg-dm-cream text-dm-ink font-medium px-4 py-2 rounded-xl border border-dm-ink/15 transition-colors duration-200 text-sm;
+    @apply bg-white hover:bg-dm-cream text-dm-ink font-medium px-4 py-2 rounded-lg border border-dm-line transition-colors duration-200 text-sm;
   }
   .btn-danger {
-    @apply bg-dm-maroon hover:bg-dm-maroon-dark text-white font-display font-semibold uppercase tracking-wide px-4 py-2 rounded-xl transition-colors duration-200 text-sm;
+    @apply bg-red-600 hover:bg-red-700 text-white font-medium px-4 py-2 rounded-lg transition-colors duration-200 text-sm;
   }
   .input {
-    @apply w-full border border-dm-ink/15 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-dm-yellow focus:border-transparent bg-white;
+    @apply w-full border border-dm-line rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-dm-yellow focus:border-transparent bg-white;
   }
   .label {
     @apply block text-xs font-medium text-dm-ink/60 mb-1;

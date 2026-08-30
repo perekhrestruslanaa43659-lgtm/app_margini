@@ -7,12 +7,13 @@ description: Stile grafico "documento istituzionale" per preventivi evento forma
 
 Documento commerciale formale (offerta/preventivo), non un materiale POP. Stesso mondo cromatico e tipografico di `SKILLS-STILE.md`, ma il registro cambia: niente badge ruotati stile adesivo, niente card con ombra piena "ritagliata". Qui la card è un contenitore pulito a bordo netto — il documento deve poter essere stampato, compilato a mano nei campi vuoti, e firmato.
 
-## Quando usarlo vs SKILLS-STILE.md
+## Quando usarlo vs SKILLS-STILE.md e SKILLS-UI.md
 
 - **SKILLS-STILE.md** ("sticker & marker"): menu evento, volantini, proposte commerciali da mostrare/condividere — tono allegro, badge ruotati, ombra piena.
 - **SKILLS-PREVENTIVO.md** (questo): preventivi/offerte formali con dati cliente, tabella costi, clausole contrattuali, spazio firma — tono sobrio, istituzionale, pensato anche per la stampa.
+- **SKILLS-UI.md**: l'interfaccia web dell'app gestionale stessa (sidebar, pagine, componenti) — registro premium nero/bianco ispirato al sito ufficiale, non imparentato con nessuno dei due documenti PDF sopra.
 
-Riconoscere quale serve dalla richiesta: se l'utente dice "preventivo", "offerta", "documento da far firmare al cliente" → questo skill. Se dice "menu", "proposta", "volantino evento" → SKILLS-STILE.md.
+Riconoscere quale serve dalla richiesta: se l'utente dice "preventivo", "offerta", "documento da far firmare al cliente" → questo skill. Se dice "menu", "proposta", "volantino evento" → SKILLS-STILE.md. Se parla dell'app/sidebar/pagine web → SKILLS-UI.md.
 
 ## Palette (stessi token di SKILLS-STILE.md)
 

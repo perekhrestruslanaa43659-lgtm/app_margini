@@ -11,18 +11,11 @@ import { SetupBanner } from '@/components/ui/SetupBanner'
 
 const VAT_OPTIONS = [0, 4, 10, 22]
 
-const CAT_COLORS = [
-  { bg: 'bg-blue-50', text: 'text-blue-800', badge: 'bg-blue-100 text-blue-600', border: 'border-blue-100' },
-  { bg: 'bg-emerald-50', text: 'text-emerald-800', badge: 'bg-emerald-100 text-emerald-600', border: 'border-emerald-100' },
-  { bg: 'bg-violet-50', text: 'text-violet-800', badge: 'bg-violet-100 text-violet-600', border: 'border-violet-100' },
-  { bg: 'bg-amber-50', text: 'text-amber-800', badge: 'bg-amber-100 text-amber-600', border: 'border-amber-100' },
-  { bg: 'bg-rose-50', text: 'text-rose-800', badge: 'bg-rose-100 text-rose-600', border: 'border-rose-100' },
-  { bg: 'bg-cyan-50', text: 'text-cyan-800', badge: 'bg-cyan-100 text-cyan-600', border: 'border-cyan-100' },
-  { bg: 'bg-orange-50', text: 'text-orange-800', badge: 'bg-orange-100 text-orange-600', border: 'border-orange-100' },
-  { bg: 'bg-teal-50', text: 'text-teal-800', badge: 'bg-teal-100 text-teal-600', border: 'border-teal-100' },
-  { bg: 'bg-pink-50', text: 'text-pink-800', badge: 'bg-pink-100 text-pink-600', border: 'border-pink-100' },
-  { bg: 'bg-indigo-50', text: 'text-indigo-800', badge: 'bg-indigo-100 text-indigo-600', border: 'border-indigo-100' },
-]
+// Un solo stile neutro per l'header di ogni categoria del catalogo: le 23 categorie
+// si distinguono dal nome e dal conteggio voci, non più da un colore di sfondo diverso
+// per ciascuna — coerente col registro premium bianco/nero del resto dell'app (vedi
+// SKILLS-UI.md), non più con la vecchia tavolozza pastello a 10 tinte.
+const CAT_STYLE = { bg: 'bg-white', text: 'text-dm-ink', badge: 'bg-dm-cream text-dm-wood', border: 'border-dm-line' }
 
 interface EditState {
   type: ItemType
@@ -489,10 +482,10 @@ function CatalogPageInner() {
       ) : (
         /* Grouped by category with collapsible headers */
         <div className="space-y-2">
-          {sortedCats.map((cat, catIdx) => {
+          {sortedCats.map((cat) => {
             const catItems = grouped.get(cat) ?? []
             const isCollapsed = collapsedCats.has(cat)
-            const c = CAT_COLORS[catIdx % CAT_COLORS.length]
+            const c = CAT_STYLE
             return (
               <div key={cat} className="card p-0 overflow-hidden">
                 {/* Category header */}
