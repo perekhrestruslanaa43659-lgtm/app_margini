@@ -59,6 +59,9 @@ export interface Event {
   client_name: string | null
   client_email: string | null
   client_phone: string | null
+  client_address: string | null
+  client_vat_number: string | null
+  client_sdi_code: string | null
   event_date: string | null
   location: string | null
   guests_count: number | null

@@ -3,7 +3,7 @@
 import { useEffect, useState, useMemo } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Download, FileSpreadsheet, Plus, Trash2, Mail, MessageCircle, CalendarDays, Zap, AlertTriangle, EyeOff, ListChecks, Pencil, X, Check } from 'lucide-react'
+import { ArrowLeft, Download, FileSpreadsheet, FileCheck, Plus, Trash2, Mail, MessageCircle, CalendarDays, Zap, AlertTriangle, EyeOff, ListChecks, Pencil, X, Check, Loader2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { isSupabaseConfigured } from '@/lib/supabase/config'
 import type { Event, EventItem, MarginScenario, ScenarioOverride, EventStatus, CatalogItem, ItemType, Room, EventMenuCategory, EventMenuItem, MenuCategoryTemplate, MenuSelectionType } from '@/lib/supabase/types'
@@ -35,6 +35,14 @@ const MISSING_FIELDS: { key: keyof Event | '__items'; label: string; type: 'text
   { key: 'guests_count', label: 'Numero ospiti', type: 'number' },
 ]
 
+// Campi di fatturazione: non bloccano la generazione del preventivo come i MISSING_FIELDS
+// (non sempre servono, es. cliente privato senza P.IVA), ma se mancano il PDF li mostra vuoti.
+const BILLING_FIELDS: { key: 'client_address' | 'client_vat_number' | 'client_sdi_code'; label: string }[] = [
+  { key: 'client_address', label: 'Indirizzo cliente' },
+  { key: 'client_vat_number', label: 'P. IVA' },
+  { key: 'client_sdi_code', label: 'Codice SDI' },
+]
+
 function EventDetailPageInner() {
   const { id } = useParams<{ id: string }>()
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -50,6 +58,7 @@ function EventDetailPageInner() {
   const [editingHeader, setEditingHeader] = useState(false)
   const [headerDraft, setHeaderDraft] = useState({
     name: '', client_name: '', client_email: '', client_phone: '',
+    client_address: '', client_vat_number: '', client_sdi_code: '',
     event_date: '', event_start_time: '', event_end_time: '', location: '', guests_count: '',
   })
   const [savingHeader, setSavingHeader] = useState(false)
@@ -60,6 +69,8 @@ function EventDetailPageInner() {
   const [savingScenario, setSavingScenario] = useState(false)
   const [calcingCosts, setCalcingCosts] = useState(false)
   const [emailModalOpen, setEmailModalOpen] = useState(false)
+  const [generatingQuote, setGeneratingQuote] = useState(false)
+  const [quoteError, setQuoteError] = useState<string | null>(null)
   const [missingDraft, setMissingDraft] = useState<Record<string, string>>({})
   const [savingMissing, setSavingMissing] = useState(false)
   const [menuPhase, setMenuPhase] = useState<MenuPhase>('categorie')
@@ -205,6 +216,9 @@ function EventDetailPageInner() {
       client_name: event.client_name ?? '',
       client_email: event.client_email ?? '',
       client_phone: event.client_phone ?? '',
+      client_address: event.client_address ?? '',
+      client_vat_number: event.client_vat_number ?? '',
+      client_sdi_code: event.client_sdi_code ?? '',
       event_date: event.event_date ?? '',
       event_start_time: event.event_start_time ?? '',
       event_end_time: event.event_end_time ?? '',
@@ -222,6 +236,9 @@ function EventDetailPageInner() {
       client_name: headerDraft.client_name.trim() || null,
       client_email: headerDraft.client_email.trim() || null,
       client_phone: headerDraft.client_phone.trim() || null,
+      client_address: headerDraft.client_address.trim() || null,
+      client_vat_number: headerDraft.client_vat_number.trim() || null,
+      client_sdi_code: headerDraft.client_sdi_code.trim() || null,
       event_date: headerDraft.event_date || null,
       event_start_time: headerDraft.event_start_time || null,
       event_end_time: headerDraft.event_end_time || null,
@@ -564,6 +581,48 @@ function EventDetailPageInner() {
     window.open(`/events/${id}/export?format=excel${scenarioParam}`, '_blank')
   }
 
+  function downloadBase64Pdf(base64: string, filename: string) {
+    const bytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0))
+    const blob = new Blob([bytes], { type: 'application/pdf' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = filename
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    URL.revokeObjectURL(url)
+  }
+
+  // Genera il preventivo PDF formale (e il menu allegato, se l'evento ha voci menu)
+  // precompilando tutto dai dati gia' salvati sull'evento — senza ridigitarli a mano
+  // nel form separato /proposte/preventivo.
+  async function generateQuotePdf() {
+    setQuoteError(null)
+    setGeneratingQuote(true)
+    try {
+      const res = await fetch(`/api/events/${id}/quote`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
+      })
+      if (!res.ok) {
+        const body = await res.json().catch(() => null)
+        throw new Error(body?.error || 'Errore nella generazione del preventivo')
+      }
+      const data = await res.json() as {
+        quote: { base64: string; filename: string }
+        menu: { base64: string; filename: string } | null
+      }
+      downloadBase64Pdf(data.quote.base64, data.quote.filename)
+      if (data.menu) downloadBase64Pdf(data.menu.base64, data.menu.filename)
+    } catch (err) {
+      setQuoteError(err instanceof Error ? err.message : 'Errore nella generazione del preventivo')
+    } finally {
+      setGeneratingQuote(false)
+    }
+  }
+
   function buildMessageText() {
     const date = event?.event_date ? new Date(event.event_date).toLocaleDateString('it-IT', { day: '2-digit', month: 'long', year: 'numeric' }) : '—'
     const guests = event?.guests_count ? `${event.guests_count} ospiti` : ''
@@ -653,6 +712,33 @@ function EventDetailPageInner() {
                     className="input py-1.5 text-sm"
                     value={headerDraft.client_phone}
                     onChange={(e) => setHeaderDraft((d) => ({ ...d, client_phone: e.target.value }))}
+                  />
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="label">Indirizzo cliente</label>
+                  <input
+                    className="input py-1.5 text-sm"
+                    placeholder="Per il preventivo PDF"
+                    value={headerDraft.client_address}
+                    onChange={(e) => setHeaderDraft((d) => ({ ...d, client_address: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <label className="label">P. IVA</label>
+                  <input
+                    className="input py-1.5 text-sm"
+                    placeholder="Per il preventivo PDF"
+                    value={headerDraft.client_vat_number}
+                    onChange={(e) => setHeaderDraft((d) => ({ ...d, client_vat_number: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <label className="label">Codice SDI</label>
+                  <input
+                    className="input py-1.5 text-sm"
+                    placeholder="Per il preventivo PDF"
+                    value={headerDraft.client_sdi_code}
+                    onChange={(e) => setHeaderDraft((d) => ({ ...d, client_sdi_code: e.target.value }))}
                   />
                 </div>
                 <div>
@@ -1232,6 +1318,32 @@ function EventDetailPageInner() {
           {/* Tab: Export */}
           {tab === 'export' && (
             <div className="card">
+              <h2 className="font-semibold text-dm-ink/80 mb-1">Preventivo cliente</h2>
+              <p className="text-xs text-slate-400 mb-4">
+                Il documento formale da inviare al cliente (dati cliente, clausole contrattuali, spazio firma) — diverso dall&apos;export interno qui sotto, che è per uso aziendale.
+              </p>
+              <div className="mb-6 flex items-center gap-3 flex-wrap">
+                <button
+                  type="button"
+                  onClick={generateQuotePdf}
+                  disabled={generatingQuote}
+                  className="flex items-center gap-2 text-sm font-medium bg-dm-yellow hover:bg-dm-yellow-dark text-dm-ink px-4 py-2 rounded-xl transition-colors disabled:opacity-40"
+                >
+                  {generatingQuote ? <Loader2 size={15} className="animate-spin" /> : <FileCheck size={15} />}
+                  {generatingQuote ? 'Generazione in corso...' : 'Genera preventivo PDF'}
+                </button>
+                {menuCategories.length === 0 && (
+                  <p className="text-xs text-slate-400">Nessun piatto nel tab &quot;Menu&quot;: verrà generato solo il preventivo, senza menu allegato.</p>
+                )}
+              </div>
+              {quoteError && <p className="text-sm text-red-600 mb-4">{quoteError}</p>}
+              {event && BILLING_FIELDS.some(({ key }) => !event[key]) && (
+                <p className="text-xs text-slate-400 mb-4">
+                  Dati di fatturazione non compilati ({BILLING_FIELDS.filter(({ key }) => !event[key]).map((f) => f.label).join(', ')}): il PDF li mostrerà vuoti.{' '}
+                  <button type="button" className="text-dm-maroon hover:underline" onClick={openHeaderEdit}>Compilali ora</button>
+                </p>
+              )}
+
               <h2 className="font-semibold text-dm-ink/80 mb-6">Esporta preventivo</h2>
 
               {missingFields.length > 0 && (
