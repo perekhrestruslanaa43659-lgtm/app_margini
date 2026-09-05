@@ -7,11 +7,10 @@ import { loadEventMealSections } from '@/lib/eventMenu'
 import type { QuoteLang } from '@/lib/pdf/i18n'
 import type { Event } from '@/lib/supabase/types'
 
-// Genera SOLO il PDF "menu proposta" (stile SKILLS-STILE.md) dai piatti/categorie gia'
-// compilati nel tab "Menu" della scheda evento — passaggio intermedio prima di procedere
-// al preventivo formale nel tab Export (/api/events/[id]/quote, che genera entrambi i
-// PDF insieme). Usa la stessa conversione event_menu_categories/items -> MealSection[]
-// di quella route, condivisa via src/lib/eventMenu.ts.
+// Genera SOLO il PDF "menu proposta" (stile SKILLS-STILE.md) dal menu gia' compilato
+// nel tab "Menu" della scheda evento (events.menu_sections) — passaggio intermedio prima
+// di procedere al preventivo formale nel tab Export (/api/events/[id]/quote, che genera
+// entrambi i PDF insieme). Condivide la lettura con quella route via src/lib/eventMenu.ts.
 
 interface MenuFromEventBody {
   lang?: QuoteLang
@@ -47,7 +46,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: 'Evento non trovato' }, { status: 404 })
   }
 
-  const sections = await loadEventMealSections(supabase, event)
+  const sections = loadEventMealSections(event)
   if (sections.length === 0) {
     return NextResponse.json({ error: 'Nessun piatto nel tab Menu: aggiungi almeno una categoria con un piatto prima di generare il PDF' }, { status: 400 })
   }

@@ -3,10 +3,10 @@
 import { useEffect, useState, useMemo } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Download, FileSpreadsheet, FileCheck, Plus, Trash2, Mail, MessageCircle, CalendarDays, Zap, AlertTriangle, EyeOff, ListChecks, Pencil, X, Check, Loader2 } from 'lucide-react'
+import { ArrowLeft, Download, FileSpreadsheet, FileCheck, Plus, Trash2, Mail, MessageCircle, CalendarDays, Zap, AlertTriangle, EyeOff, Pencil, X, Check, Loader2, Save } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { isSupabaseConfigured } from '@/lib/supabase/config'
-import type { Event, EventItem, MarginScenario, ScenarioOverride, EventStatus, CatalogItem, ItemType, Room, EventMenuCategory, EventMenuItem, MenuCategoryTemplate, MenuSelectionType } from '@/lib/supabase/types'
+import type { Event, EventItem, MarginScenario, ScenarioOverride, EventStatus, CatalogItem, ItemType, Room } from '@/lib/supabase/types'
 import { computeMargin, formatCurrency } from '@/lib/margin'
 import { formatTimeRange } from '@/lib/timeOverlap'
 import { MarginBadge } from '@/components/ui/MarginBadge'
@@ -16,9 +16,10 @@ import { CatalogImportModal } from '@/components/events/CatalogImportModal'
 import { EmailModal } from '@/components/events/EmailModal'
 import { SetupBanner } from '@/components/ui/SetupBanner'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from 'recharts'
+import { SectionsEditor } from '@/components/proposte/SectionsEditor'
+import { type MealSection, type FoodCostByDish, planPrice, planCost, planMargin, planMarginPct } from '@/lib/proposalHtml'
 
 type Tab = 'preventivo' | 'menu' | 'scenari' | 'export' | 'note'
-type MenuPhase = 'categorie' | 'piatti' | 'margini'
 
 interface DraftItem extends Omit<EventItem, 'id' | 'event_id'> {
   _key: string
@@ -75,38 +76,35 @@ function EventDetailPageInner() {
   const [menuPdfError, setMenuPdfError] = useState<string | null>(null)
   const [missingDraft, setMissingDraft] = useState<Record<string, string>>({})
   const [savingMissing, setSavingMissing] = useState(false)
-  const [menuPhase, setMenuPhase] = useState<MenuPhase>('categorie')
-  const [menuCategories, setMenuCategories] = useState<EventMenuCategory[]>([])
-  const [menuItems, setMenuItems] = useState<EventMenuItem[]>([])
-  const [categoryTemplates, setCategoryTemplates] = useState<MenuCategoryTemplate[]>([])
-  const [templatePickerOpen, setTemplatePickerOpen] = useState(false)
-  const [selectedTemplates, setSelectedTemplates] = useState<Set<string>>(new Set())
-  const [savingCategory, setSavingCategory] = useState(false)
-  const [dishModal, setDishModal] = useState<{ open: boolean; categoryId: string | null }>({ open: false, categoryId: null })
-  const [foodCostByDish, setFoodCostByDish] = useState<Record<string, number>>({})
+  const [catalog, setCatalog] = useState<CatalogItem[]>([])
+  const [menuSections, setMenuSections] = useState<MealSection[]>([])
+  const [savingMenu, setSavingMenu] = useState(false)
+  const [showMargins, setShowMargins] = useState(false)
+  const [foodCostByDish, setFoodCostByDish] = useState<FoodCostByDish>(new Map())
 
   async function fetchAll() {
     setLoading(true)
-    const [{ data: ev }, { data: it }, { data: sc }, { data: rm }, { data: mc }, { data: tpl }] = await Promise.all([
+    const [{ data: ev }, { data: it }, { data: sc }, { data: rm }, { data: cat }] = await Promise.all([
       sb.from('events').select('*').eq('id', id).single(),
       sb.from('event_items').select('*').eq('event_id', id),
       sb.from('margin_scenarios').select('*').eq('event_id', id),
       sb.from('rooms').select('*').order('name'),
-      sb.from('event_menu_categories').select('*').eq('event_id', id).order('sort_order'),
-      sb.from('menu_category_templates').select('*').order('sort_order'),
+      sb.from('catalog_items').select('*').order('category').order('name'),
     ])
     const evTyped = ev as unknown as Event | null
     const itTyped = (it ?? []) as unknown as EventItem[]
     const scTyped = (sc ?? []) as unknown as MarginScenario[]
     const rmTyped = (rm ?? []) as unknown as Room[]
-    const mcTyped = (mc ?? []) as unknown as EventMenuCategory[]
-    const tplTyped = (tpl ?? []) as unknown as MenuCategoryTemplate[]
-    if (evTyped) { setEvent(evTyped); setNoteText(evTyped.notes ?? '') }
+    const catTyped = (cat ?? []) as unknown as CatalogItem[]
+    if (evTyped) {
+      setEvent(evTyped)
+      setNoteText(evTyped.notes ?? '')
+      setMenuSections((evTyped.menu_sections ?? []) as MealSection[])
+    }
     setItems(itTyped.map((i) => ({ ...i, _key: i.id })))
     setScenarios(scTyped)
     setRooms(rmTyped)
-    setMenuCategories(mcTyped)
-    setCategoryTemplates(tplTyped)
+    setCatalog(catTyped)
 
     if (scTyped.length > 0) {
       const { data: ov } = await sb
@@ -118,32 +116,20 @@ function EventDetailPageInner() {
       setOverrides([])
     }
 
-    if (mcTyped.length > 0) {
-      const { data: mi } = await sb
-        .from('event_menu_items')
-        .select('*')
-        .in('category_id', mcTyped.map((c) => c.id))
-        .order('sort_order')
-      const miTyped = (mi ?? []) as unknown as EventMenuItem[]
-      setMenuItems(miTyped)
-
-      if (miTyped.length > 0) {
-        const dishNames = Array.from(new Set(miTyped.map((m) => m.dish_name)))
-        const { data: recipeLines } = await sb
-          .from('recipe_items')
-          .select('dish_name, quantity, ingredient:ingredients(cost_per_unit)')
-          .in('dish_name', dishNames)
-        const costByDish: Record<string, number> = {}
-        for (const r of (recipeLines ?? []) as { dish_name: string; quantity: number; ingredient: { cost_per_unit: number } | null }[]) {
-          costByDish[r.dish_name] = (costByDish[r.dish_name] ?? 0) + r.quantity * (r.ingredient?.cost_per_unit ?? 0)
-        }
-        setFoodCostByDish(costByDish)
-      } else {
-        setFoodCostByDish({})
+    const dishNames = Array.from(new Set(catTyped.map((c) => c.name)))
+    if (dishNames.length > 0) {
+      const { data: recipeLines } = await sb
+        .from('recipe_items')
+        .select('dish_name, quantity, ingredient:ingredients(cost_per_unit)')
+        .in('dish_name', dishNames)
+      const costByDish: FoodCostByDish = new Map()
+      for (const r of (recipeLines ?? []) as { dish_name: string; quantity: number; ingredient: { cost_per_unit: number } | null }[]) {
+        const key = r.dish_name.trim().toLowerCase()
+        costByDish.set(key, (costByDish.get(key) ?? 0) + r.quantity * (r.ingredient?.cost_per_unit ?? 0))
       }
+      setFoodCostByDish(costByDish)
     } else {
-      setMenuItems([])
-      setFoodCostByDish({})
+      setFoodCostByDish(new Map())
     }
 
     setLoading(false)
@@ -279,125 +265,44 @@ function EventDetailPageInner() {
     setSavingNote(false)
   }
 
-  async function addMenuCategory() {
-    setSavingCategory(true)
-    const { data } = await sb
-      .from('event_menu_categories')
-      .insert({
-        event_id: id,
-        name: '',
-        selection_type: 'a_scelta' as MenuSelectionType,
-        price_per_guest: null,
-        sort_order: menuCategories.length,
-      })
-      .select()
-      .single()
-    if (data) setMenuCategories((prev) => [...prev, data as unknown as EventMenuCategory])
-    setSavingCategory(false)
+  function handleMenuSectionsChange(updater: (prev: MealSection[]) => MealSection[]) {
+    setMenuSections(updater)
   }
 
-  async function updateMenuCategory(catId: string, field: 'name' | 'selection_type' | 'price_per_guest', value: unknown) {
-    await sb.from('event_menu_categories').update({ [field]: value }).eq('id', catId)
-    setMenuCategories((prev) => prev.map((c) => c.id === catId ? { ...c, [field]: value } : c))
+  async function saveMenuSections() {
+    setSavingMenu(true)
+    await sb.from('events').update({ menu_sections: menuSections }).eq('id', id)
+    setSavingMenu(false)
   }
 
-  async function deleteMenuCategory(catId: string) {
-    await sb.from('event_menu_categories').delete().eq('id', catId)
-    setMenuCategories((prev) => prev.filter((c) => c.id !== catId))
-    setMenuItems((prev) => prev.filter((i) => i.category_id !== catId))
-  }
-
-  function toggleTemplateSelection(templateId: string) {
-    setSelectedTemplates((prev) => {
-      const next = new Set(prev)
-      if (next.has(templateId)) { next.delete(templateId) } else { next.add(templateId) }
-      return next
-    })
-  }
-
-  async function importSelectedTemplates() {
-    const toImport = categoryTemplates.filter((t) => selectedTemplates.has(t.id))
-    if (toImport.length === 0) return
-    setSavingCategory(true)
-    const rows = toImport.map((t, i) => ({
-      event_id: id,
-      name: t.name,
-      selection_type: t.selection_type,
-      price_per_guest: null,
-      sort_order: menuCategories.length + i,
-    }))
-    const { data } = await sb.from('event_menu_categories').insert(rows).select()
-    if (data) setMenuCategories((prev) => [...prev, ...(data as unknown as EventMenuCategory[])])
-    setSelectedTemplates(new Set())
-    setTemplatePickerOpen(false)
-    setSavingCategory(false)
-  }
-
-  async function addMenuItems(categoryId: string, catalogItems: CatalogItem[]) {
-    if (catalogItems.length === 0) return
-    const existingCount = menuItems.filter((i) => i.category_id === categoryId).length
-    const rows = catalogItems.map((it, i) => ({
-      category_id: categoryId,
-      dish_name: it.name,
-      unit_price: it.unit_price,
-      sort_order: existingCount + i,
-    }))
-    const { data } = await sb.from('event_menu_items').insert(rows).select()
-    if (data) {
-      const newItems = data as unknown as EventMenuItem[]
-      setMenuItems((prev) => [...prev, ...newItems])
-      const dishNames = newItems.map((m) => m.dish_name)
-      const { data: recipeLines } = await sb
-        .from('recipe_items')
-        .select('dish_name, quantity, ingredient:ingredients(cost_per_unit)')
-        .in('dish_name', dishNames)
-      const costByDish: Record<string, number> = {}
-      for (const r of (recipeLines ?? []) as { dish_name: string; quantity: number; ingredient: { cost_per_unit: number } | null }[]) {
-        costByDish[r.dish_name] = (costByDish[r.dish_name] ?? 0) + r.quantity * (r.ingredient?.cost_per_unit ?? 0)
-      }
-      setFoodCostByDish((prev) => ({ ...prev, ...costByDish }))
-    }
-  }
-
-  async function removeMenuItem(itemId: string) {
-    await sb.from('event_menu_items').delete().eq('id', itemId)
-    setMenuItems((prev) => prev.filter((i) => i.id !== itemId))
-  }
-
-  function menuItemsFor(categoryId: string) {
-    return menuItems.filter((i) => i.category_id === categoryId)
-  }
-
+  // Margine per fascia prezzo: ogni sezione (momento) puo' avere piu' fasce (Classico/Preferito/...),
+  // ciascuna col proprio margine calcolato dai food cost del catalogo.
   const menuMargins = useMemo(() => {
     const guests = event?.guests_count ?? 1
-    const perCategory = menuCategories.map((cat) => {
-      const items = menuItemsFor(cat.id)
-      const foodCosts = items.map((it) => foodCostByDish[it.dish_name] ?? 0)
-      const costPerGuest = cat.selection_type === 'a_scelta'
-        ? (foodCosts.length > 0 ? Math.max(...foodCosts) : 0)
-        : foodCosts.reduce((a, b) => a + b, 0)
-      const revenuePerGuest = cat.selection_type === 'a_scelta'
-        ? (cat.price_per_guest ?? 0)
-        : items.reduce((sum, it) => sum + it.unit_price, 0)
-      const marginPerGuest = revenuePerGuest - costPerGuest
-      const marginPct = revenuePerGuest > 0 ? (marginPerGuest / revenuePerGuest) * 100 : 0
-      return {
-        category: cat,
-        costPerGuest,
-        revenuePerGuest,
-        marginPerGuest,
-        marginPct,
-        costTotal: costPerGuest * guests,
-        revenueTotal: revenuePerGuest * guests,
-        marginTotal: marginPerGuest * guests,
-      }
-    })
-    const totalRevenuePerGuest = perCategory.reduce((sum, c) => sum + c.revenuePerGuest, 0)
-    const totalCostPerGuest = perCategory.reduce((sum, c) => sum + c.costPerGuest, 0)
+    const perPlan = menuSections.flatMap((section) =>
+      section.plans
+        .filter((plan) => plan.groups.some((g) => g.items.length > 0))
+        .map((plan) => {
+          const revenuePerGuest = planPrice(plan)
+          const costPerGuest = planCost(plan, foodCostByDish)
+          const marginPerGuest = planMargin(plan, foodCostByDish)
+          const marginPct = planMarginPct(plan, foodCostByDish)
+          return {
+            sectionLabel: section.label,
+            planName: plan.name || 'Fascia senza nome',
+            costPerGuest,
+            revenuePerGuest,
+            marginPerGuest,
+            marginPct,
+          }
+        })
+    )
+    const totalRevenuePerGuest = perPlan.reduce((sum, p) => sum + p.revenuePerGuest, 0)
+    const totalCostPerGuest = perPlan.reduce((sum, p) => sum + p.costPerGuest, 0)
     const totalMarginPerGuest = totalRevenuePerGuest - totalCostPerGuest
     const totalMarginPct = totalRevenuePerGuest > 0 ? (totalMarginPerGuest / totalRevenuePerGuest) * 100 : 0
     return {
-      perCategory,
+      perPlan,
       totalRevenuePerGuest,
       totalCostPerGuest,
       totalMarginPerGuest,
@@ -406,8 +311,7 @@ function EventDetailPageInner() {
       totalCost: totalCostPerGuest * guests,
       totalMargin: totalMarginPerGuest * guests,
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [menuCategories, menuItems, foodCostByDish, event])
+  }, [menuSections, foodCostByDish, event])
 
   async function autoAddCost(dishName: string, quantity: number) {
     const { data: recipeLines } = await sb
@@ -984,194 +888,56 @@ function EventDetailPageInner() {
 
           {/* Tab: Menu */}
           {tab === 'menu' && (
-            <div className="card">
-              <div className="flex items-center justify-between gap-3 flex-wrap mb-5">
-                <div className="flex items-center gap-1 bg-slate-50 rounded-xl p-1 border border-slate-100 w-fit">
-                  {([
-                    { key: 'categorie', label: '1. Categorie' },
-                    { key: 'piatti', label: '2. Piatti' },
-                    { key: 'margini', label: '3. Margini' },
-                  ] as { key: MenuPhase; label: string }[]).map(({ key, label }) => (
+            <div>
+              <div className="card mb-4">
+                <div className="flex items-center justify-between gap-3 flex-wrap">
+                  <button
+                    type="button"
+                    onClick={() => setShowMargins((v) => !v)}
+                    className={`flex items-center gap-1.5 text-xs font-medium px-3.5 py-2 rounded-lg transition-colors
+                      ${showMargins ? 'bg-dm-maroon text-white' : 'bg-dm-maroon/10 text-dm-maroon hover:bg-dm-maroon/20'}`}
+                  >
+                    <EyeOff size={13} /> {showMargins ? 'Nascondi margini' : 'Mostra margini (solo interno)'}
+                  </button>
+                  <div className="flex items-center gap-2">
                     <button
-                      key={key}
-                      onClick={() => setMenuPhase(key)}
-                      className={`px-3.5 py-1.5 rounded-lg text-xs font-medium transition-colors
-                        ${menuPhase === key ? 'bg-dm-yellow text-dm-ink' : 'text-slate-500 hover:text-dm-ink'}`}
+                      type="button"
+                      onClick={saveMenuSections}
+                      disabled={savingMenu}
+                      className="flex items-center gap-1.5 text-xs font-medium bg-dm-cream hover:bg-dm-yellow/40 text-dm-ink px-3.5 py-2 rounded-lg transition-colors disabled:opacity-40"
                     >
-                      {label}
-                    </button>
-                  ))}
-                </div>
-                <button
-                  type="button"
-                  onClick={generateMenuPdf}
-                  disabled={generatingMenu || menuCategories.length === 0}
-                  className="flex items-center gap-1.5 text-xs font-medium bg-dm-ink hover:bg-dm-maroon-dark text-white px-3.5 py-2 rounded-lg transition-colors disabled:opacity-40"
-                >
-                  {generatingMenu ? <Loader2 size={13} className="animate-spin" /> : <FileCheck size={13} />}
-                  {generatingMenu ? 'Generazione...' : 'Genera menu PDF'}
-                </button>
-              </div>
-              {menuPdfError && <p className="text-xs text-red-600 mb-4">{menuPdfError}</p>}
-
-              {/* Fase 1: Categorie */}
-              {menuPhase === 'categorie' && (
-                <div>
-                  {menuCategories.length === 0 ? (
-                    <p className="text-sm text-slate-400 py-4 text-center">Nessuna categoria menu. Aggiungine una o carica da template.</p>
-                  ) : (
-                    <div className="space-y-2 mb-4">
-                      {menuCategories.map((cat) => (
-                        <div key={cat.id} className="flex flex-col sm:flex-row gap-2 items-start sm:items-center border border-slate-100 rounded-xl p-3">
-                          <input
-                            className="input py-1.5 text-sm flex-1"
-                            placeholder="Nome categoria"
-                            value={cat.name}
-                            onChange={(e) => setMenuCategories((prev) => prev.map((c) => c.id === cat.id ? { ...c, name: e.target.value } : c))}
-                            onBlur={(e) => updateMenuCategory(cat.id, 'name', e.target.value)}
-                          />
-                          <select
-                            className="input py-1.5 text-sm w-40"
-                            value={cat.selection_type}
-                            onChange={(e) => updateMenuCategory(cat.id, 'selection_type', e.target.value as MenuSelectionType)}
-                          >
-                            <option value="a_scelta">A scelta</option>
-                            <option value="tutti_inclusi">Tutti inclusi</option>
-                          </select>
-                          {cat.selection_type === 'a_scelta' && (
-                            <div className="flex items-center gap-1.5">
-                              <input
-                                type="number"
-                                step="any"
-                                className="input py-1.5 text-sm w-28 text-right"
-                                placeholder="€/persona"
-                                value={cat.price_per_guest ?? ''}
-                                onChange={(e) => setMenuCategories((prev) => prev.map((c) => c.id === cat.id ? { ...c, price_per_guest: e.target.value === '' ? null : parseFloat(e.target.value) } : c))}
-                                onBlur={(e) => updateMenuCategory(cat.id, 'price_per_guest', e.target.value === '' ? null : parseFloat(e.target.value))}
-                              />
-                              <span className="text-xs text-slate-400">/pers.</span>
-                            </div>
-                          )}
-                          <button className="text-slate-300 hover:text-red-500 transition-colors shrink-0" onClick={() => deleteMenuCategory(cat.id)}>
-                            <Trash2 size={14} />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  <div className="flex items-center gap-3">
-                    <button className="btn-secondary flex items-center gap-1.5 text-xs py-1.5" onClick={addMenuCategory} disabled={savingCategory}>
-                      <Plus size={13} /> Aggiungi categoria
+                      {savingMenu ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
+                      {savingMenu ? 'Salvataggio...' : 'Salva menu'}
                     </button>
                     <button
-                      className="flex items-center gap-1.5 text-xs py-1.5 px-3 rounded-lg border border-dm-wood/30 text-dm-wood hover:bg-dm-wood/10 transition-colors font-medium"
-                      onClick={() => setTemplatePickerOpen(true)}
+                      type="button"
+                      onClick={generateMenuPdf}
+                      disabled={generatingMenu || menuSections.length === 0}
+                      className="flex items-center gap-1.5 text-xs font-medium bg-dm-ink hover:bg-dm-maroon-dark text-white px-3.5 py-2 rounded-lg transition-colors disabled:opacity-40"
                     >
-                      <ListChecks size={13} /> Carica da template
+                      {generatingMenu ? <Loader2 size={13} className="animate-spin" /> : <FileCheck size={13} />}
+                      {generatingMenu ? 'Generazione...' : 'Genera menu PDF'}
                     </button>
                   </div>
-
-                  {templatePickerOpen && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-                      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md mx-4 flex flex-col max-h-[80vh]">
-                        <div className="flex items-center justify-between p-4 border-b border-slate-100">
-                          <h2 className="font-semibold text-dm-ink">Carica categorie da template</h2>
-                          <button onClick={() => setTemplatePickerOpen(false)} className="text-slate-400 hover:text-dm-ink/80">✕</button>
-                        </div>
-                        <div className="flex-1 overflow-y-auto p-4 space-y-1">
-                          {categoryTemplates.length === 0 ? (
-                            <p className="text-center text-slate-400 text-sm py-8">
-                              Nessun template. Configurali in <Link href="/settings" className="text-dm-maroon hover:underline">Impostazioni</Link>.
-                            </p>
-                          ) : (
-                            categoryTemplates.map((t) => (
-                              <label key={t.id} className="flex items-center gap-3 p-2 rounded-xl hover:bg-slate-50 cursor-pointer">
-                                <input
-                                  type="checkbox"
-                                  checked={selectedTemplates.has(t.id)}
-                                  onChange={() => toggleTemplateSelection(t.id)}
-                                  className="rounded"
-                                />
-                                <span className="text-sm font-medium text-dm-ink/80 flex-1">{t.name}</span>
-                                <span className="badge bg-dm-cream text-dm-ink/70">{t.selection_type === 'a_scelta' ? 'A scelta' : 'Tutti inclusi'}</span>
-                              </label>
-                            ))
-                          )}
-                        </div>
-                        <div className="p-4 border-t border-slate-100 flex justify-end gap-3">
-                          <button className="btn-secondary" onClick={() => { setTemplatePickerOpen(false); setSelectedTemplates(new Set()) }}>Annulla</button>
-                          <button className="btn-primary" onClick={importSelectedTemplates} disabled={selectedTemplates.size === 0 || savingCategory}>
-                            Carica {selectedTemplates.size > 0 ? `(${selectedTemplates.size})` : ''}
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  )}
                 </div>
-              )}
+                {menuPdfError && <p className="text-xs text-red-600 mt-3">{menuPdfError}</p>}
+              </div>
 
-              {/* Fase 2: Piatti per categoria */}
-              {menuPhase === 'piatti' && (
-                <div>
-                  {menuCategories.length === 0 ? (
-                    <p className="text-sm text-slate-400 py-4 text-center">Crea prima le categorie nella fase 1.</p>
-                  ) : (
-                    <div className="space-y-4">
-                      {menuCategories.map((cat) => (
-                        <div key={cat.id} className="border border-slate-100 rounded-xl p-3">
-                          <div className="flex items-center justify-between mb-2">
-                            <div className="flex items-center gap-2">
-                              <span className="text-sm font-semibold text-dm-ink/80">{cat.name || 'Categoria senza nome'}</span>
-                              <span className="badge bg-dm-cream text-dm-ink/70">{cat.selection_type === 'a_scelta' ? 'A scelta' : 'Tutti inclusi'}</span>
-                            </div>
-                            <button
-                              className="flex items-center gap-1.5 text-xs py-1 px-2.5 rounded-lg bg-dm-yellow hover:bg-dm-yellow-dark text-dm-ink font-medium transition-colors"
-                              onClick={() => setDishModal({ open: true, categoryId: cat.id })}
-                            >
-                              <Plus size={13} /> Aggiungi piatto
-                            </button>
-                          </div>
-                          {menuItemsFor(cat.id).length === 0 ? (
-                            <p className="text-xs text-slate-400 py-2 text-center">Nessun piatto in questa categoria.</p>
-                          ) : (
-                            <div className="space-y-1">
-                              {menuItemsFor(cat.id).map((it) => (
-                                <div key={it.id} className="flex items-center gap-3 bg-slate-50 border border-slate-100 rounded-lg px-3 py-1.5">
-                                  <span className="text-sm text-dm-ink/80 flex-1">{it.dish_name}</span>
-                                  {cat.selection_type === 'tutti_inclusi' && (
-                                    <span className="text-sm text-slate-600">{formatCurrency(it.unit_price)}</span>
-                                  )}
-                                  <button className="text-slate-300 hover:text-red-500 transition-colors shrink-0" onClick={() => removeMenuItem(it.id)}>
-                                    <Trash2 size={13} />
-                                  </button>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Fase 3: Margini (solo interno) */}
-              {menuPhase === 'margini' && (
-                <div>
+              {showMargins && (
+                <div className="card mb-4">
                   <div className="flex items-center gap-2 bg-dm-maroon/10 border border-dm-maroon/20 rounded-xl px-3.5 py-2.5 mb-4">
                     <EyeOff size={14} className="text-dm-maroon shrink-0" />
                     <p className="text-xs text-dm-maroon font-medium">Vista solo interna: questi dati non compaiono mai nel PDF cliente.</p>
                   </div>
 
-                  {menuCategories.length === 0 ? (
-                    <p className="text-sm text-slate-400 py-4 text-center">Nessuna categoria menu configurata.</p>
+                  {menuMargins.perPlan.length === 0 ? (
+                    <p className="text-sm text-slate-400 py-4 text-center">Nessuna fascia con piatti configurata.</p>
                   ) : (
                     <>
                       <div className="space-y-2 mb-4">
-                        {menuMargins.perCategory.map(({ category, costPerGuest, revenuePerGuest, marginPerGuest, marginPct }) => (
-                          <div key={category.id} className="flex items-center gap-3 border border-slate-100 rounded-xl px-3.5 py-2.5">
-                            <span className="text-sm font-medium text-dm-ink/80 flex-1">{category.name || 'Categoria senza nome'}</span>
+                        {menuMargins.perPlan.map(({ sectionLabel, planName, costPerGuest, revenuePerGuest, marginPerGuest, marginPct }, i) => (
+                          <div key={i} className="flex items-center gap-3 border border-slate-100 rounded-xl px-3.5 py-2.5">
+                            <span className="text-sm font-medium text-dm-ink/80 flex-1">{sectionLabel} · {planName}</span>
                             <span className="text-xs text-slate-400">Costo {formatCurrency(costPerGuest)}/pers.</span>
                             <span className="text-xs text-slate-400">Ricavo {formatCurrency(revenuePerGuest)}/pers.</span>
                             <span className="text-xs font-medium text-dm-ink/70">Margine {formatCurrency(marginPerGuest)}/pers.</span>
@@ -1193,6 +959,8 @@ function EventDetailPageInner() {
                   )}
                 </div>
               )}
+
+              <SectionsEditor sections={menuSections} onChange={handleMenuSectionsChange} catalog={catalog} />
             </div>
           )}
 
@@ -1375,7 +1143,7 @@ function EventDetailPageInner() {
                   {generatingQuote ? <Loader2 size={15} className="animate-spin" /> : <FileCheck size={15} />}
                   {generatingQuote ? 'Generazione in corso...' : 'Genera preventivo PDF'}
                 </button>
-                {menuCategories.length === 0 && (
+                {menuSections.length === 0 && (
                   <p className="text-xs text-slate-400">Nessun piatto nel tab &quot;Menu&quot;: verrà generato solo il preventivo, senza menu allegato.</p>
                 )}
               </div>
@@ -1512,13 +1280,6 @@ function EventDetailPageInner() {
         type={catalogModal.type}
         onImport={(items) => importCatalog(catalogModal.type, items)}
         onClose={() => setCatalogModal((p) => ({ ...p, open: false }))}
-      />
-
-      <CatalogImportModal
-        open={dishModal.open}
-        type="ricavo"
-        onImport={(items) => { if (dishModal.categoryId) addMenuItems(dishModal.categoryId, items) }}
-        onClose={() => setDishModal({ open: false, categoryId: null })}
       />
 
       <EmailModal

@@ -59,6 +59,51 @@ export function planPrice(plan: PricePlan): number {
   return plan.groups.reduce((acc, g) => acc + groupPrice(g), 0)
 }
 
+/** Mappa nome piatto (case-insensitive) -> food cost, costruita dal chiamante joinando
+ *  recipe_items/ingredients (vedi src/app/(app)/events/[id]/page.tsx). proposalHtml.ts
+ *  resta puro/senza dipendenze da Supabase: il costo entra sempre da fuori. */
+export type FoodCostByDish = Map<string, number>
+
+function dishFoodCost(name: string, costs: FoodCostByDish): number {
+  return costs.get(name.trim().toLowerCase()) ?? 0
+}
+
+/** Costo di un piatto per il calcolo margine: stessa logica di sharing del prezzo
+ *  (itemEffectivePrice) applicata al food cost invece che al prezzo di vendita. */
+export function itemEffectiveCost(item: PlanItem, group: PlanGroup | undefined, costs: FoodCostByDish): number {
+  const cost = dishFoodCost(item.name, costs)
+  const shared = group ? itemSharedAmong(item, group) : item.sharedAmong
+  return shared && shared > 1 ? cost / shared : cost
+}
+
+/** Costo per persona di un gruppo. Politica: un gruppo 'a scelta' (pricingMode 'media')
+ *  usa il MASSIMO food cost tra i piatti — worst case, coerente col vecchio calcolo
+ *  margini del tab Menu evento (l'ospite potrebbe scegliere il piatto piu' caro); un
+ *  gruppo 'fisso' (tutti i piatti inclusi) somma i costi di tutti i piatti. */
+export function groupCost(group: PlanGroup, costs: FoodCostByDish): number {
+  if (group.items.length === 0) return 0
+  const itemCosts = group.items.map((it) => itemEffectiveCost(it, group, costs))
+  return group.pricingMode === 'media' ? Math.max(...itemCosts) : itemCosts.reduce((a, b) => a + b, 0)
+}
+
+/** Costo per persona di un piano: somma dei costi di ogni gruppo. Un piano a prezzo
+ *  'fisso' (deciso a mano) ha comunque un costo calcolato dai piatti selezionati — il
+ *  margine confronta quel prezzo manuale col costo reale dei gruppi, non lo ignora. */
+export function planCost(plan: PricePlan, costs: FoodCostByDish): number {
+  return plan.groups.reduce((acc, g) => acc + groupCost(g, costs), 0)
+}
+
+/** Margine per persona di un piano: prezzo di vendita meno food cost. */
+export function planMargin(plan: PricePlan, costs: FoodCostByDish): number {
+  return planPrice(plan) - planCost(plan, costs)
+}
+
+/** Percentuale di margine di un piano rispetto al prezzo di vendita (0 se il prezzo è 0). */
+export function planMarginPct(plan: PricePlan, costs: FoodCostByDish): number {
+  const price = planPrice(plan)
+  return price > 0 ? (planMargin(plan, costs) / price) * 100 : 0
+}
+
 export interface ExtraService {
   catalogId: string
   name: string

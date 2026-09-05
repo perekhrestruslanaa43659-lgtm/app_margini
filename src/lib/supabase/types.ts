@@ -17,33 +17,6 @@ export interface CompanySettings {
   updated_at: string
 }
 
-export type MenuSelectionType = 'a_scelta' | 'tutti_inclusi'
-
-export interface MenuCategoryTemplate {
-  id: string
-  name: string
-  selection_type: MenuSelectionType
-  sort_order: number
-  created_at: string
-}
-
-export interface EventMenuCategory {
-  id: string
-  event_id: string
-  name: string
-  selection_type: MenuSelectionType
-  price_per_guest: number | null
-  sort_order: number
-}
-
-export interface EventMenuItem {
-  id: string
-  category_id: string
-  dish_name: string
-  unit_price: number
-  sort_order: number
-}
-
 export interface ProposalTemplate {
   id: string
   name: string
@@ -76,6 +49,12 @@ export interface Event {
   event_start_time: string | null
   event_end_time: string | null
   created_at: string
+  /** Menu dell'evento nello stesso formato MealSection[] di proposal_templates.sections
+   *  (vedi src/lib/proposalHtml.ts) — stesso tipo `any` di ProposalTemplate.sections per
+   *  evitare un ciclo di dipendenze da qui. Sostituisce le vecchie tabelle normalizzate
+   *  event_menu_categories/event_menu_items (una sola fascia di prezzo). */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  menu_sections: any
 }
 
 export interface Room {
@@ -238,24 +217,6 @@ export type Database = {
         Row: Room
         Insert: Omit<Room, 'id' | 'created_at'>
         Update: Partial<Omit<Room, 'id' | 'created_at'>>
-        Relationships: []
-      }
-      menu_category_templates: {
-        Row: MenuCategoryTemplate
-        Insert: Omit<MenuCategoryTemplate, 'id' | 'created_at'>
-        Update: Partial<Omit<MenuCategoryTemplate, 'id' | 'created_at'>>
-        Relationships: []
-      }
-      event_menu_categories: {
-        Row: EventMenuCategory
-        Insert: Omit<EventMenuCategory, 'id'>
-        Update: Partial<Omit<EventMenuCategory, 'id'>>
-        Relationships: []
-      }
-      event_menu_items: {
-        Row: EventMenuItem
-        Insert: Omit<EventMenuItem, 'id'>
-        Update: Partial<Omit<EventMenuItem, 'id'>>
         Relationships: []
       }
       proposal_templates: {

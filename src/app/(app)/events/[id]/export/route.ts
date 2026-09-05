@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { renderToBuffer } from '@react-pdf/renderer'
 import * as XLSX from 'xlsx'
-import type { Event, EventItem, Room, EventMenuCategory, EventMenuItem, MarginScenario, ScenarioOverride } from '@/lib/supabase/types'
+import type { Event, EventItem, Room, MarginScenario, ScenarioOverride } from '@/lib/supabase/types'
 import { computeMargin, formatCurrency } from '@/lib/margin'
 import { getCompanyInfo } from '@/lib/company'
 import { QuotePdfDocument } from '@/lib/pdf/QuotePdfDocument'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { loadEventMealSections } from '@/lib/eventMenu'
 
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   const format = req.nextUrl.searchParams.get('format') === 'excel' ? 'excel' : 'pdf'
@@ -34,17 +35,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     roomName = (room as unknown as Room | null)?.name ?? null
   }
 
-  const { data: mc } = await supabase.from('event_menu_categories').select('*').eq('event_id', params.id).order('sort_order')
-  const menuCategories = (mc ?? []) as unknown as EventMenuCategory[]
-  let menuItems: EventMenuItem[] = []
-  if (menuCategories.length > 0) {
-    const { data: mi } = await supabase
-      .from('event_menu_items')
-      .select('*')
-      .in('category_id', menuCategories.map((c) => c.id))
-      .order('sort_order')
-    menuItems = (mi ?? []) as unknown as EventMenuItem[]
-  }
+  const menuSections = loadEventMealSections(event)
 
   let discountPct = 0
   let scenarioOverrides: ScenarioOverride[] = []
@@ -73,7 +64,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 
   if (format === 'pdf') {
     const buffer = await renderToBuffer(
-      QuotePdfDocument({ event, revenues, totalRevenue: summary.totalRevenue, companyInfo, roomName, menuCategories, menuItems })
+      QuotePdfDocument({ event, revenues, totalRevenue: summary.totalRevenue, companyInfo, roomName, menuSections })
     )
     return new NextResponse(buffer as unknown as BodyInit, {
       headers: {

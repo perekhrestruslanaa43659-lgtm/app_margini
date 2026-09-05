@@ -66,7 +66,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: 'Il nome del cliente non è compilato per questo evento' }, { status: 400 })
   }
 
-  const sections = await loadEventMealSections(supabase, event)
+  const sections = loadEventMealSections(event)
 
   const body: QuoteFromEventBody = await req.json().catch(() => ({}))
   const lang: QuoteLang = body.lang === 'en' ? 'en' : 'it'

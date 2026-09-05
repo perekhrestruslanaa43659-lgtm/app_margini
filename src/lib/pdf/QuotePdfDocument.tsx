@@ -1,7 +1,8 @@
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer'
-import type { Event, EventItem, EventMenuCategory, EventMenuItem } from '@/lib/supabase/types'
+import type { Event, EventItem } from '@/lib/supabase/types'
 import { formatCurrency } from '@/lib/margin'
 import type { CompanyInfo } from '@/lib/company'
+import { type MealSection, type PricePlan, planPrice } from '@/lib/proposalHtml'
 
 // Palette e registro dello skill "Preventivo Evento" (SKILLS-PREVENTIVO.md): stessi
 // token cromatici di ProposalQuotePdfDocument.tsx (il preventivo formale cliente) —
@@ -77,27 +78,26 @@ interface Props {
   totalRevenue: number
   companyInfo: CompanyInfo
   roomName: string | null
-  menuCategories?: EventMenuCategory[]
-  menuItems?: EventMenuItem[]
+  menuSections?: MealSection[]
 }
 
 const MENU_VAT_RATE = 10 // usato solo per il calcolo standalone del menu (nessun campo IVA dedicato nello schema)
 
-export function QuotePdfDocument({ event, revenues, totalRevenue, companyInfo, roomName, menuCategories = [], menuItems = [] }: Props) {
+// Nel menu dell'evento ogni sezione ha in genere una sola fascia di prezzo compilata
+// (a differenza del configuratore /proposte con piu' fasce Classico/Preferito/Generoso):
+// per il preventivo interno mostriamo la prima fascia con piatti di ogni sezione.
+function mainPlan(section: MealSection): PricePlan | null {
+  return section.plans.find((p) => p.groups.some((g) => g.items.length > 0)) ?? section.plans[0] ?? null
+}
+
+export function QuotePdfDocument({ event, revenues, totalRevenue, companyInfo, roomName, menuSections = [] }: Props) {
   const guests = event.guests_count ?? 1
 
-  const menuItemsByCategory = new Map<string, EventMenuItem[]>()
-  for (const it of menuItems) {
-    const list = menuItemsByCategory.get(it.category_id) ?? []
-    list.push(it)
-    menuItemsByCategory.set(it.category_id, list)
-  }
+  const menuRows = menuSections
+    .map((section) => ({ section, plan: mainPlan(section) }))
+    .filter((row): row is { section: MealSection; plan: PricePlan } => row.plan !== null)
 
-  const menuTotalPerGuest = menuCategories.reduce((sum, cat) => {
-    const dishes = menuItemsByCategory.get(cat.id) ?? []
-    if (cat.selection_type === 'a_scelta') return sum + (cat.price_per_guest ?? 0)
-    return sum + dishes.reduce((s, d) => s + d.unit_price, 0)
-  }, 0)
+  const menuTotalPerGuest = menuRows.reduce((sum, { plan }) => sum + planPrice(plan), 0)
   const menuTotal = menuTotalPerGuest * guests
   const menuVat = menuTotal > 0 ? menuTotal * (MENU_VAT_RATE / 100) : 0
 
@@ -151,31 +151,29 @@ export function QuotePdfDocument({ event, revenues, totalRevenue, companyInfo, r
         </View>
 
         {/* Menu */}
-        {menuCategories.length > 0 ? (
+        {menuRows.length > 0 ? (
           <View style={styles.section}>
             <View style={styles.cardTitleRow}>
               <View style={styles.cardTitleBar} />
               <Text style={styles.sectionTitle}>Menu</Text>
             </View>
-            {menuCategories.map((cat) => {
-              const dishes = menuItemsByCategory.get(cat.id) ?? []
-              const dishNames = dishes.map((d) => d.dish_name).join(', ') || '—'
-              return (
-                <View style={styles.menuCategoryBox} key={cat.id}>
-                  <View style={styles.menuCategoryHeader}>
-                    <Text style={styles.menuCategoryName}>{cat.name}</Text>
-                    {cat.selection_type === 'a_scelta' ? (
-                      <Text style={styles.menuCategoryPrice}>{formatCurrency(cat.price_per_guest ?? 0)}/persona</Text>
-                    ) : null}
-                  </View>
-                  <Text style={styles.menuCategoryDishes}>
-                    {cat.selection_type === 'a_scelta'
-                      ? `A scelta tra: ${dishNames}`
-                      : `${dishNames} (inclusi)`}
-                  </Text>
+            {menuRows.map(({ section, plan }) => (
+              <View style={styles.menuCategoryBox} key={section.id}>
+                <View style={styles.menuCategoryHeader}>
+                  <Text style={styles.menuCategoryName}>{section.label}{plan.name ? ` — ${plan.name}` : ''}</Text>
+                  <Text style={styles.menuCategoryPrice}>{formatCurrency(planPrice(plan))}/persona</Text>
                 </View>
-              )
-            })}
+                {plan.groups.map((group) => {
+                  const dishNames = group.items.map((d) => d.name).join(', ') || '—'
+                  return (
+                    <Text style={styles.menuCategoryDishes} key={group.id}>
+                      {group.label ? `${group.label}: ` : ''}
+                      {group.pricingMode === 'media' ? `A scelta tra: ${dishNames}` : `${dishNames} (inclusi)`}
+                    </Text>
+                  )
+                })}
+              </View>
+            ))}
           </View>
         ) : null}
 
