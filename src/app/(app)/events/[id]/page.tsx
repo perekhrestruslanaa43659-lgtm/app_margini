@@ -17,7 +17,7 @@ import { EmailModal } from '@/components/events/EmailModal'
 import { SetupBanner } from '@/components/ui/SetupBanner'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 import { SectionsEditor } from '@/components/proposte/SectionsEditor'
-import { type MealSection, type FoodCostByDish, planPrice, planCost, planMargin, planMarginPct } from '@/lib/proposalHtml'
+import { type MealSection, type FoodCostByDish, type FoodCostByCategory, planPrice, planCost, planMargin, planMarginPct } from '@/lib/proposalHtml'
 
 type Tab = 'preventivo' | 'menu' | 'scenari' | 'export' | 'note'
 
@@ -81,6 +81,7 @@ function EventDetailPageInner() {
   const [savingMenu, setSavingMenu] = useState(false)
   const [showMargins, setShowMargins] = useState(false)
   const [foodCostByDish, setFoodCostByDish] = useState<FoodCostByDish>(new Map())
+  const [foodCostByCategory, setFoodCostByCategory] = useState<FoodCostByCategory>(new Map())
 
   async function fetchAll() {
     setLoading(true)
@@ -128,8 +129,23 @@ function EventDetailPageInner() {
         costByDish.set(key, (costByDish.get(key) ?? 0) + r.quantity * (r.ingredient?.cost_per_unit ?? 0))
       }
       setFoodCostByDish(costByDish)
+
+      // Costo "categoria intera" (es. "Bibite" scelta come opzione unica invece di un
+      // singolo articolo, vedi SectionsEditor addCategoryToPicker): massimo food cost
+      // tra i piatti della categoria che hanno una distinta base, stessa policy worst-case
+      // dei gruppi 'a scelta'.
+      const costByCategory: FoodCostByCategory = new Map()
+      for (const c of catTyped) {
+        if (!c.category) continue
+        const dishCost = costByDish.get(c.name.trim().toLowerCase())
+        if (dishCost === undefined) continue
+        const key = c.category.trim().toLowerCase()
+        costByCategory.set(key, Math.max(costByCategory.get(key) ?? 0, dishCost))
+      }
+      setFoodCostByCategory(costByCategory)
     } else {
       setFoodCostByDish(new Map())
+      setFoodCostByCategory(new Map())
     }
 
     setLoading(false)
@@ -284,9 +300,9 @@ function EventDetailPageInner() {
         .filter((plan) => plan.groups.some((g) => g.items.length > 0))
         .map((plan) => {
           const revenuePerGuest = planPrice(plan)
-          const costPerGuest = planCost(plan, foodCostByDish)
-          const marginPerGuest = planMargin(plan, foodCostByDish)
-          const marginPct = planMarginPct(plan, foodCostByDish)
+          const costPerGuest = planCost(plan, foodCostByDish, foodCostByCategory)
+          const marginPerGuest = planMargin(plan, foodCostByDish, foodCostByCategory)
+          const marginPct = planMarginPct(plan, foodCostByDish, foodCostByCategory)
           return {
             sectionLabel: section.label,
             planName: plan.name || 'Fascia senza nome',
@@ -311,7 +327,7 @@ function EventDetailPageInner() {
       totalCost: totalCostPerGuest * guests,
       totalMargin: totalMarginPerGuest * guests,
     }
-  }, [menuSections, foodCostByDish, event])
+  }, [menuSections, foodCostByDish, foodCostByCategory, event])
 
   async function autoAddCost(dishName: string, quantity: number) {
     const { data: recipeLines } = await sb
@@ -1285,6 +1301,7 @@ function EventDetailPageInner() {
       <EmailModal
         open={emailModalOpen}
         onClose={() => setEmailModalOpen(false)}
+        eventId={id}
         eventName={event.name}
         clientName={event.client_name ?? null}
         clientEmail={event.client_email ?? null}
@@ -1293,6 +1310,7 @@ function EventDetailPageInner() {
         guestsCount={event.guests_count ?? null}
         totalRevenue={summary.totalRevenue}
         menuItems={revenues.map((r) => r.name).filter(Boolean)}
+        hasMenu={menuSections.length > 0}
       />
     </div>
   )

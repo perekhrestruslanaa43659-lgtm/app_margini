@@ -51,9 +51,12 @@ const styles = StyleSheet.create({
   heroTitleAmount: { color: CORAL },
   heroTagline: { fontFamily: 'Poppins', fontWeight: 700, fontSize: 9, textAlign: 'center', maxWidth: 320, marginTop: 6, lineHeight: 1.4 },
 
-  photoWrap: { position: 'relative', marginTop: 16, marginHorizontal: 30, marginBottom: 4 },
-  photoShadow: { position: 'absolute', top: 8, left: 8, right: -8, bottom: -8, borderRadius: 20, backgroundColor: INK, zIndex: 0 },
-  photo: { width: '100%', height: 150, objectFit: 'cover', borderRadius: 20, borderWidth: 2.5, borderColor: INK, zIndex: 1 },
+  // Niente ombra offset qui (a differenza di card/badge): la View sfalsata dietro un
+  // Image causa un bug di stacking in @react-pdf/renderer 4.x che copre la foto con un
+  // rettangolo nero pieno. La sola cornice nera spessa da' comunque un effetto "sticker"
+  // sufficiente.
+  photoWrap: { marginTop: 16, marginHorizontal: 30, marginBottom: 12 },
+  photo: { width: '100%', height: 150, objectFit: 'cover', borderRadius: 20, borderWidth: 2.5, borderColor: INK },
 
   body: { paddingHorizontal: 28, paddingTop: 14, paddingBottom: 20 },
 
@@ -129,7 +132,6 @@ export function ProposalMenuPdfDocument({ sections, lang = 'it', logoSrc, photoS
 
         {photoSrc ? (
           <View style={styles.photoWrap}>
-            <View style={styles.photoShadow} />
             {/* eslint-disable-next-line jsx-a11y/alt-text */}
             <Image src={photoSrc} style={styles.photo} />
           </View>

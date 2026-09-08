@@ -17,6 +17,7 @@ const STYLES: { value: Style; label: string; desc: string }[] = [
 interface Props {
   open: boolean
   onClose: () => void
+  eventId: string
   eventName: string
   clientName: string | null
   clientEmail: string | null
@@ -25,12 +26,14 @@ interface Props {
   guestsCount: number | null
   totalRevenue: number
   menuItems: string[]
+  /** Se true, l'evento ha un menu compilato: mostra l'opzione per allegare anche quel PDF. */
+  hasMenu: boolean
 }
 
 export function EmailModal({
-  open, onClose,
+  open, onClose, eventId,
   eventName, clientName, clientEmail,
-  eventDate, location, guestsCount, totalRevenue, menuItems,
+  eventDate, location, guestsCount, totalRevenue, menuItems, hasMenu,
 }: Props) {
   const [style, setStyle] = useState<Style>('formale')
   const [to, setTo] = useState(clientEmail ?? '')
@@ -40,6 +43,8 @@ export function EmailModal({
   const [sending, setSending] = useState(false)
   const [sendResult, setSendResult] = useState<'idle' | 'success' | 'error'>('idle')
   const [errorMsg, setErrorMsg] = useState('')
+  const [attachQuote, setAttachQuote] = useState(true)
+  const [attachMenu, setAttachMenu] = useState(true)
 
   useEffect(() => {
     if (open) {
@@ -88,10 +93,28 @@ export function EmailModal({
     setSendResult('idle')
     try {
       const authHeaders = await getAuthHeader()
+
+      const attachments: { filename: string; content: string }[] = []
+      if (attachQuote || (attachMenu && hasMenu)) {
+        const quoteRes = await fetch(`/api/events/${eventId}/quote`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', ...authHeaders },
+          body: JSON.stringify({}),
+        })
+        const quoteData = await quoteRes.json()
+        if (quoteData.error) throw new Error(quoteData.error)
+        if (attachQuote && quoteData.quote) {
+          attachments.push({ filename: quoteData.quote.filename, content: quoteData.quote.base64 })
+        }
+        if (attachMenu && hasMenu && quoteData.menu) {
+          attachments.push({ filename: quoteData.menu.filename, content: quoteData.menu.base64 })
+        }
+      }
+
       const res = await fetch('/api/send-email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...authHeaders },
-        body: JSON.stringify({ to, subject, body }),
+        body: JSON.stringify({ to, subject, body, attachments: attachments.length > 0 ? attachments : undefined }),
       })
       const data = await res.json()
       if (data.error) throw new Error(data.error)
@@ -190,6 +213,21 @@ export function EmailModal({
                 value={body}
                 onChange={(e) => setBody(e.target.value)}
               />
+            </div>
+            <div>
+              <label className="label">Allegati</label>
+              <div className="flex flex-col gap-1.5">
+                <label className="flex items-center gap-2 text-sm text-dm-ink/80 cursor-pointer">
+                  <input type="checkbox" className="rounded" checked={attachQuote} onChange={(e) => setAttachQuote(e.target.checked)} />
+                  Preventivo PDF
+                </label>
+                {hasMenu && (
+                  <label className="flex items-center gap-2 text-sm text-dm-ink/80 cursor-pointer">
+                    <input type="checkbox" className="rounded" checked={attachMenu} onChange={(e) => setAttachMenu(e.target.checked)} />
+                    Menu PDF
+                  </label>
+                )}
+              </div>
             </div>
           </div>
 

@@ -9,9 +9,20 @@ const transporter = nodemailer.createTransport({
   },
 })
 
+interface EmailAttachment {
+  filename: string
+  /** PDF in base64, come restituito dalle route /api/events/[id]/quote e /menu. */
+  content: string
+}
+
 export async function POST(req: NextRequest) {
   try {
-    const { to, subject, body } = await req.json()
+    const { to, subject, body, attachments } = await req.json() as {
+      to: string
+      subject: string
+      body: string
+      attachments?: EmailAttachment[]
+    }
 
     if (!to || !subject || !body) {
       return NextResponse.json({ error: 'Campi mancanti' }, { status: 400 })
@@ -27,6 +38,12 @@ export async function POST(req: NextRequest) {
       subject,
       text: body,
       html: `<div style="font-family:Arial,sans-serif;font-size:14px;line-height:1.6;color:#1e293b;max-width:600px">${body.replace(/\n/g, '<br>')}</div>`,
+      attachments: attachments?.map((a) => ({
+        filename: a.filename,
+        content: a.content,
+        encoding: 'base64' as const,
+        contentType: 'application/pdf',
+      })),
     })
 
     return NextResponse.json({ success: true })

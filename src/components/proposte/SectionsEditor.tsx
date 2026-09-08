@@ -9,7 +9,7 @@ import { Plus, Trash2, Search, GripVertical, X } from 'lucide-react'
 import type { CatalogItem } from '@/lib/supabase/types'
 import { formatCurrency } from '@/lib/margin'
 import {
-  planPrice, groupPrice, dishesBySubcategory, itemEffectivePrice, itemSharedAmong,
+  planPrice, groupPrice, dishesBySubcategory, itemEffectivePrice, itemSharedAmong, categoryMaxPrice,
   type MealSection, type PricePlan, type PlanGroup,
 } from '@/lib/proposalHtml'
 
@@ -249,6 +249,33 @@ export function SectionsEditor({ sections, onChange, catalog, renderSectionExtra
               if (g.id !== groupId) return g
               if (g.items.some((it) => it.catalogId === item.id)) return g
               return { ...g, items: [...g.items, { catalogId: item.id, name: item.name, desc: '', price: item.unit_price, category: item.category ?? '' }] }
+            }),
+          }
+        }),
+      }
+    }))
+  }
+
+  /** Aggiunge l'intera categoria selezionata come singola riga "a scelta" (es. "Bibite"
+   *  invece di Coca/Fanta/Sprite una per una) — prezzo congelato al massimo tra gli
+   *  articoli della categoria (worst-case, vedi categoryMaxPrice). */
+  function addCategoryToPicker(category: string) {
+    if (!pickerFor || !category) return
+    const { sectionId, planId, groupId } = pickerFor
+    const catalogId = `cat:${category}`
+    const price = categoryMaxPrice(catalog, category)
+    onChange((prev) => prev.map((s) => {
+      if (s.id !== sectionId) return s
+      return {
+        ...s,
+        plans: s.plans.map((p) => {
+          if (p.id !== planId) return p
+          return {
+            ...p,
+            groups: p.groups.map((g) => {
+              if (g.id !== groupId) return g
+              if (g.items.some((it) => it.catalogId === catalogId)) return g
+              return { ...g, items: [...g.items, { catalogId, name: category, desc: '', price, category, isCategoryPick: true }] }
             }),
           }
         }),
@@ -537,7 +564,12 @@ export function SectionsEditor({ sections, onChange, catalog, renderSectionExtra
                             return (
                               <li key={it.catalogId} className="flex flex-col gap-1 text-xs bg-dm-cream/60 rounded-md px-2 py-1.5">
                                 <div className="flex items-center justify-between gap-2">
-                                  <span className="text-dm-ink/80 truncate">{it.name}</span>
+                                  <span className="text-dm-ink/80 truncate flex items-center gap-1.5">
+                                    {it.name}
+                                    {it.isCategoryPick && (
+                                      <span className="text-[10px] font-medium text-dm-maroon bg-dm-maroon/10 rounded-full px-1.5 py-0.5 shrink-0">categoria</span>
+                                    )}
+                                  </span>
                                   <span className="flex items-center gap-1.5 shrink-0">
                                     <span className="text-slate-400">
                                       {formatCurrency(itemEffectivePrice(it, group))}
@@ -669,6 +701,14 @@ export function SectionsEditor({ sections, onChange, catalog, renderSectionExtra
                   </button>
                 ))}
               </div>
+              {!extraPickerFor && pickerCategory && (
+                <button
+                  className="w-full mt-2 text-xs font-medium text-dm-maroon border border-dashed border-dm-maroon/40 rounded-lg py-1.5 hover:bg-dm-maroon/5 transition-colors"
+                  onClick={() => { addCategoryToPicker(pickerCategory); setPickerFor(null) }}
+                >
+                  Aggiungi &quot;{pickerCategory}&quot; come categoria a scelta (senza elencare i singoli articoli)
+                </button>
+              )}
             </div>
             <div className="overflow-y-auto flex-1 p-2">
               {pickerResults.length === 0 ? (

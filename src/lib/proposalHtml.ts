@@ -8,6 +8,13 @@ export interface PlanItem {
   subgroup?: string
   /** Se impostato, il piatto e' condiviso ogni N persone: il contributo al prezzo a testa e' price / sharedAmong invece del prezzo pieno. Sovrascrive il default del gruppo. */
   sharedAmong?: number
+  /** Se true, questa riga rappresenta un'intera categoria di catalogo (es. "Bibite")
+   *  invece di un singolo articolo — usata per "1 consumazione a scelta tra bibita,
+   *  vino, birra media, drink" senza dover elencare ogni articolo. `catalogId` in
+   *  questo caso e' sintetico ("cat:<nome categoria>"), `price` e' il massimo tra i
+   *  prezzi degli articoli della categoria al momento dell'aggiunta (worst-case, stessa
+   *  policy dei gruppi 'a scelta' tra piatti singoli). */
+  isCategoryPick?: boolean
 }
 
 export type GroupPricingMode = 'fisso' | 'media'
@@ -64,14 +71,29 @@ export function planPrice(plan: PricePlan): number {
  *  resta puro/senza dipendenze da Supabase: il costo entra sempre da fuori. */
 export type FoodCostByDish = Map<string, number>
 
+/** Mappa nome categoria catalogo (case-insensitive) -> food cost MASSIMO tra gli
+ *  articoli di quella categoria, costruita dal chiamante. Usata per le righe
+ *  "categoria intera" (isCategoryPick), dove non esiste un piatto puntuale da cercare
+ *  in FoodCostByDish. */
+export type FoodCostByCategory = Map<string, number>
+
 function dishFoodCost(name: string, costs: FoodCostByDish): number {
   return costs.get(name.trim().toLowerCase()) ?? 0
 }
 
 /** Costo di un piatto per il calcolo margine: stessa logica di sharing del prezzo
- *  (itemEffectivePrice) applicata al food cost invece che al prezzo di vendita. */
-export function itemEffectiveCost(item: PlanItem, group: PlanGroup | undefined, costs: FoodCostByDish): number {
-  const cost = dishFoodCost(item.name, costs)
+ *  (itemEffectivePrice) applicata al food cost invece che al prezzo di vendita.
+ *  Per una riga "categoria intera" (isCategoryPick), il costo viene cercato in
+ *  costsByCategory usando item.category invece che il nome del piatto. */
+export function itemEffectiveCost(
+  item: PlanItem,
+  group: PlanGroup | undefined,
+  costs: FoodCostByDish,
+  costsByCategory?: FoodCostByCategory
+): number {
+  const cost = item.isCategoryPick
+    ? costsByCategory?.get(item.category.trim().toLowerCase()) ?? 0
+    : dishFoodCost(item.name, costs)
   const shared = group ? itemSharedAmong(item, group) : item.sharedAmong
   return shared && shared > 1 ? cost / shared : cost
 }
@@ -80,28 +102,28 @@ export function itemEffectiveCost(item: PlanItem, group: PlanGroup | undefined, 
  *  usa il MASSIMO food cost tra i piatti — worst case, coerente col vecchio calcolo
  *  margini del tab Menu evento (l'ospite potrebbe scegliere il piatto piu' caro); un
  *  gruppo 'fisso' (tutti i piatti inclusi) somma i costi di tutti i piatti. */
-export function groupCost(group: PlanGroup, costs: FoodCostByDish): number {
+export function groupCost(group: PlanGroup, costs: FoodCostByDish, costsByCategory?: FoodCostByCategory): number {
   if (group.items.length === 0) return 0
-  const itemCosts = group.items.map((it) => itemEffectiveCost(it, group, costs))
+  const itemCosts = group.items.map((it) => itemEffectiveCost(it, group, costs, costsByCategory))
   return group.pricingMode === 'media' ? Math.max(...itemCosts) : itemCosts.reduce((a, b) => a + b, 0)
 }
 
 /** Costo per persona di un piano: somma dei costi di ogni gruppo. Un piano a prezzo
  *  'fisso' (deciso a mano) ha comunque un costo calcolato dai piatti selezionati — il
  *  margine confronta quel prezzo manuale col costo reale dei gruppi, non lo ignora. */
-export function planCost(plan: PricePlan, costs: FoodCostByDish): number {
-  return plan.groups.reduce((acc, g) => acc + groupCost(g, costs), 0)
+export function planCost(plan: PricePlan, costs: FoodCostByDish, costsByCategory?: FoodCostByCategory): number {
+  return plan.groups.reduce((acc, g) => acc + groupCost(g, costs, costsByCategory), 0)
 }
 
 /** Margine per persona di un piano: prezzo di vendita meno food cost. */
-export function planMargin(plan: PricePlan, costs: FoodCostByDish): number {
-  return planPrice(plan) - planCost(plan, costs)
+export function planMargin(plan: PricePlan, costs: FoodCostByDish, costsByCategory?: FoodCostByCategory): number {
+  return planPrice(plan) - planCost(plan, costs, costsByCategory)
 }
 
 /** Percentuale di margine di un piano rispetto al prezzo di vendita (0 se il prezzo è 0). */
-export function planMarginPct(plan: PricePlan, costs: FoodCostByDish): number {
+export function planMarginPct(plan: PricePlan, costs: FoodCostByDish, costsByCategory?: FoodCostByCategory): number {
   const price = planPrice(plan)
-  return price > 0 ? (planMargin(plan, costs) / price) * 100 : 0
+  return price > 0 ? (planMargin(plan, costs, costsByCategory) / price) * 100 : 0
 }
 
 export interface ExtraService {
@@ -128,6 +150,15 @@ export interface MealSection {
 
 function esc(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+}
+
+/** Prezzo massimo tra gli articoli di una categoria di catalogo (worst-case, stessa
+ *  policy dei gruppi 'a scelta'): usato per proporre/congelare il prezzo di vendita
+ *  quando si aggiunge un'intera categoria come riga "a scelta" invece di un piatto
+ *  puntuale (es. "Bibita" invece di elencare Coca/Fanta/Sprite una per una). */
+export function categoryMaxPrice(items: { category: string | null; unit_price: number }[], category: string): number {
+  const prices = items.filter((it) => it.category === category).map((it) => it.unit_price)
+  return prices.length > 0 ? Math.max(...prices) : 0
 }
 
 /** Raggruppa i piatti di un gruppo 'a scelta' per sotto-gruppo (scelto manualmente, o dedotto dalla categoria catalogo). */
