@@ -1,4 +1,4 @@
-import { Document, Page, Text, View, StyleSheet, Font } from '@react-pdf/renderer'
+import { Document, Page, Text, View, StyleSheet, Font, Image } from '@react-pdf/renderer'
 import { planPrice, dishesBySubcategory, itemSharedAmong, type MealSection } from '@/lib/proposalHtml'
 import { menuStrings, type QuoteLang } from './i18n'
 
@@ -45,10 +45,15 @@ const styles = StyleSheet.create({
 
   hero: { alignItems: 'center', paddingHorizontal: 30, paddingTop: 28, paddingBottom: 6 },
   logoPill: { backgroundColor: INK, color: CREAM, fontFamily: 'Archivo Black', fontSize: 10, letterSpacing: 1, paddingHorizontal: 14, paddingVertical: 6, borderRadius: 18 },
+  logoImage: { height: 40, objectFit: 'contain' },
   heroEyebrow: { fontFamily: 'Caveat', fontWeight: 700, color: INK, fontSize: 15, marginTop: 10, marginBottom: 2 },
   heroTitle: { fontFamily: 'Archivo Black', fontSize: 19, textAlign: 'center', marginTop: 2 },
   heroTitleAmount: { color: CORAL },
   heroTagline: { fontFamily: 'Poppins', fontWeight: 700, fontSize: 9, textAlign: 'center', maxWidth: 320, marginTop: 6, lineHeight: 1.4 },
+
+  photoWrap: { position: 'relative', marginTop: 16, marginHorizontal: 30, marginBottom: 4 },
+  photoShadow: { position: 'absolute', top: 8, left: 8, right: -8, bottom: -8, borderRadius: 20, backgroundColor: INK, zIndex: 0 },
+  photo: { width: '100%', height: 150, objectFit: 'cover', borderRadius: 20, borderWidth: 2.5, borderColor: INK, zIndex: 1 },
 
   body: { paddingHorizontal: 28, paddingTop: 14, paddingBottom: 20 },
 
@@ -61,6 +66,9 @@ const styles = StyleSheet.create({
   planCol: { flex: 1, position: 'relative', paddingTop: 20 },
   planColSingle: { flex: 0, width: '70%', position: 'relative', paddingTop: 20 },
   planColDouble: { flex: 0, width: '46%', position: 'relative', paddingTop: 20 },
+  priceBadgeShadow: {
+    position: 'absolute', top: -2, left: 12, width: 58, height: 58, borderRadius: 29, backgroundColor: INK, zIndex: 0,
+  },
   priceBadge: {
     position: 'absolute', top: -6, left: 8, width: 58, height: 58, borderRadius: 29,
     borderWidth: 2, borderColor: INK, alignItems: 'center', justifyContent: 'center', zIndex: 1,
@@ -68,7 +76,8 @@ const styles = StyleSheet.create({
   priceBadgeNum: { fontFamily: 'Archivo Black', fontSize: 14, color: '#fff' },
   priceBadgeCur: { fontFamily: 'Poppins', fontSize: 5.5, letterSpacing: 0.4, color: '#fff', marginTop: 1 },
 
-  planCard: { width: '100%', borderWidth: 2, borderColor: INK, borderRadius: 12, padding: 12, paddingTop: 30, backgroundColor: CREAM },
+  planCardShadow: { position: 'absolute', top: 9, left: 9, right: -9, bottom: -9, borderRadius: 12, zIndex: 0 },
+  planCard: { width: '100%', borderWidth: 2, borderColor: INK, borderRadius: 12, padding: 12, paddingTop: 30, backgroundColor: CREAM, zIndex: 1 },
   tierName: { fontFamily: 'Caveat', fontWeight: 700, fontSize: 16, marginBottom: 5 },
   question: { fontFamily: 'Caveat', fontWeight: 700, color: CORAL, fontSize: 9.5, marginBottom: 7 },
 
@@ -81,7 +90,9 @@ const styles = StyleSheet.create({
   dishBlock: { marginBottom: 6 },
   sharedNote: { fontFamily: 'Poppins', fontWeight: 400, fontSize: 7.2, color: '#8a8a80' },
 
-  extrasCard: { borderWidth: 1.5, borderColor: INK, borderStyle: 'dashed', borderRadius: 12, padding: 10, marginTop: 16, backgroundColor: CREAM },
+  extrasWrap: { position: 'relative', marginTop: 16 },
+  extrasCardShadow: { position: 'absolute', top: 6, left: 6, right: -6, bottom: -6, borderRadius: 12, backgroundColor: INK, zIndex: 0 },
+  extrasCard: { borderWidth: 1.5, borderColor: INK, borderStyle: 'dashed', borderRadius: 12, padding: 10, backgroundColor: CREAM, zIndex: 1 },
   extrasTitle: { fontSize: 9, fontFamily: 'Archivo Black', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 },
   extraRow: { flexDirection: 'row', justifyContent: 'space-between', fontFamily: 'Poppins', fontSize: 8, color: '#3a3a3a', marginTop: 2 },
 
@@ -89,6 +100,7 @@ const styles = StyleSheet.create({
 
   footer: { backgroundColor: INK, borderTopLeftRadius: 22, borderTopRightRadius: 22, alignItems: 'center', paddingTop: 20, paddingBottom: 24, marginTop: 10 },
   footerLogoPill: { backgroundColor: CREAM, color: INK, fontFamily: 'Archivo Black', fontSize: 9, letterSpacing: 1, paddingHorizontal: 14, paddingVertical: 6, borderRadius: 18 },
+  footerLogoImage: { height: 34, objectFit: 'contain' },
   footerText: { fontFamily: 'Poppins', color: '#cfcabf', fontSize: 7.5, marginTop: 8 },
 })
 
@@ -96,21 +108,32 @@ interface Props {
   clientName: string
   sections: MealSection[]
   lang?: QuoteLang
+  logoSrc?: string
+  photoSrc?: string
 }
 
-export function ProposalMenuPdfDocument({ sections, lang = 'it' }: Props) {
+export function ProposalMenuPdfDocument({ sections, lang = 'it', logoSrc, photoSrc }: Props) {
   const t = menuStrings[lang]
   return (
     <Document title="Menu proposta Doppio Malto">
       <Page size="A4" style={styles.page}>
         <View style={styles.hero}>
-          <Text style={styles.logoPill}>DOPPIO MALTO</Text>
+          {/* eslint-disable-next-line jsx-a11y/alt-text -- @react-pdf/renderer's Image e' un primitivo solo-PDF, non un <img> HTML */}
+          {logoSrc ? <Image src={logoSrc} style={styles.logoImage} /> : <Text style={styles.logoPill}>DOPPIO MALTO</Text>}
           <Text style={styles.heroEyebrow}>Birrificio con cucina</Text>
           <Text style={styles.heroTitle}>
             PROPOSTE <Text style={styles.heroTitleAmount}>EVENTI</Text> DI GRUPPO
           </Text>
           <Text style={styles.heroTagline}>{t.subtitle}</Text>
         </View>
+
+        {photoSrc ? (
+          <View style={styles.photoWrap}>
+            <View style={styles.photoShadow} />
+            {/* eslint-disable-next-line jsx-a11y/alt-text */}
+            <Image src={photoSrc} style={styles.photo} />
+          </View>
+        ) : null}
 
         <View style={styles.body}>
           {sections.map((section) => {
@@ -133,11 +156,13 @@ export function ProposalMenuPdfDocument({ sections, lang = 'it' }: Props) {
                     const colStyle = plans.length === 1 ? styles.planColSingle : plans.length === 2 ? styles.planColDouble : styles.planCol
                     return (
                       <View key={plan.id} style={colStyle}>
+                        <View style={styles.planCardShadow} />
+                        <View style={styles.priceBadgeShadow} />
                         <View style={[styles.priceBadge, { backgroundColor: badgeColor }]}>
                           <Text style={styles.priceBadgeNum}>{price > 0 ? price.toFixed(2).replace(/\.00$/, '') : '—'}</Text>
                           <Text style={styles.priceBadgeCur}>EURO</Text>
                         </View>
-                        <View style={styles.planCard}>
+                        <View style={[styles.planCard, { borderColor: badgeColor }]}>
                           <Text style={[styles.tierName, { color: nameColor }]}>{plan.name || 'Fascia'}</Text>
                           {plan.note ? <Text style={styles.question}>{plan.note}</Text> : null}
 
@@ -184,14 +209,17 @@ export function ProposalMenuPdfDocument({ sections, lang = 'it' }: Props) {
                 </View>
 
                 {section.extras.length > 0 && (
-                  <View style={styles.extrasCard}>
-                    <Text style={styles.extrasTitle}>{t.additionalServices}</Text>
-                    {section.extras.map((ex) => (
-                      <View style={styles.extraRow} key={ex.catalogId}>
-                        <Text>{ex.name}</Text>
-                        <Text>{ex.price > 0 ? `€${ex.price.toFixed(2).replace(/\.00$/, '')}${ex.unit === 'a_persona' ? `/${t.perPerson}` : ''}` : t.onRequest}</Text>
-                      </View>
-                    ))}
+                  <View style={styles.extrasWrap}>
+                    <View style={styles.extrasCardShadow} />
+                    <View style={styles.extrasCard}>
+                      <Text style={styles.extrasTitle}>{t.additionalServices}</Text>
+                      {section.extras.map((ex) => (
+                        <View style={styles.extraRow} key={ex.catalogId}>
+                          <Text>{ex.name}</Text>
+                          <Text>{ex.price > 0 ? `€${ex.price.toFixed(2).replace(/\.00$/, '')}${ex.unit === 'a_persona' ? `/${t.perPerson}` : ''}` : t.onRequest}</Text>
+                        </View>
+                      ))}
+                    </View>
                   </View>
                 )}
               </View>
@@ -202,7 +230,8 @@ export function ProposalMenuPdfDocument({ sections, lang = 'it' }: Props) {
         </View>
 
         <View style={styles.footer}>
-          <Text style={styles.footerLogoPill}>DOPPIO MALTO</Text>
+          {/* eslint-disable-next-line jsx-a11y/alt-text */}
+          {logoSrc ? <Image src={logoSrc} style={styles.footerLogoImage} /> : <Text style={styles.footerLogoPill}>DOPPIO MALTO</Text>}
           <Text style={styles.footerText}>Prezzi IVA inclusa · doppiomalto.com</Text>
         </View>
       </Page>

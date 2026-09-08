@@ -4,77 +4,79 @@ import { planPrice, type MealSection } from '@/lib/proposalHtml'
 import type { CompanyInfo } from '@/lib/company'
 import { quoteStrings, formatQuoteDate, type QuoteLang } from './i18n'
 
-// Palette dello skill "Preventivo Evento" (SKILLS-PREVENTIVO.md): stessi token
-// cromatici di SKILLS-STILE.md, ma registro sobrio/istituzionale — niente ombre
-// piene o rotazioni, corallo e verde alternati come colore-titolo di sezione.
-// Il menu dettagliato NON compare in questo documento: viene allegato come
-// file separato (vedi buildProposalHtml / la pagina di anteprima proposta).
-const INK = '#1C1B18'
-const CORAL = '#E1543F'
-const GREEN = '#6FA84B'
-const YELLOW = '#F0B429'
-const MUTED = '#6B6558'
+// Palette allineata al template di riferimento dello studio (skill
+// "doppio-malto-preventivo-evento"): registro sobrio/istituzionale — ink e
+// ambra come unico accento, niente bordi colorati spessi né sfondo crema;
+// titoli di sezione con barra verticale ambra sottile invece di card bordate;
+// tabella con intestazione nera piena e riga totale pesca con barra laterale
+// ambra. Il menu dettagliato NON compare in questo documento: viene allegato
+// come file separato (vedi buildProposalHtml / la pagina di anteprima proposta).
+const INK = '#1A1A1A'
+const ACCENT = '#C67C2E'
+const ACCENT_DARK = '#A85C1A'
+const PEACH = '#FBEEE0'
+const GRAY = '#666666'
+const LINE = '#D9D9D9'
 
 const styles = StyleSheet.create({
   page: { fontSize: 9.5, color: INK, fontFamily: 'Helvetica', backgroundColor: '#FFFFFF' },
 
-  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', paddingHorizontal: 40, paddingTop: 32, paddingBottom: 16 },
+  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', paddingHorizontal: 40, paddingTop: 32, paddingBottom: 10 },
   logo: { width: 130, height: 68, objectFit: 'contain' },
-  docTitle: { fontSize: 17, fontFamily: 'Helvetica-Bold', color: INK, textAlign: 'right' },
-  courtesyText: { fontSize: 8, color: MUTED, textAlign: 'right', marginTop: 4, letterSpacing: 0.3 },
+  docTitle: { fontSize: 17, fontFamily: 'Helvetica-Bold', color: INK, textAlign: 'right', letterSpacing: 0.3 },
+  courtesyText: { fontSize: 8, color: GRAY, textAlign: 'right', marginTop: 4, letterSpacing: 0.3 },
   metaRow: { marginTop: 8, alignItems: 'flex-end' },
   metaText: { fontSize: 8.5, color: INK, textAlign: 'right', marginTop: 2 },
   metaLabel: { fontFamily: 'Helvetica-Bold' },
-  headerRule: { borderBottomWidth: 2, borderBottomColor: INK, marginHorizontal: 40, marginBottom: 20 },
+  headerRule: { borderBottomWidth: 1.5, borderBottomColor: INK, marginHorizontal: 40, marginBottom: 18 },
 
   body: { paddingHorizontal: 32 },
 
-  card: { backgroundColor: '#FFFDF9', borderWidth: 2, borderColor: INK, borderRadius: 18, padding: 16, marginBottom: 14 },
-  cardTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 10 },
-  cardTitleBar: { width: 3, height: 12, borderRadius: 2 },
-  cardTitleCoral: { fontSize: 10.5, fontFamily: 'Helvetica-Bold', color: CORAL, textTransform: 'uppercase', letterSpacing: 0.5 },
-  cardTitleGreen: { fontSize: 10.5, fontFamily: 'Helvetica-Bold', color: GREEN, textTransform: 'uppercase', letterSpacing: 0.5 },
+  section: { marginBottom: 12 },
+  sectionTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 },
+  sectionTitleBar: { width: 3, height: 12, backgroundColor: ACCENT },
+  sectionTitleText: { fontSize: 10.5, fontFamily: 'Helvetica-Bold', color: INK, textTransform: 'uppercase', letterSpacing: 0.5 },
 
-  twoColRow: { flexDirection: 'row', gap: 14 },
+  twoColRow: { flexDirection: 'row', gap: 20 },
   col: { flex: 1 },
 
   fieldLabel: { fontSize: 8.5, fontFamily: 'Helvetica-Bold', color: INK },
-  fieldValue: { fontSize: 9, color: INK, borderBottomWidth: 1, borderBottomColor: '#BDB6A4', paddingBottom: 3, marginTop: 2, marginBottom: 8, minHeight: 12 },
+  fieldValue: { fontSize: 9, color: INK, borderBottomWidth: 1, borderBottomColor: INK, paddingBottom: 3, marginTop: 2, marginBottom: 8, minHeight: 12 },
 
-  tableHeaderRow: { flexDirection: 'row', backgroundColor: INK, borderRadius: 6, paddingVertical: 7, paddingHorizontal: 8, marginBottom: 2 },
-  thDesc: { flex: 3, fontSize: 7.5, fontFamily: 'Helvetica-Bold', color: YELLOW, textTransform: 'uppercase' },
-  thMin: { flex: 1.1, fontSize: 7.5, fontFamily: 'Helvetica-Bold', color: YELLOW, textTransform: 'uppercase', textAlign: 'center' },
-  thPrice: { flex: 1.3, fontSize: 7.5, fontFamily: 'Helvetica-Bold', color: YELLOW, textTransform: 'uppercase', textAlign: 'right' },
-  thTotal: { flex: 1.3, fontSize: 7.5, fontFamily: 'Helvetica-Bold', color: YELLOW, textTransform: 'uppercase', textAlign: 'right' },
+  tableHeaderRow: { flexDirection: 'row', backgroundColor: INK, paddingVertical: 8, paddingHorizontal: 10 },
+  thDesc: { flex: 3, fontSize: 7.5, fontFamily: 'Helvetica-Bold', color: '#fff', textTransform: 'uppercase' },
+  thMin: { flex: 1.1, fontSize: 7.5, fontFamily: 'Helvetica-Bold', color: '#fff', textTransform: 'uppercase', textAlign: 'center' },
+  thPrice: { flex: 1.3, fontSize: 7.5, fontFamily: 'Helvetica-Bold', color: '#fff', textTransform: 'uppercase', textAlign: 'right' },
+  thTotal: { flex: 1.3, fontSize: 7.5, fontFamily: 'Helvetica-Bold', color: '#fff', textTransform: 'uppercase', textAlign: 'right' },
 
-  tableRow: { flexDirection: 'row', borderTopWidth: 1.2, borderTopColor: GREEN, borderStyle: 'dashed', paddingVertical: 7, paddingHorizontal: 8 },
+  tableRow: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: LINE, paddingVertical: 7, paddingHorizontal: 10 },
   tdDescWrap: { flex: 3 },
   tdName: { fontSize: 9.5, fontFamily: 'Helvetica-Bold' },
-  tdDesc: { fontSize: 8, color: MUTED, marginTop: 1 },
-  tdMin: { flex: 1.1, fontSize: 9, textAlign: 'center', color: MUTED },
+  tdDesc: { fontSize: 8, color: GRAY, fontStyle: 'italic', marginTop: 1 },
+  tdMin: { flex: 1.1, fontSize: 9, textAlign: 'center', color: GRAY },
   tdPrice: { flex: 1.3, fontSize: 9, textAlign: 'right' },
-  tdTotal: { flex: 1.3, fontSize: 9, textAlign: 'right', borderBottomWidth: 1, borderBottomColor: '#BDB6A4' },
+  tdTotal: { flex: 1.3, fontSize: 9, textAlign: 'right' },
 
-  totalRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#FCEACB', borderRadius: 6, paddingVertical: 8, paddingHorizontal: 10, marginTop: 6 },
-  totalLabel: { fontSize: 9.5, fontFamily: 'Helvetica-Bold', color: CORAL, textTransform: 'uppercase' },
-  totalValue: { fontSize: 10, fontFamily: 'Helvetica-Bold', color: CORAL, borderBottomWidth: 1, borderBottomColor: CORAL, minWidth: 80, textAlign: 'right' },
+  totalRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: PEACH, borderLeftWidth: 4, borderLeftColor: ACCENT, paddingVertical: 9, paddingHorizontal: 10, marginTop: 2 },
+  totalLabel: { fontSize: 10, fontFamily: 'Helvetica-Bold', color: ACCENT_DARK },
+  totalValue: { fontSize: 11, fontFamily: 'Helvetica-Bold', color: ACCENT_DARK, minWidth: 80, textAlign: 'right' },
 
-  menuAttachedNote: { fontSize: 8.5, fontStyle: 'italic', color: MUTED, marginTop: 8 },
+  menuAttachedNote: { fontSize: 8.5, fontStyle: 'italic', color: GRAY, marginTop: 8 },
 
-  clauseRow: { flexDirection: 'row', marginBottom: 7 },
+  clauseRow: { flexDirection: 'row', marginBottom: 6 },
   clauseNum: { width: 14, fontSize: 8.5, fontFamily: 'Helvetica-Bold', color: INK },
-  clauseText: { flex: 1, fontSize: 8.5, color: '#3a3a3a', lineHeight: 1.4 },
+  clauseText: { flex: 1, fontSize: 8.5, color: INK, lineHeight: 1.4 },
   clauseTitle: { fontFamily: 'Helvetica-Bold', color: INK },
 
-  bankCard: { backgroundColor: '#FFFDF9', borderWidth: 1.5, borderColor: '#BDB6A4', borderStyle: 'dashed', borderRadius: 14, padding: 16, marginBottom: 14 },
-  disclaimer: { fontSize: 7.5, fontStyle: 'italic', color: MUTED, textAlign: 'center', marginTop: 8, lineHeight: 1.4 },
+  bankRow: { fontSize: 9, marginBottom: 4 },
+  disclaimer: { fontSize: 7.5, fontStyle: 'italic', color: GRAY, marginTop: 8, lineHeight: 1.4 },
 
-  signatureText: { fontSize: 9, color: '#3a3a3a', lineHeight: 1.4, marginBottom: 20 },
+  signatureText: { fontSize: 9, color: INK, lineHeight: 1.4, marginBottom: 20 },
   signatureRow: { flexDirection: 'row', gap: 24, marginBottom: 18 },
   signatureCol: { flex: 1 },
   signatureLine: { borderBottomWidth: 1, borderBottomColor: INK, marginBottom: 4, minHeight: 24 },
-  signatureCaption: { fontSize: 8, color: MUTED, fontStyle: 'italic' },
-  pageNum: { fontSize: 8, color: MUTED, textAlign: 'center', marginTop: 24 },
+  signatureCaption: { fontSize: 8, color: GRAY },
+  pageNum: { fontSize: 8, color: GRAY, textAlign: 'center', marginTop: 24 },
 })
 
 function Field({ label, value }: { label: string; value: string }) {
@@ -86,11 +88,11 @@ function Field({ label, value }: { label: string; value: string }) {
   )
 }
 
-function CardTitle({ text, color }: { text: string; color: 'coral' | 'green' }) {
+function SectionTitle({ text }: { text: string }) {
   return (
-    <View style={styles.cardTitleRow}>
-      <View style={[styles.cardTitleBar, { backgroundColor: color === 'coral' ? CORAL : GREEN }]} />
-      <Text style={color === 'coral' ? styles.cardTitleCoral : styles.cardTitleGreen}>{text}</Text>
+    <View style={styles.sectionTitleRow}>
+      <View style={styles.sectionTitleBar} />
+      <Text style={styles.sectionTitleText}>{text}</Text>
     </View>
   )
 }
@@ -184,17 +186,17 @@ export function ProposalQuotePdfDocument({ client, sections, companyInfo, quoteR
         <View style={[styles.body, { paddingBottom: 20 }]}>
 
           {/* Dati cliente + Dettagli evento */}
-          <View style={styles.card}>
+          <View style={styles.section}>
             <View style={styles.twoColRow}>
               <View style={styles.col}>
-                <CardTitle text={t.clientData} color="coral" />
+                <SectionTitle text={t.clientData} />
                 <Field label={t.intestatario} value={client.name} />
                 <Field label={t.address} value={client.address} />
                 <Field label={t.vatNumber} value={client.vatNumber} />
                 <Field label={t.sdiCode} value={client.sdiCode} />
               </View>
               <View style={styles.col}>
-                <CardTitle text={t.eventDetails} color="green" />
+                <SectionTitle text={t.eventDetails} />
                 <Field label={t.eventDate} value={formatQuoteDate(client.eventDate, lang)} />
                 <Field label={t.eventTime} value={client.eventTime} />
                 <Field label={t.minGuaranteed} value={client.guestsCount ? `${client.guestsCount} ${t.pax}` : ''} />
@@ -204,8 +206,8 @@ export function ProposalQuotePdfDocument({ client, sections, companyInfo, quoteR
           </View>
 
           {/* Riepilogo servizi e costi */}
-          <View style={styles.card} wrap={false}>
-            <CardTitle text={t.servicesRecap} color="coral" />
+          <View style={styles.section} wrap={false}>
+            <SectionTitle text={t.servicesRecap} />
 
             <View style={styles.tableHeaderRow}>
               <Text style={styles.thDesc}>{t.thDesc}</Text>
@@ -264,8 +266,8 @@ export function ProposalQuotePdfDocument({ client, sections, companyInfo, quoteR
           </View>
 
           {/* Clausole contrattuali */}
-          <View style={styles.card}>
-            <CardTitle text={t.contractClauses} color="coral" />
+          <View style={styles.section}>
+            <SectionTitle text={t.contractClauses} />
             {clauses.map((c, i) => (
               <View style={styles.clauseRow} key={i}>
                 <Text style={styles.clauseNum}>{i + 1}.</Text>
@@ -275,11 +277,11 @@ export function ProposalQuotePdfDocument({ client, sections, companyInfo, quoteR
           </View>
 
           {/* Coordinate bancarie */}
-          <View style={styles.bankCard}>
-            <CardTitle text={t.bankDetails} color="coral" />
-            <Field label={t.intestatario} value={companyInfo.legalName || companyInfo.name} />
-            <Field label="IBAN:" value={companyInfo.iban} />
-            <Field label={t.causale} value={`${quoteRef} — ${client.name}`} />
+          <View style={styles.section}>
+            <SectionTitle text={t.bankDetails} />
+            <View style={styles.bankRow}><Field label={t.intestatario} value={companyInfo.legalName || companyInfo.name} /></View>
+            <View style={styles.bankRow}><Field label="IBAN:" value={companyInfo.iban} /></View>
+            <View style={styles.bankRow}><Field label={t.causale} value={`${quoteRef} — ${client.name}`} /></View>
             <Text style={styles.disclaimer}>{t.disclaimer}</Text>
           </View>
 
@@ -288,8 +290,8 @@ export function ProposalQuotePdfDocument({ client, sections, companyInfo, quoteR
 
       <Page size="A4" style={styles.page}>
         <View style={[styles.body, { paddingTop: 32 }]}>
-          <View style={styles.card}>
-            <CardTitle text={t.confirmTitle} color="coral" />
+          <View style={styles.section}>
+            <SectionTitle text={t.confirmTitle} />
             <Text style={styles.signatureText}>{t.confirmText}</Text>
             <View style={styles.signatureRow}>
               <View style={styles.signatureCol}>

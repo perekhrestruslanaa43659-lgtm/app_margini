@@ -5,7 +5,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { ProposalMenuPdfDocument } from '@/lib/pdf/ProposalMenuPdfDocument'
 import { loadEventMealSections } from '@/lib/eventMenu'
 import type { QuoteLang } from '@/lib/pdf/i18n'
-import type { Event } from '@/lib/supabase/types'
+import type { Event, Room } from '@/lib/supabase/types'
 
 // Genera SOLO il PDF "menu proposta" (stile SKILLS-STILE.md) dal menu gia' compilato
 // nel tab "Menu" della scheda evento (events.menu_sections) — passaggio intermedio prima
@@ -55,8 +55,17 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const lang: QuoteLang = body.lang === 'en' ? 'en' : 'it'
   const clientName = event.client_name?.trim() || event.name || 'Evento'
 
+  const logoSrc = `${req.nextUrl.origin}/brand/doppio-malto-logo.jpg`
+
+  let photoSrc: string | undefined
+  if (event.room_id) {
+    const { data: room } = await supabase.from('rooms').select('*').eq('id', event.room_id).single()
+    const photoUrl = (room as unknown as Room | null)?.photo_url
+    if (photoUrl) photoSrc = `${req.nextUrl.origin}${photoUrl}`
+  }
+
   const buffer = await renderToBuffer(
-    ProposalMenuPdfDocument({ clientName, sections, lang })
+    ProposalMenuPdfDocument({ clientName, sections, lang, logoSrc, photoSrc })
   )
 
   const fileBase = `menu-${clientName.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}`

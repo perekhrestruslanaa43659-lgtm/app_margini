@@ -62,6 +62,9 @@ export interface Room {
   name: string
   location: string | null
   notes: string | null
+  /** Percorso relativo servito da public/ (es. "/rooms/dehors.jpg"), usato come foto
+   *  hero nel PDF menu proposta (SKILLS-STILE.md). */
+  photo_url: string | null
   created_at: string
 }
 

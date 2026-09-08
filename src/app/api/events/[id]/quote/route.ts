@@ -7,7 +7,7 @@ import { ProposalQuotePdfDocument, DEFAULT_CONTRACT_CLAUSES, type QuoteClient, t
 import { ProposalMenuPdfDocument } from '@/lib/pdf/ProposalMenuPdfDocument'
 import { loadEventMealSections } from '@/lib/eventMenu'
 import type { QuoteLang } from '@/lib/pdf/i18n'
-import type { Event } from '@/lib/supabase/types'
+import type { Event, Room } from '@/lib/supabase/types'
 
 // Genera il PDF "Preventivo Evento" (e il menu allegato) partendo da un evento
 // GIA' registrato in /events, precompilando i dati cliente/evento dal record
@@ -97,6 +97,13 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   )
   const logoSrc = `${req.nextUrl.origin}/brand/doppio-malto-logo.jpg`
 
+  let photoSrc: string | undefined
+  if (event.room_id) {
+    const { data: room } = await supabase.from('rooms').select('*').eq('id', event.room_id).single()
+    const photoUrl = (room as unknown as Room | null)?.photo_url
+    if (photoUrl) photoSrc = `${req.nextUrl.origin}${photoUrl}`
+  }
+
   const quoteBuffer = await renderToBuffer(
     ProposalQuotePdfDocument({ client, sections, companyInfo, quoteRef, offerDate, clauses, logoSrc, lang })
   )
@@ -106,7 +113,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   let menuBuffer: Buffer | null = null
   if (sections.length > 0) {
     menuBuffer = await renderToBuffer(
-      ProposalMenuPdfDocument({ clientName: client.name, sections, lang })
+      ProposalMenuPdfDocument({ clientName: client.name, sections, lang, logoSrc, photoSrc })
     )
   }
 

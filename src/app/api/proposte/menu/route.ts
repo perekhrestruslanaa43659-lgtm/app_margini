@@ -37,8 +37,10 @@ export async function POST(req: NextRequest) {
   const clientName = body.clientName?.trim() || 'Cliente'
   const lang: QuoteLang = body.lang === 'en' ? 'en' : 'it'
 
+  const logoSrc = `${req.nextUrl.origin}/brand/doppio-malto-logo.jpg`
+
   const buffer = await renderToBuffer(
-    ProposalMenuPdfDocument({ clientName, sections: body.sections, lang })
+    ProposalMenuPdfDocument({ clientName, sections: body.sections, lang, logoSrc })
   )
 
   const fileBase = `menu-${clientName.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}`
