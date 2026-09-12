@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import nodemailer from 'nodemailer'
+import { createAdminClient } from '@/lib/supabase/admin'
 
 const transporter = nodemailer.createTransport({
   service: 'gmail',
@@ -15,13 +16,24 @@ interface EmailAttachment {
   content: string
 }
 
+/** Metadati opzionali dell'evento di origine: se presenti, dopo l'invio viene
+ *  registrata una riga in proposal_sends (log proposte, vedi supabase/add_proposal_sends.sql). */
+interface ProposalLogMeta {
+  eventId?: string
+  clientName?: string
+  guestsCount?: number
+  pricePerGuest?: number
+  totalAmount?: number
+}
+
 export async function POST(req: NextRequest) {
   try {
-    const { to, subject, body, attachments } = await req.json() as {
+    const { to, subject, body, attachments, log } = await req.json() as {
       to: string
       subject: string
       body: string
       attachments?: EmailAttachment[]
+      log?: ProposalLogMeta
     }
 
     if (!to || !subject || !body) {
@@ -45,6 +57,25 @@ export async function POST(req: NextRequest) {
         contentType: 'application/pdf',
       })),
     })
+
+    // Log best-effort: un fallimento qui non deve far apparire l'invio come fallito,
+    // l'email e' gia' partita.
+    const admin = createAdminClient()
+    if (admin) {
+      await admin.from('proposal_sends').insert({
+        event_id: log?.eventId ?? null,
+        client_name: log?.clientName ?? null,
+        client_email: to,
+        subject,
+        attachments: attachments?.map((a) => a.filename) ?? [],
+        guests_count: log?.guestsCount ?? null,
+        price_per_guest: log?.pricePerGuest ?? null,
+        total_amount: log?.totalAmount ?? null,
+        status: 'inviata',
+      }).then(({ error }) => {
+        if (error) console.error('proposal_sends log error', error)
+      })
+    }
 
     return NextResponse.json({ success: true })
   } catch (err) {

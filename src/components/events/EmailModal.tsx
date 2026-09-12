@@ -114,7 +114,17 @@ export function EmailModal({
       const res = await fetch('/api/send-email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...authHeaders },
-        body: JSON.stringify({ to, subject, body, attachments: attachments.length > 0 ? attachments : undefined }),
+        body: JSON.stringify({
+          to, subject, body,
+          attachments: attachments.length > 0 ? attachments : undefined,
+          log: {
+            eventId,
+            clientName,
+            guestsCount,
+            totalAmount: totalRevenue,
+            pricePerGuest: guestsCount && guestsCount > 0 ? totalRevenue / guestsCount : undefined,
+          },
+        }),
       })
       const data = await res.json()
       if (data.error) throw new Error(data.error)

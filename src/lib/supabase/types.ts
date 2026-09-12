@@ -68,6 +68,24 @@ export interface Room {
   created_at: string
 }
 
+/** Riga di log per ogni invio email di una proposta (menu/preventivo) a un cliente,
+ *  scritta da src/app/api/send-email/route.ts. Sostituisce l'idea di un registro
+ *  Excel locale con una tabella collegata all'evento reale. */
+export interface ProposalSend {
+  id: string
+  event_id: string | null
+  client_name: string | null
+  client_email: string | null
+  subject: string | null
+  attachments: string[]
+  guests_count: number | null
+  price_per_guest: number | null
+  total_amount: number | null
+  status: string
+  notes: string | null
+  sent_at: string
+}
+
 export interface EventItem {
   id: string
   event_id: string
