@@ -8,8 +8,13 @@ import { isSupabaseConfigured } from '@/lib/supabase/config'
 import type { CatalogItem, ProposalTemplate } from '@/lib/supabase/types'
 import { SetupBanner } from '@/components/ui/SetupBanner'
 import { buildProposalHtml, normalizeMealSections, type MealSection } from '@/lib/proposalHtml'
-import { saveDraftProposal, saveWorkingProposal, loadWorkingProposal, clearWorkingProposal } from '@/lib/proposalDraft'
+import {
+  saveDraftProposal, saveWorkingProposal, loadWorkingProposal, clearWorkingProposal,
+  saveClientDraft, loadClientDraft, emptyClientDraft, type ProposalClientDraft,
+} from '@/lib/proposalDraft'
 import { SectionsEditor, emptySection, nextAccent, MEAL_PRESETS } from '@/components/proposte/SectionsEditor'
+
+const STATUS_OPTIONS = ['Da inviare', 'Bozza / in valutazione', 'Già confermata dal cliente']
 
 function ProposteInner() {
   const router = useRouter()
@@ -25,6 +30,10 @@ function ProposteInner() {
     return working ? normalizeMealSections(working) : [emptySection(MEAL_PRESETS[0], 'green')]
   })
   const [restoredNotice, setRestoredNotice] = useState(false)
+  const [client, setClient] = useState<ProposalClientDraft>(() => {
+    if (typeof window === 'undefined') return emptyClientDraft()
+    return loadClientDraft() ?? emptyClientDraft()
+  })
 
   const [templates, setTemplates] = useState<ProposalTemplate[]>([])
   const [activeTemplateId, setActiveTemplateId] = useState<string | null>(null)
@@ -55,6 +64,14 @@ function ProposteInner() {
     saveWorkingProposal(sections)
   }, [sections])
 
+  useEffect(() => {
+    saveClientDraft(client)
+  }, [client])
+
+  function updateClient(patch: Partial<ProposalClientDraft>) {
+    setClient((prev) => ({ ...prev, ...patch }))
+  }
+
   function handleSectionsChange(updater: (prev: MealSection[]) => MealSection[]) {
     setSections(updater)
   }
@@ -62,6 +79,7 @@ function ProposteInner() {
   function startNewProposal() {
     clearWorkingProposal()
     setSections([emptySection(MEAL_PRESETS[0], 'green')])
+    setClient(emptyClientDraft())
     setActiveTemplateId(null)
     setRestoredNotice(false)
   }
@@ -213,6 +231,60 @@ function ProposteInner() {
           </div>
         </div>
       )}
+
+      <div
+        className="bg-white rounded-2xl p-6 mb-6"
+        style={{ border: '3px solid var(--dm-ink)', boxShadow: '6px 6px 0 var(--dm-ink)' }}
+      >
+        <h2 className="text-sm font-bold text-dm-ink uppercase tracking-wide mb-4">Dati cliente</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+          <input
+            className="input"
+            placeholder="Cliente / Azienda"
+            value={client.clientName}
+            onChange={(e) => updateClient({ clientName: e.target.value })}
+          />
+          <input
+            className="input"
+            type="email"
+            placeholder="Email cliente"
+            value={client.clientEmail}
+            onChange={(e) => updateClient({ clientEmail: e.target.value })}
+          />
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
+          <input
+            className="input"
+            type="number"
+            min={1}
+            placeholder="N. persone"
+            value={client.guestsCount}
+            onChange={(e) => updateClient({ guestsCount: e.target.value })}
+          />
+          <label className="flex flex-col gap-1 text-xs text-slate-500">
+            Data evento
+            <input
+              className="input"
+              type="date"
+              value={client.eventDate}
+              onChange={(e) => updateClient({ eventDate: e.target.value })}
+            />
+          </label>
+          <select
+            className="input"
+            value={client.status}
+            onChange={(e) => updateClient({ status: e.target.value })}
+          >
+            {STATUS_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
+          </select>
+        </div>
+        <textarea
+          className="input min-h-20 resize-y"
+          placeholder="Note e richieste specifiche (es. escludere un piatto, servizio a persona, foto hero da usare...)"
+          value={client.notes}
+          onChange={(e) => updateClient({ notes: e.target.value })}
+        />
+      </div>
 
       <SectionsEditor sections={sections} onChange={handleSectionsChange} catalog={catalog} />
     </div>

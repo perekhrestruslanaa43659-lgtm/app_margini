@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft, FileCheck, Lock, Loader2, ChevronDown, ChevronUp } from 'lucide-react'
-import { loadDraftProposal, clearDraftProposal, clearWorkingProposal } from '@/lib/proposalDraft'
+import { loadDraftProposal, clearDraftProposal, clearWorkingProposal, loadClientDraft, clearClientDraft } from '@/lib/proposalDraft'
 import { planPrice, type MealSection } from '@/lib/proposalHtml'
 import { formatCurrency } from '@/lib/margin'
 
@@ -60,6 +60,7 @@ export default function PreventivoPage() {
   const [depositDate, setDepositDate] = useState('')
   const [depositPct, setDepositPct] = useState('30')
   const [depositDays, setDepositDays] = useState('7')
+  const [notes, setNotes] = useState('')
 
   const [clauses, setClauses] = useState(DEFAULT_CLAUSES)
   const [showClauses, setShowClauses] = useState(false)
@@ -75,6 +76,17 @@ export default function PreventivoPage() {
       return
     }
     setSections(draft)
+
+    const clientDraft = loadClientDraft()
+    if (clientDraft) {
+      if (clientDraft.clientName) setName(clientDraft.clientName)
+      if (clientDraft.clientEmail) setEmail(clientDraft.clientEmail)
+      if (clientDraft.guestsCount) setGuestsCount(clientDraft.guestsCount)
+      if (clientDraft.eventDate) setEventDate(clientDraft.eventDate)
+      if (clientDraft.notes) setNotes(clientDraft.notes)
+      const mappedStatus = clientDraft.status === 'Già confermata dal cliente' ? 'Confermata' : BOOKING_STATUSES[0]
+      setBookingStatus(mappedStatus)
+    }
   }, [router])
 
   function updateClause(i: number, patch: Partial<{ title: string; text: string }>) {
@@ -107,7 +119,7 @@ export default function PreventivoPage() {
       const quoteRes = await fetch('/api/proposte/quote', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ client, sections, clauses, depositPct, depositDays, lang }),
+        body: JSON.stringify({ client, sections, clauses, depositPct, depositDays, lang, notes: notes.trim() || undefined }),
       })
 
       if (!quoteRes.ok) {
@@ -130,6 +142,7 @@ export default function PreventivoPage() {
 
       clearDraftProposal()
       clearWorkingProposal()
+      clearClientDraft()
       router.push('/events')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Errore nella generazione del preventivo')
@@ -216,6 +229,12 @@ export default function PreventivoPage() {
             {BOOKING_STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
           </select>
         </div>
+        <textarea
+          className="input min-h-16 resize-y text-sm"
+          placeholder="Note e richieste specifiche"
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+        />
 
         <h2 className="text-sm font-semibold text-dm-ink mb-1 pt-2">Caparra</h2>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">

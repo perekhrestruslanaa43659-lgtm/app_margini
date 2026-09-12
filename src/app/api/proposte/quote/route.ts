@@ -26,6 +26,8 @@ interface QuoteRequestBody {
   depositPct?: string
   depositDays?: string
   lang?: QuoteLang
+  /** Note libere raccolte nel form cliente di /proposte, riportate su events.notes. */
+  notes?: string
 }
 
 function applyClausePlaceholders(clauses: ContractClause[], depositPct: string, depositDays: string): ContractClause[] {
@@ -98,7 +100,10 @@ export async function POST(req: NextRequest) {
       guests_count: client.guestsCount,
       deposit_date: client.depositDate,
       status: 'richiesta',
-      notes: `Preventivo generato da Proposte Eventi (${body.sections.map((s) => s.label).join(', ')})`,
+      notes: [
+        `Preventivo generato da Proposte Eventi (${body.sections.map((s) => s.label).join(', ')})`,
+        body.notes?.trim(),
+      ].filter(Boolean).join('\n\n'),
     })
     .select()
     .single()
