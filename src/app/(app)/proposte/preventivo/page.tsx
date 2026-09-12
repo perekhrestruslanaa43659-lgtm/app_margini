@@ -143,8 +143,8 @@ export default function PreventivoPage() {
   }
 
   const totalPerGuest = sections.reduce((sum, s) => {
-    const best = s.plans.filter((p) => p.groups.some((g) => g.items.length > 0))[0]
-    return sum + (best ? planPrice(best) : 0)
+    const hasDishes = s.plan.groups.some((g) => g.items.length > 0)
+    return sum + (hasDishes ? planPrice(s.plan) : 0)
   }, 0)
 
   return (
@@ -175,11 +175,11 @@ export default function PreventivoPage() {
         <h2 className="text-sm font-semibold text-dm-ink mb-3">Riepilogo proposta</h2>
         <div className="space-y-1.5 mb-3">
           {sections.map((s) => {
-            const best = s.plans.filter((p) => p.groups.some((g) => g.items.length > 0))[0]
+            const hasDishes = s.plan.groups.some((g) => g.items.length > 0)
             return (
               <div key={s.id} className="flex items-center justify-between text-sm">
-                <span className="text-slate-600">{s.label} {best ? `· ${best.name || 'Fascia'}` : ''}</span>
-                <span className="font-medium text-dm-ink">{best ? formatCurrency(planPrice(best)) : '—'}/persona</span>
+                <span className="text-slate-600">{s.label}</span>
+                <span className="font-medium text-dm-ink">{hasDishes ? formatCurrency(planPrice(s.plan)) : '—'}/persona</span>
               </div>
             )
           })}

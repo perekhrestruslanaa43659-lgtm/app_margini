@@ -1,6 +1,6 @@
 'use client'
 
-// Editor di sezioni/fasce/piatti riusato sia da /proposte (bozza in sessionStorage,
+// Editor di sezioni/piatti riusato sia da /proposte (bozza in sessionStorage,
 // nessun evento associato) sia dal tab "Menu" della scheda evento (salvataggio diretto
 // su events.menu_sections). Riceve `sections`/`onChange` come props invece di gestire
 // uno useState interno, cosi' il chiamante decide dove/quando persistere.
@@ -50,7 +50,7 @@ export function emptySection(preset: { label: string; hours: string }, accent: '
     hours: preset.hours,
     meta: '',
     accent,
-    plans: [emptyPlan(), emptyPlan(), emptyPlan()],
+    plan: emptyPlan(),
     extras: [],
     room: '',
     duration: '',
@@ -74,12 +74,12 @@ interface Props {
 }
 
 export function SectionsEditor({ sections, onChange, catalog, renderSectionExtra }: Props) {
-  const [pickerFor, setPickerFor] = useState<{ sectionId: string; planId: string; groupId: string } | null>(null)
+  const [pickerFor, setPickerFor] = useState<{ sectionId: string; groupId: string } | null>(null)
   const [extraPickerFor, setExtraPickerFor] = useState<string | null>(null)
   const [pickerSearch, setPickerSearch] = useState('')
   const [pickerCategory, setPickerCategory] = useState('')
 
-  const [mergeModeFor, setMergeModeFor] = useState<{ sectionId: string; planId: string } | null>(null)
+  const [mergeModeFor, setMergeModeFor] = useState<string | null>(null)
   const [mergeSelection, setMergeSelection] = useState<string[]>([])
   const [mergeNewLabel, setMergeNewLabel] = useState('')
 
@@ -110,148 +110,104 @@ export function SectionsEditor({ sections, onChange, catalog, renderSectionExtra
     onChange((prev) => prev.map((s) => (s.id === id ? { ...s, ...patch } : s)))
   }
 
-  function updatePlan(sectionId: string, planId: string, patch: Partial<PricePlan>) {
+  function updatePlan(sectionId: string, patch: Partial<PricePlan>) {
+    onChange((prev) => prev.map((s) => (s.id === sectionId ? { ...s, plan: { ...s.plan, ...patch } } : s)))
+  }
+
+  function updateGroup(sectionId: string, groupId: string, patch: Partial<PlanGroup>) {
     onChange((prev) => prev.map((s) => {
       if (s.id !== sectionId) return s
-      return { ...s, plans: s.plans.map((p) => (p.id === planId ? { ...p, ...patch } : p)) }
+      return { ...s, plan: { ...s.plan, groups: s.plan.groups.map((g) => (g.id === groupId ? { ...g, ...patch } : g)) } }
     }))
   }
 
-  function addPlan(sectionId: string) {
-    onChange((prev) => prev.map((s) => (s.id === sectionId ? { ...s, plans: [...s.plans, emptyPlan()] } : s)))
+  function addGroup(sectionId: string) {
+    onChange((prev) => prev.map((s) => (s.id === sectionId ? { ...s, plan: { ...s.plan, groups: [...s.plan.groups, emptyGroup()] } } : s)))
   }
 
-  function removePlan(sectionId: string, planId: string) {
-    onChange((prev) => prev.map((s) => (s.id === sectionId ? { ...s, plans: s.plans.filter((p) => p.id !== planId) } : s)))
-  }
-
-  function updateGroup(sectionId: string, planId: string, groupId: string, patch: Partial<PlanGroup>) {
-    onChange((prev) => prev.map((s) => {
-      if (s.id !== sectionId) return s
-      return {
-        ...s,
-        plans: s.plans.map((p) => {
-          if (p.id !== planId) return p
-          return { ...p, groups: p.groups.map((g) => (g.id === groupId ? { ...g, ...patch } : g)) }
-        }),
-      }
-    }))
-  }
-
-  function addGroup(sectionId: string, planId: string) {
-    onChange((prev) => prev.map((s) => {
-      if (s.id !== sectionId) return s
-      return { ...s, plans: s.plans.map((p) => (p.id === planId ? { ...p, groups: [...p.groups, emptyGroup()] } : p)) }
-    }))
-  }
-
-  function removeGroup(sectionId: string, planId: string, groupId: string) {
-    onChange((prev) => prev.map((s) => {
-      if (s.id !== sectionId) return s
-      return { ...s, plans: s.plans.map((p) => (p.id === planId ? { ...p, groups: p.groups.filter((g) => g.id !== groupId) } : p)) }
-    }))
+  function removeGroup(sectionId: string, groupId: string) {
+    onChange((prev) => prev.map((s) => (s.id === sectionId ? { ...s, plan: { ...s.plan, groups: s.plan.groups.filter((g) => g.id !== groupId) } } : s)))
   }
 
   /** Fonde piu' gruppi in uno solo: i piatti restano distinguibili tramite subgroup (nome del gruppo di origine), la media si calcola su tutti insieme. */
-  function mergeGroups(sectionId: string, planId: string, groupIds: string[], newLabel: string) {
+  function mergeGroups(sectionId: string, groupIds: string[], newLabel: string) {
     if (groupIds.length < 2) return
     onChange((prev) => prev.map((s) => {
       if (s.id !== sectionId) return s
-      return {
-        ...s,
-        plans: s.plans.map((p) => {
-          if (p.id !== planId) return p
-          const toMerge = p.groups.filter((g) => groupIds.includes(g.id))
-          const rest = p.groups.filter((g) => !groupIds.includes(g.id))
-          const mergedItems = toMerge.flatMap((g) =>
-            g.items.map((it) => ({ ...it, subgroup: it.subgroup || g.label }))
-          )
-          const merged: PlanGroup = {
-            id: nextId(),
-            label: newLabel || toMerge.map((g) => g.label).join(' / '),
-            tag: '',
-            pricingMode: 'media',
-            defaultSharedAmong: toMerge.find((g) => g.defaultSharedAmong)?.defaultSharedAmong,
-            items: mergedItems,
-          }
-          return { ...p, groups: [...rest, merged] }
-        }),
+      const toMerge = s.plan.groups.filter((g) => groupIds.includes(g.id))
+      const rest = s.plan.groups.filter((g) => !groupIds.includes(g.id))
+      const mergedItems = toMerge.flatMap((g) =>
+        g.items.map((it) => ({ ...it, subgroup: it.subgroup || g.label }))
+      )
+      const merged: PlanGroup = {
+        id: nextId(),
+        label: newLabel || toMerge.map((g) => g.label).join(' / '),
+        tag: '',
+        pricingMode: 'media',
+        defaultSharedAmong: toMerge.find((g) => g.defaultSharedAmong)?.defaultSharedAmong,
+        items: mergedItems,
       }
+      return { ...s, plan: { ...s.plan, groups: [...rest, merged] } }
     }))
   }
 
-  function removeDishFromGroup(sectionId: string, planId: string, groupId: string, dishId: string) {
+  function removeDishFromGroup(sectionId: string, groupId: string, dishId: string) {
     onChange((prev) => prev.map((s) => {
       if (s.id !== sectionId) return s
       return {
         ...s,
-        plans: s.plans.map((p) => {
-          if (p.id !== planId) return p
-          return {
-            ...p,
-            groups: p.groups.map((g) => (g.id === groupId ? { ...g, items: g.items.filter((it) => it.catalogId !== dishId) } : g)),
-          }
-        }),
+        plan: { ...s.plan, groups: s.plan.groups.map((g) => (g.id === groupId ? { ...g, items: g.items.filter((it) => it.catalogId !== dishId) } : g)) },
       }
     }))
   }
 
-  function updateDishSharing(sectionId: string, planId: string, groupId: string, catalogId: string, sharedAmong: number | undefined) {
+  function updateDishSharing(sectionId: string, groupId: string, catalogId: string, sharedAmong: number | undefined) {
     onChange((prev) => prev.map((s) => {
       if (s.id !== sectionId) return s
       return {
         ...s,
-        plans: s.plans.map((p) => {
-          if (p.id !== planId) return p
-          return {
-            ...p,
-            groups: p.groups.map((g) => {
-              if (g.id !== groupId) return g
-              return { ...g, items: g.items.map((it) => (it.catalogId === catalogId ? { ...it, sharedAmong } : it)) }
-            }),
-          }
-        }),
+        plan: {
+          ...s.plan,
+          groups: s.plan.groups.map((g) => {
+            if (g.id !== groupId) return g
+            return { ...g, items: g.items.map((it) => (it.catalogId === catalogId ? { ...it, sharedAmong } : it)) }
+          }),
+        },
       }
     }))
   }
 
-  function updateDishSubgroup(sectionId: string, planId: string, groupId: string, catalogId: string, subgroup: string | undefined) {
+  function updateDishSubgroup(sectionId: string, groupId: string, catalogId: string, subgroup: string | undefined) {
     onChange((prev) => prev.map((s) => {
       if (s.id !== sectionId) return s
       return {
         ...s,
-        plans: s.plans.map((p) => {
-          if (p.id !== planId) return p
-          return {
-            ...p,
-            groups: p.groups.map((g) => {
-              if (g.id !== groupId) return g
-              return { ...g, items: g.items.map((it) => (it.catalogId === catalogId ? { ...it, subgroup } : it)) }
-            }),
-          }
-        }),
+        plan: {
+          ...s.plan,
+          groups: s.plan.groups.map((g) => {
+            if (g.id !== groupId) return g
+            return { ...g, items: g.items.map((it) => (it.catalogId === catalogId ? { ...it, subgroup } : it)) }
+          }),
+        },
       }
     }))
   }
 
   function addDishToPicker(item: CatalogItem) {
     if (!pickerFor) return
-    const { sectionId, planId, groupId } = pickerFor
+    const { sectionId, groupId } = pickerFor
     onChange((prev) => prev.map((s) => {
       if (s.id !== sectionId) return s
       return {
         ...s,
-        plans: s.plans.map((p) => {
-          if (p.id !== planId) return p
-          return {
-            ...p,
-            groups: p.groups.map((g) => {
-              if (g.id !== groupId) return g
-              if (g.items.some((it) => it.catalogId === item.id)) return g
-              return { ...g, items: [...g.items, { catalogId: item.id, name: item.name, desc: '', price: item.unit_price, category: item.category ?? '' }] }
-            }),
-          }
-        }),
+        plan: {
+          ...s.plan,
+          groups: s.plan.groups.map((g) => {
+            if (g.id !== groupId) return g
+            if (g.items.some((it) => it.catalogId === item.id)) return g
+            return { ...g, items: [...g.items, { catalogId: item.id, name: item.name, desc: '', price: item.unit_price, category: item.category ?? '' }] }
+          }),
+        },
       }
     }))
   }
@@ -261,24 +217,21 @@ export function SectionsEditor({ sections, onChange, catalog, renderSectionExtra
    *  articoli della categoria (worst-case, vedi categoryMaxPrice). */
   function addCategoryToPicker(category: string) {
     if (!pickerFor || !category) return
-    const { sectionId, planId, groupId } = pickerFor
+    const { sectionId, groupId } = pickerFor
     const catalogId = `cat:${category}`
     const price = categoryMaxPrice(catalog, category)
     onChange((prev) => prev.map((s) => {
       if (s.id !== sectionId) return s
       return {
         ...s,
-        plans: s.plans.map((p) => {
-          if (p.id !== planId) return p
-          return {
-            ...p,
-            groups: p.groups.map((g) => {
-              if (g.id !== groupId) return g
-              if (g.items.some((it) => it.catalogId === catalogId)) return g
-              return { ...g, items: [...g.items, { catalogId, name: category, desc: '', price, category, isCategoryPick: true }] }
-            }),
-          }
-        }),
+        plan: {
+          ...s.plan,
+          groups: s.plan.groups.map((g) => {
+            if (g.id !== groupId) return g
+            if (g.items.some((it) => it.catalogId === catalogId)) return g
+            return { ...g, items: [...g.items, { catalogId, name: category, desc: '', price, category, isCategoryPick: true }] }
+          }),
+        },
       }
     }))
   }
@@ -306,7 +259,9 @@ export function SectionsEditor({ sections, onChange, catalog, renderSectionExtra
   return (
     <div>
       <div className="space-y-6">
-        {sections.map((section) => (
+        {sections.map((section) => {
+          const plan = section.plan
+          return (
           <div key={section.id} className="card">
             <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-4">
               <select
@@ -382,277 +337,256 @@ export function SectionsEditor({ sections, onChange, catalog, renderSectionExtra
               </button>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-              {section.plans.map((plan) => (
-                <div key={plan.id} className="border border-slate-200 rounded-xl p-3 bg-slate-50/50">
-                  <div className="flex items-center gap-2 mb-2">
-                    <input
-                      className="input py-1.5 text-sm flex-1"
-                      placeholder="Nome fascia (es. Il Classico)"
-                      value={plan.name}
-                      onChange={(e) => updatePlan(section.id, plan.id, { name: e.target.value })}
-                    />
-                    {section.plans.length > 1 && (
-                      <button className="text-slate-300 hover:text-red-500 shrink-0" onClick={() => removePlan(section.id, plan.id)}>
-                        <X size={14} />
-                      </button>
-                    )}
-                  </div>
-
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="flex rounded-lg border border-slate-200 overflow-hidden text-xs">
-                      <button
-                        className={`px-2.5 py-1.5 ${plan.pricingMode === 'calcolato' ? 'bg-dm-yellow text-dm-ink font-medium' : 'bg-white text-slate-500'}`}
-                        onClick={() => updatePlan(section.id, plan.id, { pricingMode: 'calcolato' })}
-                      >
-                        Su misura
-                      </button>
-                      <button
-                        className={`px-2.5 py-1.5 ${plan.pricingMode === 'fisso' ? 'bg-dm-yellow text-dm-ink font-medium' : 'bg-white text-slate-500'}`}
-                        onClick={() => updatePlan(section.id, plan.id, { pricingMode: 'fisso' })}
-                      >
-                        Prezzo fisso
-                      </button>
-                    </div>
-                    {plan.pricingMode === 'fisso' ? (
-                      <input
-                        className="input py-1.5 text-sm w-24 text-right"
-                        placeholder="€ a testa"
-                        value={plan.price}
-                        onChange={(e) => updatePlan(section.id, plan.id, { price: e.target.value })}
-                      />
-                    ) : (
-                      <span className="text-sm font-semibold text-dm-ink ml-auto">
-                        {formatCurrency(planPrice(plan))} <span className="text-xs font-normal text-slate-400">/ persona</span>
-                      </span>
-                    )}
-                  </div>
-
+            <div className="border border-slate-200 rounded-xl p-3 bg-slate-50/50">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="flex rounded-lg border border-slate-200 overflow-hidden text-xs">
+                  <button
+                    className={`px-2.5 py-1.5 ${plan.pricingMode === 'calcolato' ? 'bg-dm-yellow text-dm-ink font-medium' : 'bg-white text-slate-500'}`}
+                    onClick={() => updatePlan(section.id, { pricingMode: 'calcolato' })}
+                  >
+                    Su misura
+                  </button>
+                  <button
+                    className={`px-2.5 py-1.5 ${plan.pricingMode === 'fisso' ? 'bg-dm-yellow text-dm-ink font-medium' : 'bg-white text-slate-500'}`}
+                    onClick={() => updatePlan(section.id, { pricingMode: 'fisso' })}
+                  >
+                    Prezzo fisso
+                  </button>
+                </div>
+                {plan.pricingMode === 'fisso' ? (
                   <input
-                    className="input py-1.5 text-xs mb-1.5"
-                    placeholder="Nota (es. Bevanda a scelta — acqua inclusa)"
-                    value={plan.note}
-                    onChange={(e) => updatePlan(section.id, plan.id, { note: e.target.value })}
+                    className="input py-1.5 text-sm w-24 text-right"
+                    placeholder="€ a testa"
+                    value={plan.price}
+                    onChange={(e) => updatePlan(section.id, { price: e.target.value })}
                   />
-                  <div className="flex flex-wrap gap-1 mb-3">
-                    {STANDARD_NOTES.map((phrase) => (
-                      <button
-                        key={phrase}
-                        className="text-[10px] bg-slate-100 hover:bg-dm-yellow/40 text-slate-500 rounded-full px-2 py-0.5 transition-colors"
-                        onClick={() => updatePlan(section.id, plan.id, { note: plan.note ? `${plan.note} — ${phrase}` : phrase })}
-                      >
-                        + {phrase}
-                      </button>
-                    ))}
-                  </div>
+                ) : (
+                  <span className="text-sm font-semibold text-dm-ink ml-auto">
+                    {formatCurrency(planPrice(plan))} <span className="text-xs font-normal text-slate-400">/ persona</span>
+                  </span>
+                )}
+              </div>
 
-                  {plan.groups.length > 1 && (
-                    <div className="flex items-center gap-2 mb-3 p-2 bg-slate-50 rounded-lg border border-slate-200 flex-wrap">
-                      {mergeModeFor?.sectionId === section.id && mergeModeFor?.planId === plan.id ? (
-                        <>
-                          <span className="text-xs font-medium text-slate-600">Seleziona i gruppi da unire ({mergeSelection.length} selezionati)</span>
-                          <input
-                            className="input py-1 text-xs w-40"
-                            placeholder="Nome nuovo gruppo (es. Main)"
-                            value={mergeNewLabel}
-                            onChange={(e) => setMergeNewLabel(e.target.value)}
-                          />
-                          <button
-                            className="text-xs font-medium text-white bg-dm-maroon rounded-full px-3 py-1.5 disabled:opacity-40 ml-auto"
-                            disabled={mergeSelection.length < 2}
-                            onClick={() => {
-                              mergeGroups(section.id, plan.id, mergeSelection, mergeNewLabel)
-                              setMergeModeFor(null)
-                              setMergeSelection([])
-                              setMergeNewLabel('')
-                            }}
-                          >
-                            Unisci selezionati
-                          </button>
-                          <button className="text-xs text-slate-500 hover:text-dm-ink" onClick={() => { setMergeModeFor(null); setMergeSelection([]); setMergeNewLabel('') }}>
-                            Annulla
-                          </button>
-                        </>
-                      ) : (
-                        <button
-                          className="text-xs font-medium text-dm-maroon border border-dm-maroon/40 rounded-full px-3 py-1.5 hover:bg-dm-maroon/5 transition-colors flex items-center gap-1.5"
-                          onClick={() => { setMergeModeFor({ sectionId: section.id, planId: plan.id }); setMergeSelection([]) }}
-                        >
-                          <GripVertical size={12} /> Unisci gruppi in uno (media unica)
+              <input
+                className="input py-1.5 text-xs mb-1.5"
+                placeholder="Nota (es. Bevanda a scelta — acqua inclusa)"
+                value={plan.note}
+                onChange={(e) => updatePlan(section.id, { note: e.target.value })}
+              />
+              <div className="flex flex-wrap gap-1 mb-3">
+                {STANDARD_NOTES.map((phrase) => (
+                  <button
+                    key={phrase}
+                    className="text-[10px] bg-slate-100 hover:bg-dm-yellow/40 text-slate-500 rounded-full px-2 py-0.5 transition-colors"
+                    onClick={() => updatePlan(section.id, { note: plan.note ? `${plan.note} — ${phrase}` : phrase })}
+                  >
+                    + {phrase}
+                  </button>
+                ))}
+              </div>
+
+              {plan.groups.length > 1 && (
+                <div className="flex items-center gap-2 mb-3 p-2 bg-slate-50 rounded-lg border border-slate-200 flex-wrap">
+                  {mergeModeFor === section.id ? (
+                    <>
+                      <span className="text-xs font-medium text-slate-600">Seleziona i gruppi da unire ({mergeSelection.length} selezionati)</span>
+                      <input
+                        className="input py-1 text-xs w-40"
+                        placeholder="Nome nuovo gruppo (es. Main)"
+                        value={mergeNewLabel}
+                        onChange={(e) => setMergeNewLabel(e.target.value)}
+                      />
+                      <button
+                        className="text-xs font-medium text-white bg-dm-maroon rounded-full px-3 py-1.5 disabled:opacity-40 ml-auto"
+                        disabled={mergeSelection.length < 2}
+                        onClick={() => {
+                          mergeGroups(section.id, mergeSelection, mergeNewLabel)
+                          setMergeModeFor(null)
+                          setMergeSelection([])
+                          setMergeNewLabel('')
+                        }}
+                      >
+                        Unisci selezionati
+                      </button>
+                      <button className="text-xs text-slate-500 hover:text-dm-ink" onClick={() => { setMergeModeFor(null); setMergeSelection([]); setMergeNewLabel('') }}>
+                        Annulla
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      className="text-xs font-medium text-dm-maroon border border-dm-maroon/40 rounded-full px-3 py-1.5 hover:bg-dm-maroon/5 transition-colors flex items-center gap-1.5"
+                      onClick={() => { setMergeModeFor(section.id); setMergeSelection([]) }}
+                    >
+                      <GripVertical size={12} /> Unisci gruppi in uno (media unica)
+                    </button>
+                  )}
+                </div>
+              )}
+
+              <div className="space-y-3">
+                {plan.groups.map((group) => {
+                  const merging = mergeModeFor === section.id
+                  const selected = mergeSelection.includes(group.id)
+                  return (
+                  <div key={group.id} className={`bg-white rounded-lg border p-2.5 ${merging && selected ? 'border-dm-maroon ring-1 ring-dm-maroon' : 'border-slate-100'}`}>
+                    <div className="flex items-center gap-1.5 mb-1.5">
+                      {merging && (
+                        <input
+                          type="checkbox"
+                          checked={selected}
+                          onChange={(e) => setMergeSelection((prev) => e.target.checked ? [...prev, group.id] : prev.filter((id) => id !== group.id))}
+                        />
+                      )}
+                      <GripVertical size={12} className="text-slate-300 shrink-0" />
+                      <input
+                        className="input py-1 text-xs flex-1"
+                        placeholder="Es. Antipasto, Main a scelta..."
+                        value={group.label}
+                        onChange={(e) => updateGroup(section.id, group.id, { label: e.target.value })}
+                      />
+                      <input
+                        className="input py-1 text-xs w-24"
+                        placeholder="tag (opz.)"
+                        value={group.tag}
+                        onChange={(e) => updateGroup(section.id, group.id, { tag: e.target.value })}
+                      />
+                      {plan.groups.length > 1 && (
+                        <button className="text-slate-300 hover:text-red-500 shrink-0" onClick={() => removeGroup(section.id, group.id)}>
+                          <X size={13} />
                         </button>
                       )}
                     </div>
-                  )}
 
-                  <div className="space-y-3">
-                    {plan.groups.map((group) => {
-                      const merging = mergeModeFor?.sectionId === section.id && mergeModeFor?.planId === plan.id
-                      const selected = mergeSelection.includes(group.id)
-                      return (
-                      <div key={group.id} className={`bg-white rounded-lg border p-2.5 ${merging && selected ? 'border-dm-maroon ring-1 ring-dm-maroon' : 'border-slate-100'}`}>
-                        <div className="flex items-center gap-1.5 mb-1.5">
-                          {merging && (
-                            <input
-                              type="checkbox"
-                              checked={selected}
-                              onChange={(e) => setMergeSelection((prev) => e.target.checked ? [...prev, group.id] : prev.filter((id) => id !== group.id))}
-                            />
-                          )}
-                          <GripVertical size={12} className="text-slate-300 shrink-0" />
-                          <input
-                            className="input py-1 text-xs flex-1"
-                            placeholder="Es. Antipasto, Main a scelta..."
-                            value={group.label}
-                            onChange={(e) => updateGroup(section.id, plan.id, group.id, { label: e.target.value })}
-                          />
-                          <input
-                            className="input py-1 text-xs w-24"
-                            placeholder="tag (opz.)"
-                            value={group.tag}
-                            onChange={(e) => updateGroup(section.id, plan.id, group.id, { tag: e.target.value })}
-                          />
-                          {plan.groups.length > 1 && (
-                            <button className="text-slate-300 hover:text-red-500 shrink-0" onClick={() => removeGroup(section.id, plan.id, group.id)}>
-                              <X size={13} />
-                            </button>
-                          )}
-                        </div>
-
-                        {plan.pricingMode === 'calcolato' && (
-                          <div className="flex items-center gap-1.5 mb-2 text-xs">
-                            <button
-                              className={`px-2 py-0.5 rounded-full ${group.pricingMode === 'fisso' ? 'bg-dm-cream text-dm-ink font-medium ring-1 ring-dm-yellow' : 'text-slate-400 hover:text-dm-ink'}`}
-                              onClick={() => updateGroup(section.id, plan.id, group.id, { pricingMode: 'fisso' })}
-                            >
-                              Incluso (somma)
-                            </button>
-                            <button
-                              className={`px-2 py-0.5 rounded-full ${group.pricingMode === 'media' ? 'bg-dm-cream text-dm-ink font-medium ring-1 ring-dm-yellow' : 'text-slate-400 hover:text-dm-ink'}`}
-                              onClick={() => updateGroup(section.id, plan.id, group.id, { pricingMode: 'media' })}
-                            >
-                              A scelta (media)
-                            </button>
-                            {group.items.length > 0 && (
-                              <span className="ml-auto text-slate-400">{formatCurrency(groupPrice(group))}</span>
-                            )}
-                          </div>
-                        )}
-
-                        <div className="flex items-center gap-1.5 text-xs text-slate-500 mb-2">
-                          <span>Da condividere ogni</span>
-                          <input
-                            type="number"
-                            min={1}
-                            className="w-11 text-center text-sm bg-white border border-slate-200 rounded-md focus:outline-none focus:border-dm-maroon py-0.5"
-                            placeholder="1"
-                            value={group.defaultSharedAmong ?? ''}
-                            onChange={(e) => {
-                              const v = e.target.value ? parseInt(e.target.value, 10) : undefined
-                              updateGroup(section.id, plan.id, group.id, { defaultSharedAmong: v && v > 1 ? v : undefined })
-                            }}
-                          />
-                          <span>persone <span className="text-slate-400">(default per il gruppo, modificabile per piatto)</span></span>
-                        </div>
-
-                        {group.items.length > 0 && (() => {
-                          const isChoice = group.pricingMode === 'media' && group.items.length > 1
-                          const subcats = isChoice ? dishesBySubcategory(group) : null
-                          const showSubcats = subcats ? subcats.size > 1 : false
-
-                          const renderDish = (it: (typeof group.items)[number]) => {
-                            const effectiveShared = itemSharedAmong(it, group)
-                            return (
-                              <li key={it.catalogId} className="flex flex-col gap-1 text-xs bg-dm-cream/60 rounded-md px-2 py-1.5">
-                                <div className="flex items-center justify-between gap-2">
-                                  <span className="text-dm-ink/80 truncate flex items-center gap-1.5">
-                                    {it.name}
-                                    {it.isCategoryPick && (
-                                      <span className="text-[10px] font-medium text-dm-maroon bg-dm-maroon/10 rounded-full px-1.5 py-0.5 shrink-0">categoria</span>
-                                    )}
-                                  </span>
-                                  <span className="flex items-center gap-1.5 shrink-0">
-                                    <span className="text-slate-400">
-                                      {formatCurrency(itemEffectivePrice(it, group))}
-                                      {effectiveShared && effectiveShared > 1 && (
-                                        <span className="text-slate-300"> ({formatCurrency(it.price)}/{effectiveShared})</span>
-                                      )}
-                                    </span>
-                                    <button className="text-slate-300 hover:text-red-500" onClick={() => removeDishFromGroup(section.id, plan.id, group.id, it.catalogId)}>
-                                      <X size={12} />
-                                    </button>
-                                  </span>
-                                </div>
-                                <div className="flex items-center gap-3 text-xs text-slate-500">
-                                  <span className="flex items-center gap-1 shrink-0">
-                                    <span>ogni</span>
-                                    <input
-                                      type="number"
-                                      min={1}
-                                      className="w-10 text-center text-sm bg-white border border-slate-200 rounded-md focus:outline-none focus:border-dm-maroon py-0.5"
-                                      placeholder={group.defaultSharedAmong ? String(group.defaultSharedAmong) : '1'}
-                                      value={it.sharedAmong ?? ''}
-                                      onChange={(e) => {
-                                        const v = e.target.value ? parseInt(e.target.value, 10) : undefined
-                                        updateDishSharing(section.id, plan.id, group.id, it.catalogId, v && v > 1 ? v : undefined)
-                                      }}
-                                    />
-                                    <span>pax</span>
-                                  </span>
-                                  <span className="flex items-center gap-1 flex-1 min-w-0">
-                                    <span className="shrink-0">sotto-gruppo</span>
-                                    <input
-                                      className="flex-1 min-w-0 text-sm bg-white border border-slate-200 rounded-md focus:outline-none focus:border-dm-maroon py-0.5 px-1.5"
-                                      placeholder={it.category || 'nessuno'}
-                                      value={it.subgroup ?? ''}
-                                      onChange={(e) => updateDishSubgroup(section.id, plan.id, group.id, it.catalogId, e.target.value || undefined)}
-                                    />
-                                  </span>
-                                </div>
-                              </li>
-                            )
-                          }
-
-                          if (!showSubcats) {
-                            return <ul className="space-y-1 mb-2">{group.items.map(renderDish)}</ul>
-                          }
-
-                          return (
-                            <div className="space-y-2 mb-2">
-                              {Array.from(subcats!.entries()).map(([subcat, dishes]) => (
-                                <div key={subcat}>
-                                  <p className="text-[10px] font-semibold uppercase tracking-wide text-dm-wood mb-1">{subcat}</p>
-                                  <ul className="space-y-1">{dishes.map(renderDish)}</ul>
-                                </div>
-                              ))}
-                            </div>
-                          )
-                        })()}
-
+                    {plan.pricingMode === 'calcolato' && (
+                      <div className="flex items-center gap-1.5 mb-2 text-xs">
                         <button
-                          className="w-full text-xs text-dm-maroon hover:bg-dm-maroon/5 rounded-md py-1.5 flex items-center justify-center gap-1 border border-dashed border-dm-maroon/30"
-                          onClick={() => { setPickerFor({ sectionId: section.id, planId: plan.id, groupId: group.id }); setPickerSearch(''); setPickerCategory('') }}
+                          className={`px-2 py-0.5 rounded-full ${group.pricingMode === 'fisso' ? 'bg-dm-cream text-dm-ink font-medium ring-1 ring-dm-yellow' : 'text-slate-400 hover:text-dm-ink'}`}
+                          onClick={() => updateGroup(section.id, group.id, { pricingMode: 'fisso' })}
                         >
-                          <Plus size={12} /> Aggiungi piatto dal menu
+                          Incluso (somma)
                         </button>
+                        <button
+                          className={`px-2 py-0.5 rounded-full ${group.pricingMode === 'media' ? 'bg-dm-cream text-dm-ink font-medium ring-1 ring-dm-yellow' : 'text-slate-400 hover:text-dm-ink'}`}
+                          onClick={() => updateGroup(section.id, group.id, { pricingMode: 'media' })}
+                        >
+                          A scelta (media)
+                        </button>
+                        {group.items.length > 0 && (
+                          <span className="ml-auto text-slate-400">{formatCurrency(groupPrice(group))}</span>
+                        )}
                       </div>
+                    )}
+
+                    <div className="flex items-center gap-1.5 text-xs text-slate-500 mb-2">
+                      <span>Da condividere ogni</span>
+                      <input
+                        type="number"
+                        min={1}
+                        className="w-11 text-center text-sm bg-white border border-slate-200 rounded-md focus:outline-none focus:border-dm-maroon py-0.5"
+                        placeholder="1"
+                        value={group.defaultSharedAmong ?? ''}
+                        onChange={(e) => {
+                          const v = e.target.value ? parseInt(e.target.value, 10) : undefined
+                          updateGroup(section.id, group.id, { defaultSharedAmong: v && v > 1 ? v : undefined })
+                        }}
+                      />
+                      <span>persone <span className="text-slate-400">(default per il gruppo, modificabile per piatto)</span></span>
+                    </div>
+
+                    {group.items.length > 0 && (() => {
+                      const isChoice = group.pricingMode === 'media' && group.items.length > 1
+                      const subcats = isChoice ? dishesBySubcategory(group) : null
+                      const showSubcats = subcats ? subcats.size > 1 : false
+
+                      const renderDish = (it: (typeof group.items)[number]) => {
+                        const effectiveShared = itemSharedAmong(it, group)
+                        return (
+                          <li key={it.catalogId} className="flex flex-col gap-1 text-xs bg-dm-cream/60 rounded-md px-2 py-1.5">
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="text-dm-ink/80 truncate flex items-center gap-1.5">
+                                {it.name}
+                                {it.isCategoryPick && (
+                                  <span className="text-[10px] font-medium text-dm-maroon bg-dm-maroon/10 rounded-full px-1.5 py-0.5 shrink-0">categoria</span>
+                                )}
+                              </span>
+                              <span className="flex items-center gap-1.5 shrink-0">
+                                <span className="text-slate-400">
+                                  {formatCurrency(itemEffectivePrice(it, group))}
+                                  {effectiveShared && effectiveShared > 1 && (
+                                    <span className="text-slate-300"> ({formatCurrency(it.price)}/{effectiveShared})</span>
+                                  )}
+                                </span>
+                                <button className="text-slate-300 hover:text-red-500" onClick={() => removeDishFromGroup(section.id, group.id, it.catalogId)}>
+                                  <X size={12} />
+                                </button>
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-3 text-xs text-slate-500">
+                              <span className="flex items-center gap-1 shrink-0">
+                                <span>ogni</span>
+                                <input
+                                  type="number"
+                                  min={1}
+                                  className="w-10 text-center text-sm bg-white border border-slate-200 rounded-md focus:outline-none focus:border-dm-maroon py-0.5"
+                                  placeholder={group.defaultSharedAmong ? String(group.defaultSharedAmong) : '1'}
+                                  value={it.sharedAmong ?? ''}
+                                  onChange={(e) => {
+                                    const v = e.target.value ? parseInt(e.target.value, 10) : undefined
+                                    updateDishSharing(section.id, group.id, it.catalogId, v && v > 1 ? v : undefined)
+                                  }}
+                                />
+                                <span>pax</span>
+                              </span>
+                              <span className="flex items-center gap-1 flex-1 min-w-0">
+                                <span className="shrink-0">sotto-gruppo</span>
+                                <input
+                                  className="flex-1 min-w-0 text-sm bg-white border border-slate-200 rounded-md focus:outline-none focus:border-dm-maroon py-0.5 px-1.5"
+                                  placeholder={it.category || 'nessuno'}
+                                  value={it.subgroup ?? ''}
+                                  onChange={(e) => updateDishSubgroup(section.id, group.id, it.catalogId, e.target.value || undefined)}
+                                />
+                              </span>
+                            </div>
+                          </li>
+                        )
+                      }
+
+                      if (!showSubcats) {
+                        return <ul className="space-y-1 mb-2">{group.items.map(renderDish)}</ul>
+                      }
+
+                      return (
+                        <div className="space-y-2 mb-2">
+                          {Array.from(subcats!.entries()).map(([subcat, dishes]) => (
+                            <div key={subcat}>
+                              <p className="text-[10px] font-semibold uppercase tracking-wide text-dm-wood mb-1">{subcat}</p>
+                              <ul className="space-y-1">{dishes.map(renderDish)}</ul>
+                            </div>
+                          ))}
+                        </div>
                       )
-                    })}
+                    })()}
+
                     <button
-                      className="text-xs text-slate-400 hover:text-dm-maroon transition-colors"
-                      onClick={() => addGroup(section.id, plan.id)}
+                      className="w-full text-xs text-dm-maroon hover:bg-dm-maroon/5 rounded-md py-1.5 flex items-center justify-center gap-1 border border-dashed border-dm-maroon/30"
+                      onClick={() => { setPickerFor({ sectionId: section.id, groupId: group.id }); setPickerSearch(''); setPickerCategory('') }}
                     >
-                      + Aggiungi gruppo (es. Dolce)
+                      <Plus size={12} /> Aggiungi piatto dal menu
                     </button>
                   </div>
-                </div>
-              ))}
+                  )
+                })}
+                <button
+                  className="text-xs text-slate-400 hover:text-dm-maroon transition-colors"
+                  onClick={() => addGroup(section.id)}
+                >
+                  + Aggiungi gruppo (es. Dolce)
+                </button>
+              </div>
             </div>
-
-            <button className="mt-4 text-xs text-slate-400 hover:text-dm-maroon transition-colors" onClick={() => addPlan(section.id)}>
-              + Aggiungi fascia prezzo
-            </button>
           </div>
-        ))}
+          )
+        })}
 
         {sections.length === 0 && (
           <div className="card text-center text-slate-400 py-16">

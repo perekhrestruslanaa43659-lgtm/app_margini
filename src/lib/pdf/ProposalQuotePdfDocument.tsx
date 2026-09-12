@@ -153,14 +153,14 @@ interface Props {
 
 export function ProposalQuotePdfDocument({ client, sections, companyInfo, quoteRef, offerDate, clauses, logoSrc, lang = 'it' }: Props) {
   const t = quoteStrings[lang]
-  const allPlans = sections.flatMap((s) => s.plans.filter((p) => p.groups.some((g) => g.items.length > 0)).map((p) => ({ section: s, plan: p })))
+  const activeSections = sections.filter((s) => s.plan.groups.some((g) => g.items.length > 0))
   const allExtras = sections.flatMap((s) => s.extras.map((ex) => ({ section: s, extra: ex })))
-  const hasMenu = allPlans.length > 0
+  const hasMenu = activeSections.length > 0
   const guests = client.guestsCount ?? 0
 
-  const menuPricePerGuest = hasMenu
-    ? allPlans.reduce((sum, { plan }) => sum + planPrice(plan), 0) / Math.max(allPlans.length, 1)
-    : 0
+  // Prezzo a persona del "menu evento": somma dei prezzi delle sezioni attive (es. Pranzo +
+  // Cena), non piu' una media tra fasce (ogni sezione ha ormai un solo piano prezzo).
+  const menuPricePerGuest = activeSections.reduce((sum, s) => sum + planPrice(s.plan), 0)
   const menuTotal = menuPricePerGuest * guests
   const extrasTotal = allExtras.reduce((sum, { extra }) => sum + (extra.unit === 'a_persona' ? extra.price * guests : extra.price), 0)
   const grandTotal = menuTotal + extrasTotal
@@ -222,7 +222,7 @@ export function ProposalQuotePdfDocument({ client, sections, companyInfo, quoteR
                   <Text style={styles.tdName}>{t.menuEvent}</Text>
                   <Text style={styles.tdDesc}>
                     {t.menuAttached}
-                    {allPlans[0]?.section.duration ? ` — ${allPlans[0].section.duration}` : ''}
+                    {activeSections[0]?.duration ? ` — ${activeSections[0].duration}` : ''}
                   </Text>
                 </View>
                 <Text style={styles.tdMin}>{client.guestsCount ? `${client.guestsCount} ${t.pax}` : t.pax}</Text>

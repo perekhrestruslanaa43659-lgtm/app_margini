@@ -2,7 +2,7 @@ import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer'
 import type { Event, EventItem } from '@/lib/supabase/types'
 import { formatCurrency } from '@/lib/margin'
 import type { CompanyInfo } from '@/lib/company'
-import { type MealSection, type PricePlan, planPrice } from '@/lib/proposalHtml'
+import { type MealSection, planPrice } from '@/lib/proposalHtml'
 
 // Palette e registro dello skill "Preventivo Evento" (SKILLS-PREVENTIVO.md): stessi
 // token cromatici di ProposalQuotePdfDocument.tsx (il preventivo formale cliente) —
@@ -83,19 +83,12 @@ interface Props {
 
 const MENU_VAT_RATE = 10 // usato solo per il calcolo standalone del menu (nessun campo IVA dedicato nello schema)
 
-// Nel menu dell'evento ogni sezione ha in genere una sola fascia di prezzo compilata
-// (a differenza del configuratore /proposte con piu' fasce Classico/Preferito/Generoso):
-// per il preventivo interno mostriamo la prima fascia con piatti di ogni sezione.
-function mainPlan(section: MealSection): PricePlan | null {
-  return section.plans.find((p) => p.groups.some((g) => g.items.length > 0)) ?? section.plans[0] ?? null
-}
-
 export function QuotePdfDocument({ event, revenues, totalRevenue, companyInfo, roomName, menuSections = [] }: Props) {
   const guests = event.guests_count ?? 1
 
   const menuRows = menuSections
-    .map((section) => ({ section, plan: mainPlan(section) }))
-    .filter((row): row is { section: MealSection; plan: PricePlan } => row.plan !== null)
+    .filter((section) => section.plan.groups.some((g) => g.items.length > 0))
+    .map((section) => ({ section, plan: section.plan }))
 
   const menuTotalPerGuest = menuRows.reduce((sum, { plan }) => sum + planPrice(plan), 0)
   const menuTotal = menuTotalPerGuest * guests

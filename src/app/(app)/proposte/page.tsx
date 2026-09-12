@@ -7,7 +7,7 @@ import { createClient } from '@/lib/supabase/client'
 import { isSupabaseConfigured } from '@/lib/supabase/config'
 import type { CatalogItem, ProposalTemplate } from '@/lib/supabase/types'
 import { SetupBanner } from '@/components/ui/SetupBanner'
-import { buildProposalHtml, type MealSection } from '@/lib/proposalHtml'
+import { buildProposalHtml, normalizeMealSections, type MealSection } from '@/lib/proposalHtml'
 import { saveDraftProposal, saveWorkingProposal, loadWorkingProposal, clearWorkingProposal } from '@/lib/proposalDraft'
 import { SectionsEditor, emptySection, nextAccent, MEAL_PRESETS } from '@/components/proposte/SectionsEditor'
 
@@ -21,7 +21,8 @@ function ProposteInner() {
   const [loading, setLoading] = useState(true)
   const [sections, setSections] = useState<MealSection[]>(() => {
     if (typeof window === 'undefined') return [emptySection(MEAL_PRESETS[0], 'green')]
-    return loadWorkingProposal() ?? [emptySection(MEAL_PRESETS[0], 'green')]
+    const working = loadWorkingProposal()
+    return working ? normalizeMealSections(working) : [emptySection(MEAL_PRESETS[0], 'green')]
   })
   const [restoredNotice, setRestoredNotice] = useState(false)
 
@@ -93,7 +94,7 @@ function ProposteInner() {
   }
 
   function loadTemplate(template: ProposalTemplate) {
-    setSections(template.sections as MealSection[])
+    setSections(normalizeMealSections(template.sections as MealSection[]))
     setActiveTemplateId(template.id)
     setShowTemplateMenu(false)
   }

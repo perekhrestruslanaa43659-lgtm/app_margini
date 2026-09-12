@@ -108,22 +108,20 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Errore durante la creazione dell\'evento' }, { status: 500 })
   }
 
-  // Ogni fascia scelta (con almeno un piatto) diventa una voce di ricavo dell'evento,
+  // Ogni sezione con almeno un piatto diventa una voce di ricavo dell'evento,
   // cosi' l'evento resta consultabile/modificabile come tutti gli altri.
-  const itemsToInsert = body.sections.flatMap((section) =>
-    section.plans
-      .filter((p) => p.groups.some((g) => g.items.length > 0))
-      .map((plan) => ({
-        event_id: event.id,
-        type: 'ricavo' as const,
-        category: section.label,
-        name: `${section.label} — ${plan.name || 'Fascia'}`,
-        quantity: client.guestsCount ?? 1,
-        unit_price: planPrice(plan),
-        vat_rate: 10,
-        notes: null,
-      }))
-  )
+  const itemsToInsert = body.sections
+    .filter((section) => section.plan.groups.some((g) => g.items.length > 0))
+    .map((section) => ({
+      event_id: event.id,
+      type: 'ricavo' as const,
+      category: section.label,
+      name: section.label,
+      quantity: client.guestsCount ?? 1,
+      unit_price: planPrice(section.plan),
+      vat_rate: 10,
+      notes: null,
+    }))
 
   const extraItems = body.sections.flatMap((section) =>
     section.extras.map((ex) => ({

@@ -291,28 +291,26 @@ function EventDetailPageInner() {
     setSavingMenu(false)
   }
 
-  // Margine per fascia prezzo: ogni sezione (momento) puo' avere piu' fasce (Classico/Preferito/...),
-  // ciascuna col proprio margine calcolato dai food cost del catalogo.
+  // Margine per sezione (momento): ogni sezione ha un solo piano prezzo, col proprio
+  // margine calcolato dai food cost del catalogo.
   const menuMargins = useMemo(() => {
     const guests = event?.guests_count ?? 1
-    const perPlan = menuSections.flatMap((section) =>
-      section.plans
-        .filter((plan) => plan.groups.some((g) => g.items.length > 0))
-        .map((plan) => {
-          const revenuePerGuest = planPrice(plan)
-          const costPerGuest = planCost(plan, foodCostByDish, foodCostByCategory)
-          const marginPerGuest = planMargin(plan, foodCostByDish, foodCostByCategory)
-          const marginPct = planMarginPct(plan, foodCostByDish, foodCostByCategory)
-          return {
-            sectionLabel: section.label,
-            planName: plan.name || 'Fascia senza nome',
-            costPerGuest,
-            revenuePerGuest,
-            marginPerGuest,
-            marginPct,
-          }
-        })
-    )
+    const perPlan = menuSections
+      .filter((section) => section.plan.groups.some((g) => g.items.length > 0))
+      .map((section) => {
+        const plan = section.plan
+        const revenuePerGuest = planPrice(plan)
+        const costPerGuest = planCost(plan, foodCostByDish, foodCostByCategory)
+        const marginPerGuest = planMargin(plan, foodCostByDish, foodCostByCategory)
+        const marginPct = planMarginPct(plan, foodCostByDish, foodCostByCategory)
+        return {
+          sectionLabel: section.label,
+          costPerGuest,
+          revenuePerGuest,
+          marginPerGuest,
+          marginPct,
+        }
+      })
     const totalRevenuePerGuest = perPlan.reduce((sum, p) => sum + p.revenuePerGuest, 0)
     const totalCostPerGuest = perPlan.reduce((sum, p) => sum + p.costPerGuest, 0)
     const totalMarginPerGuest = totalRevenuePerGuest - totalCostPerGuest
@@ -947,13 +945,13 @@ function EventDetailPageInner() {
                   </div>
 
                   {menuMargins.perPlan.length === 0 ? (
-                    <p className="text-sm text-slate-400 py-4 text-center">Nessuna fascia con piatti configurata.</p>
+                    <p className="text-sm text-slate-400 py-4 text-center">Nessun momento con piatti configurato.</p>
                   ) : (
                     <>
                       <div className="space-y-2 mb-4">
-                        {menuMargins.perPlan.map(({ sectionLabel, planName, costPerGuest, revenuePerGuest, marginPerGuest, marginPct }, i) => (
+                        {menuMargins.perPlan.map(({ sectionLabel, costPerGuest, revenuePerGuest, marginPerGuest, marginPct }, i) => (
                           <div key={i} className="flex items-center gap-3 border border-slate-100 rounded-xl px-3.5 py-2.5">
-                            <span className="text-sm font-medium text-dm-ink/80 flex-1">{sectionLabel} · {planName}</span>
+                            <span className="text-sm font-medium text-dm-ink/80 flex-1">{sectionLabel}</span>
                             <span className="text-xs text-slate-400">Costo {formatCurrency(costPerGuest)}/pers.</span>
                             <span className="text-xs text-slate-400">Ricavo {formatCurrency(revenuePerGuest)}/pers.</span>
                             <span className="text-xs font-medium text-dm-ink/70">Margine {formatCurrency(marginPerGuest)}/pers.</span>
