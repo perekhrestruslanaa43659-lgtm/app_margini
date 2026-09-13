@@ -96,10 +96,16 @@ interface Props {
   sections: MealSection[]
   lang?: QuoteLang
   logoSrc?: string
+  /** Foto unica mostrata subito sotto l'header, prima di tutte le sezioni — usata quando
+   *  l'intero documento riguarda una sola sala (es. menu di un evento con room_id fisso). */
   photoSrc?: string
+  /** Nome sala (case-insensitive, come in MealSection.room) -> URL foto: mostra una foto
+   *  diversa per ogni sezione con una sala diversa, invece di un'unica foto globale.
+   *  Se una sezione non ha match qui, resta senza foto anche se photoSrc e' assente. */
+  roomPhotoByName?: Map<string, string>
 }
 
-export function ProposalMenuPdfDocument({ sections, lang = 'it', logoSrc, photoSrc }: Props) {
+export function ProposalMenuPdfDocument({ sections, lang = 'it', logoSrc, photoSrc, roomPhotoByName }: Props) {
   const t = menuStrings[lang]
   return (
     <Document title="Menu proposta Doppio Malto">
@@ -129,6 +135,7 @@ export function ProposalMenuPdfDocument({ sections, lang = 'it', logoSrc, photoS
             if (groups.length === 0) return null
             const price = planPrice(plan)
             const priceLabel = price > 0 ? `€${price.toFixed(2).replace(/\.00$/, '')}` : '—'
+            const sectionPhotoSrc = section.room ? roomPhotoByName?.get(section.room.trim().toLowerCase()) : undefined
 
             return (
               <View key={section.id} wrap={false} style={{ marginBottom: 22 }}>
@@ -141,6 +148,13 @@ export function ProposalMenuPdfDocument({ sections, lang = 'it', logoSrc, photoS
                   {section.meta ? <Text style={styles.mealMeta}>{section.meta}</Text> : null}
                   {plan.note ? <Text style={styles.mealNote}>{plan.note}</Text> : null}
                 </View>
+
+                {sectionPhotoSrc ? (
+                  <View style={styles.photoWrap}>
+                    {/* eslint-disable-next-line jsx-a11y/alt-text */}
+                    <Image src={sectionPhotoSrc} style={styles.photo} />
+                  </View>
+                ) : null}
 
                 <View style={styles.stack}>
                   {groups.map((g) => {

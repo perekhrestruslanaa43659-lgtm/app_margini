@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { renderToBuffer } from '@react-pdf/renderer'
 import { createServerClient } from '@supabase/ssr'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { ProposalMenuPdfDocument } from '@/lib/pdf/ProposalMenuPdfDocument'
 import type { MealSection } from '@/lib/proposalHtml'
 import type { QuoteLang } from '@/lib/pdf/i18n'
+import type { Room } from '@/lib/supabase/types'
 
 interface MenuRequestBody {
   clientName: string
@@ -39,8 +41,21 @@ export async function POST(req: NextRequest) {
 
   const logoSrc = `${req.nextUrl.origin}/brand/doppio-malto-logo.jpg`
 
+  // Ogni sezione puo' avere una sala diversa (section.room, testo libero scelto nel
+  // builder): costruiamo una mappa nome sala -> foto assoluta interrogando rooms,
+  // invece di una singola foto globale come in /api/events/[id]/menu (dove l'evento
+  // ha una sola sala fissa).
+  const roomPhotoByName = new Map<string, string>()
+  const admin = createAdminClient()
+  if (admin) {
+    const { data: roomsData } = await admin.from('rooms').select('*')
+    for (const r of (roomsData ?? []) as Room[]) {
+      if (r.photo_url) roomPhotoByName.set(r.name.trim().toLowerCase(), `${req.nextUrl.origin}${r.photo_url}`)
+    }
+  }
+
   const buffer = await renderToBuffer(
-    ProposalMenuPdfDocument({ clientName, sections: body.sections, lang, logoSrc })
+    ProposalMenuPdfDocument({ clientName, sections: body.sections, lang, logoSrc, roomPhotoByName })
   )
 
   const fileBase = `menu-${clientName.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}`

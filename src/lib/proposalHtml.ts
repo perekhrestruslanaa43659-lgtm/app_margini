@@ -1,3 +1,7 @@
+import { menuStrings, type QuoteLang } from '@/lib/pdf/i18n'
+
+type MenuStrings = (typeof menuStrings)[QuoteLang]
+
 export interface PlanItem {
   catalogId: string
   name: string
@@ -199,10 +203,10 @@ export function dishesBySubcategory(group: PlanGroup): Map<string, PlanItem[]> {
   return map
 }
 
-function renderItemsList(items: PlanItem[], group: PlanGroup): string {
+function renderItemsList(items: PlanItem[], group: PlanGroup, t: MenuStrings): string {
   return items.map((it) => {
     const shared = itemSharedAmong(it, group)
-    return `<p>${esc(it.name)}${shared && shared > 1 ? ` <em>(ogni ${shared} persone)</em>` : ''}${it.desc ? ` — ${esc(it.desc)}` : ''}</p>`
+    return `<p>${esc(it.name)}${shared && shared > 1 ? ` <em>${esc(t.sharedEvery(shared))}</em>` : ''}${it.desc ? ` — ${esc(it.desc)}` : ''}</p>`
   }).join('')
 }
 
@@ -210,19 +214,19 @@ function renderItemsList(items: PlanItem[], group: PlanGroup): string {
  *  verticalmente sotto il prezzo unico di sezione: titolo corallo maiuscolo, tag
  *  opzionale, divider tratteggiato, corpo testo. Il gruppo Bevande prende lo
  *  sfondo teal pieno invece di bianco, come nel template di riferimento. */
-function renderGroupCard(g: PlanGroup): string {
+function renderGroupCard(g: PlanGroup, t: MenuStrings): string {
   const isChoice = g.pricingMode === 'media' && g.items.length > 1
   const subcategories = isChoice ? dishesBySubcategory(g) : null
   const hasMultipleSubcats = subcategories ? subcategories.size > 1 : false
 
   const bodyHtml = !isChoice
-    ? renderItemsList(g.items, g)
+    ? renderItemsList(g.items, g, t)
     : hasMultipleSubcats
       ? Array.from(subcategories!.entries()).map(([subcat, dishes]) => `
           <p><strong>${esc(subcat.toUpperCase())}</strong></p>
-          ${renderItemsList(dishes, g)}
+          ${renderItemsList(dishes, g, t)}
         `).join('')
-      : renderItemsList(g.items, g)
+      : renderItemsList(g.items, g, t)
 
   const isBeverage = /bevand/i.test(g.label)
 
@@ -232,35 +236,41 @@ function renderGroupCard(g: PlanGroup): string {
         <div class="card-title">${esc(g.label || 'Voci')}</div>
         ${g.tag ? `<div class="tag">${esc(g.tag)}</div>` : ''}
       </div>
-      ${isChoice ? `<div class="card-subtitle">a scelta</div>` : ''}
+      ${isChoice ? `<div class="card-subtitle">${esc(t.choice)}</div>` : ''}
       <hr class="divider">
       <div class="card-body">${bodyHtml}</div>
     </div>
   `
 }
 
-function renderSection(section: MealSection): string {
+function renderSection(section: MealSection, t: MenuStrings, heroPhotoUrl?: string): string {
   const plan = section.plan
-  const groupsHtml = plan.groups.filter((g) => g.items.length > 0).map(renderGroupCard).join('')
+  const groupsHtml = plan.groups.filter((g) => g.items.length > 0).map((g) => renderGroupCard(g, t)).join('')
   const price = planPrice(plan)
   const priceLabel = price > 0 ? `€${price.toFixed(2).replace(/\.00$/, '')}` : '—'
 
   const infoBadges = [
-    section.duration ? `<span class="info-pill">🕐 Permanenza ${esc(section.duration)}</span>` : '',
-    section.extraHour ? `<span class="info-pill">⏳ Extra ${esc(section.extraHour)}</span>` : '',
+    section.duration ? `<span class="info-pill">🕐 ${esc(t.permanence)} ${esc(section.duration)}</span>` : '',
+    section.extraHour ? `<span class="info-pill">⏳ ${esc(t.extra)} ${esc(section.extraHour)}</span>` : '',
     section.room ? `<span class="info-pill">📍 ${esc(section.room)}</span>` : '',
     section.formula ? `<span class="info-pill">🍽️ ${esc(section.formula)}</span>` : '',
   ].filter(Boolean).join('')
 
   const extrasCard = section.extras.length > 0 ? `
     <div class="card white">
-      <div class="card-title-row"><div class="card-title">Servizi aggiuntivi</div></div>
+      <div class="card-title-row"><div class="card-title">${esc(t.additionalServices)}</div></div>
       <hr class="divider">
       <div class="card-body">
         ${section.extras.map((ex) => `
-          <p>${esc(ex.name)} — ${ex.price > 0 ? `€${ex.price.toFixed(2).replace(/\.00$/, '')}${ex.unit === 'a_persona' ? '/persona' : ''}` : 'su richiesta'}</p>
+          <p>${esc(ex.name)} — ${ex.price > 0 ? `€${ex.price.toFixed(2).replace(/\.00$/, '')}${ex.unit === 'a_persona' ? `/${esc(t.perPerson)}` : ''}` : esc(t.onRequest)}</p>
         `).join('')}
       </div>
+    </div>
+  ` : ''
+
+  const photoHtml = heroPhotoUrl ? `
+    <div class="photo-wrap">
+      <div class="frame"><img src="${esc(heroPhotoUrl)}" alt=""></div>
     </div>
   ` : ''
 
@@ -273,16 +283,25 @@ function renderSection(section: MealSection): string {
       ${section.meta ? `<p class="meal-meta">${esc(section.meta)}</p>` : ''}
       ${plan.note ? `<p class="meal-meta"><em>${esc(plan.note)}</em></p>` : ''}
       ${infoBadges ? `<div class="info-strip">${infoBadges}</div>` : ''}
+      ${photoHtml}
       <div class="stack">${groupsHtml}${extrasCard}</div>
     </section>
   `
 }
 
-export function buildProposalHtml(sections: MealSection[], heroPhotoUrl?: string): string {
-  const sectionsHtml = sections.map(renderSection).join('')
+/** Nome sala (case-insensitive, come scritto in MealSection.room) -> URL della sua
+ *  foto. Costruita dal chiamante joinando la tabella rooms, cosi' proposalHtml.ts
+ *  resta puro/senza dipendenze da Supabase (stesso pattern di FoodCostByDish). */
+export type RoomPhotoByName = Map<string, string>
+
+export function buildProposalHtml(sections: MealSection[], lang: QuoteLang = 'it', roomPhotoByName?: RoomPhotoByName): string {
+  const t = menuStrings[lang]
+  const sectionsHtml = sections
+    .map((s) => renderSection(s, t, s.room ? roomPhotoByName?.get(s.room.trim().toLowerCase()) : undefined))
+    .join('')
 
   return `<!doctype html>
-<html lang="it">
+<html lang="${lang}">
 <head>
 <meta charset="UTF-8">
 <title>Proposte Eventi Doppio Malto</title>
@@ -435,26 +454,20 @@ export function buildProposalHtml(sections: MealSection[], heroPhotoUrl?: string
 
   <div class="hero">
     <img class="logo" src="/brand/doppio-malto-logo.jpg" alt="Doppio Malto">
-    <div class="tagline">Birrificio con cucina</div>
-    <h1 class="headline">PROPOSTE <span class="amount">EVENTI</span> DI GRUPPO</h1>
-    <p class="subtitle">Formule su misura per la tua compagnia — bevanda, sfizi da condividere e la sala giusta per ogni occasione.</p>
-    <span class="badge-pill">Proposta commerciale</span>
+    <div class="tagline">${esc(t.eyebrow)}</div>
+    <h1 class="headline">${esc(t.heroTitlePrefix)} <span class="amount">${esc(t.heroTitleAmount)}</span> ${esc(t.heroTitleSuffix)}</h1>
+    <p class="subtitle">${esc(t.heroSubtitle)}</p>
+    <span class="badge-pill">${esc(t.badgePill)}</span>
   </div>
-
-  ${heroPhotoUrl ? `
-  <div class="photo-wrap">
-    <div class="frame"><img src="${esc(heroPhotoUrl)}" alt=""></div>
-  </div>
-  ` : ''}
 
   <div class="wrap">
     ${sectionsHtml}
-    <p class="foot-note"><strong>Nota:</strong> i piatti "da condividere" sono calcolati per persona salvo diversa indicazione. Prezzi IVA inclusa.</p>
+    <p class="foot-note">${esc(t.footnote)}</p>
   </div>
 
   <footer>
     <img class="logo" src="/brand/doppio-malto-logo.jpg" alt="Doppio Malto">
-    <div class="foot-text">Prezzi IVA inclusa · doppiomalto.com</div>
+    <div class="foot-text">${esc(t.footerText)}</div>
   </footer>
 
 </body>

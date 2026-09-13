@@ -7,7 +7,8 @@ import { createClient } from '@/lib/supabase/client'
 import { isSupabaseConfigured } from '@/lib/supabase/config'
 import type { CatalogItem, ProposalTemplate, Room } from '@/lib/supabase/types'
 import { SetupBanner } from '@/components/ui/SetupBanner'
-import { buildProposalHtml, normalizeMealSections, type MealSection } from '@/lib/proposalHtml'
+import { buildProposalHtml, normalizeMealSections, type MealSection, type RoomPhotoByName } from '@/lib/proposalHtml'
+import type { QuoteLang } from '@/lib/pdf/i18n'
 import {
   saveDraftProposal, saveWorkingProposal, loadWorkingProposal, clearWorkingProposal,
   saveClientDraft, loadClientDraft, emptyClientDraft, type ProposalClientDraft,
@@ -31,6 +32,7 @@ function ProposteInner() {
     return working ? normalizeMealSections(working) : [emptySection(MEAL_PRESETS[0], 'green')]
   })
   const [restoredNotice, setRestoredNotice] = useState(false)
+  const [lang, setLang] = useState<QuoteLang>('it')
   const [client, setClient] = useState<ProposalClientDraft>(() => {
     if (typeof window === 'undefined') return emptyClientDraft()
     return loadClientDraft() ?? emptyClientDraft()
@@ -127,7 +129,11 @@ function ProposteInner() {
   }
 
   function openProposal() {
-    const html = buildProposalHtml(sections)
+    const roomPhotoByName: RoomPhotoByName = new Map()
+    for (const r of rooms) {
+      if (r.photo_url) roomPhotoByName.set(r.name.trim().toLowerCase(), r.photo_url)
+    }
+    const html = buildProposalHtml(sections, lang, roomPhotoByName)
     const blobUrl = URL.createObjectURL(new Blob([html], { type: 'text/html' }))
     window.open(blobUrl, '_blank')
   }
@@ -205,6 +211,20 @@ function ProposteInner() {
               <BookmarkPlus size={15} /> Salva come template
             </button>
 
+            <div className="flex rounded-[14px] border-[3px] border-[#1C1B18] overflow-hidden text-xs" style={{ fontFamily: "'Archivo Black', Arial, sans-serif" }}>
+              <button
+                className={`px-3 py-2 ${lang === 'it' ? 'bg-[#E1543F] text-white' : 'bg-[#FBF6EC] text-[#1C1B18]'}`}
+                onClick={() => setLang('it')}
+              >
+                IT
+              </button>
+              <button
+                className={`px-3 py-2 ${lang === 'en' ? 'bg-[#E1543F] text-white' : 'bg-[#FBF6EC] text-[#1C1B18]'}`}
+                onClick={() => setLang('en')}
+              >
+                EN
+              </button>
+            </div>
             <button className="sticker-btn sticker-btn-secondary flex items-center gap-2" onClick={openProposal}>
               <FileText size={15} /> Anteprima proposta
             </button>
