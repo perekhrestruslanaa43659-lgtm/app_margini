@@ -205,7 +205,7 @@ export function SectionsEditor({ sections, onChange, catalog, renderSectionExtra
           groups: s.plan.groups.map((g) => {
             if (g.id !== groupId) return g
             if (g.items.some((it) => it.catalogId === item.id)) return g
-            return { ...g, items: [...g.items, { catalogId: item.id, name: item.name, desc: '', price: item.unit_price, category: item.category ?? '' }] }
+            return { ...g, items: [...g.items, { catalogId: item.id, name: item.name, desc: item.notes ?? '', price: item.unit_price, category: item.category ?? '' }] }
           }),
         },
       }
