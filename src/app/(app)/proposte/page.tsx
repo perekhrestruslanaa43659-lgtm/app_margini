@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Plus, Trash2, FileText, ArrowRight, BookmarkPlus, FolderOpen, Save } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { isSupabaseConfigured } from '@/lib/supabase/config'
-import type { CatalogItem, ProposalTemplate } from '@/lib/supabase/types'
+import type { CatalogItem, ProposalTemplate, Room } from '@/lib/supabase/types'
 import { SetupBanner } from '@/components/ui/SetupBanner'
 import { buildProposalHtml, normalizeMealSections, type MealSection } from '@/lib/proposalHtml'
 import {
@@ -23,6 +23,7 @@ function ProposteInner() {
   const sb = supabase as any
 
   const [catalog, setCatalog] = useState<CatalogItem[]>([])
+  const [rooms, setRooms] = useState<Room[]>([])
   const [loading, setLoading] = useState(true)
   const [sections, setSections] = useState<MealSection[]>(() => {
     if (typeof window === 'undefined') return [emptySection(MEAL_PRESETS[0], 'green')]
@@ -45,12 +46,14 @@ function ProposteInner() {
   useEffect(() => {
     async function load() {
       setLoading(true)
-      const [{ data: catalogData }, { data: templateData }] = await Promise.all([
+      const [{ data: catalogData }, { data: templateData }, { data: roomsData }] = await Promise.all([
         sb.from('catalog_items').select('*').order('category').order('name'),
         sb.from('proposal_templates').select('*').order('name'),
+        sb.from('rooms').select('*').order('name'),
       ])
       setCatalog((catalogData ?? []) as CatalogItem[])
       setTemplates((templateData ?? []) as ProposalTemplate[])
+      setRooms((roomsData ?? []) as Room[])
       setLoading(false)
     }
     load()
@@ -139,154 +142,163 @@ function ProposteInner() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto pb-16">
-      {restoredNotice && (
-        <div className="card mb-4 flex items-center justify-between gap-3 bg-amber-50/60 border-amber-100">
-          <p className="text-xs text-amber-800">Ripristinata l&apos;ultima proposta su cui stavi lavorando.</p>
-          <button className="text-xs text-amber-800 underline shrink-0" onClick={() => setRestoredNotice(false)}>
-            Ok, capito
-          </button>
-        </div>
-      )}
-
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-        <div className="flex items-center gap-3">
-          <div className="w-11 h-11 bg-amber-100 rounded-xl flex items-center justify-center shrink-0">
-            <FileText className="text-amber-600" size={20} />
-          </div>
-          <div>
-            <h1 className="text-xl font-bold text-dm-ink">Proposte Eventi</h1>
-            <p className="text-sm text-slate-500">Componi la proposta scegliendo i piatti dal catalogo</p>
-          </div>
-        </div>
-        <div className="flex gap-2 flex-wrap">
-          <button className="btn-secondary flex items-center gap-2" onClick={addSection}>
-            <Plus size={15} /> Aggiungi momento
-          </button>
-          <button className="btn-secondary flex items-center gap-2" onClick={startNewProposal}>
-            <FileText size={15} /> Nuova proposta
-          </button>
-
-          <div className="relative">
-            <button className="btn-secondary flex items-center gap-2" onClick={() => setShowTemplateMenu((v) => !v)}>
-              <FolderOpen size={15} /> Template
+    <div className="proposte-sticker">
+      <div className="max-w-6xl mx-auto pb-16">
+        {restoredNotice && (
+          <div className="sticker-card flex items-center justify-between gap-3">
+            <p className="text-xs text-[#1C1B18]">Ripristinata l&apos;ultima proposta su cui stavi lavorando.</p>
+            <button className="text-xs text-[#1C1B18] underline shrink-0" onClick={() => setRestoredNotice(false)}>
+              Ok, capito
             </button>
-            {showTemplateMenu && (
-              <div className="absolute right-0 top-full mt-1 w-72 bg-white rounded-xl shadow-lg border border-slate-100 z-30 py-1">
-                {templates.length === 0 ? (
-                  <p className="px-3 py-2 text-xs text-slate-400">Nessun template salvato</p>
-                ) : (
-                  templates.map((t) => (
-                    <div key={t.id} className="flex items-center justify-between px-3 py-2 hover:bg-dm-cream text-sm">
-                      <button className="flex-1 text-left truncate text-dm-ink/90" onClick={() => loadTemplate(t)}>
-                        {t.name}
-                      </button>
-                      <button className="text-slate-300 hover:text-red-500 shrink-0 ml-2" onClick={() => deleteTemplate(t.id)}>
-                        <Trash2 size={13} />
-                      </button>
-                    </div>
-                  ))
-                )}
-              </div>
-            )}
           </div>
+        )}
 
-          {activeTemplateId ? (
-            <button className="btn-secondary flex items-center gap-2" onClick={updateActiveTemplate} disabled={templateSaving}>
-              <Save size={15} /> Aggiorna template
-            </button>
-          ) : null}
-
-          <button className="btn-secondary flex items-center gap-2" onClick={() => { setShowSaveDialog(true); setNewTemplateName('') }}>
-            <BookmarkPlus size={15} /> Salva come template
-          </button>
-
-          <button className="btn-secondary flex items-center gap-2" onClick={openProposal}>
-            <FileText size={15} /> Anteprima proposta
-          </button>
-          <button className="btn-primary flex items-center gap-2" onClick={proceedToQuote}>
-            Procedi al preventivo <ArrowRight size={15} />
-          </button>
-        </div>
-      </div>
-
-      {showSaveDialog && (
-        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={() => setShowSaveDialog(false)}>
-          <div className="bg-white rounded-2xl shadow-xl max-w-sm w-full p-5" onClick={(e) => e.stopPropagation()}>
-            <h3 className="font-semibold text-dm-ink mb-3">Salva come nuovo template</h3>
-            <input
-              autoFocus
-              className="input mb-3"
-              placeholder="Nome template (es. Aperitivo standard)"
-              value={newTemplateName}
-              onChange={(e) => setNewTemplateName(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter') saveAsNewTemplate() }}
-            />
-            <div className="flex gap-2 justify-end">
-              <button className="btn-secondary" onClick={() => setShowSaveDialog(false)}>Annulla</button>
-              <button className="btn-primary" onClick={saveAsNewTemplate} disabled={templateSaving || !newTemplateName.trim()}>
-                {templateSaving ? 'Salvataggio...' : 'Salva'}
-              </button>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+          <div className="flex items-center gap-3">
+            <div className="w-11 h-11 bg-[#1C1B18] rounded-xl flex items-center justify-center shrink-0">
+              <FileText className="text-white" size={20} />
+            </div>
+            <div>
+              <p className="sticker-eyebrow text-sm">Modulo proposta</p>
+              <h1 className="text-2xl" style={{ fontFamily: "'Archivo Black', Arial, sans-serif" }}>Proposte Eventi</h1>
             </div>
           </div>
-        </div>
-      )}
+          <div className="flex gap-2 flex-wrap">
+            <button className="sticker-btn sticker-btn-secondary flex items-center gap-2" onClick={addSection}>
+              <Plus size={15} /> Aggiungi momento
+            </button>
+            <button className="sticker-btn sticker-btn-secondary flex items-center gap-2" onClick={startNewProposal}>
+              <FileText size={15} /> Nuova proposta
+            </button>
 
-      <div
-        className="bg-white rounded-2xl p-6 mb-6"
-        style={{ border: '3px solid var(--dm-ink)', boxShadow: '6px 6px 0 var(--dm-ink)' }}
-      >
-        <h2 className="text-sm font-bold text-dm-ink uppercase tracking-wide mb-4">Dati cliente</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
-          <input
-            className="input"
-            placeholder="Cliente / Azienda"
-            value={client.clientName}
-            onChange={(e) => updateClient({ clientName: e.target.value })}
-          />
-          <input
-            className="input"
-            type="email"
-            placeholder="Email cliente"
-            value={client.clientEmail}
-            onChange={(e) => updateClient({ clientEmail: e.target.value })}
+            <div className="relative">
+              <button className="sticker-btn sticker-btn-secondary flex items-center gap-2" onClick={() => setShowTemplateMenu((v) => !v)}>
+                <FolderOpen size={15} /> Template
+              </button>
+              {showTemplateMenu && (
+                <div className="absolute right-0 top-full mt-1 w-72 bg-white rounded-xl shadow-lg border-2 border-[#1C1B18] z-30 py-1">
+                  {templates.length === 0 ? (
+                    <p className="px-3 py-2 text-xs text-slate-400">Nessun template salvato</p>
+                  ) : (
+                    templates.map((t) => (
+                      <div key={t.id} className="flex items-center justify-between px-3 py-2 hover:bg-[#FBF6EC] text-sm">
+                        <button className="flex-1 text-left truncate text-[#1C1B18]" onClick={() => loadTemplate(t)}>
+                          {t.name}
+                        </button>
+                        <button className="text-slate-300 hover:text-red-500 shrink-0 ml-2" onClick={() => deleteTemplate(t.id)}>
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
+            </div>
+
+            {activeTemplateId ? (
+              <button className="sticker-btn sticker-btn-secondary flex items-center gap-2" onClick={updateActiveTemplate} disabled={templateSaving}>
+                <Save size={15} /> Aggiorna template
+              </button>
+            ) : null}
+
+            <button className="sticker-btn sticker-btn-secondary flex items-center gap-2" onClick={() => { setShowSaveDialog(true); setNewTemplateName('') }}>
+              <BookmarkPlus size={15} /> Salva come template
+            </button>
+
+            <button className="sticker-btn sticker-btn-secondary flex items-center gap-2" onClick={openProposal}>
+              <FileText size={15} /> Anteprima proposta
+            </button>
+            <button className="sticker-btn flex items-center gap-2" onClick={proceedToQuote}>
+              Procedi al preventivo <ArrowRight size={15} />
+            </button>
+          </div>
+        </div>
+
+        {showSaveDialog && (
+          <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={() => setShowSaveDialog(false)}>
+            <div className="sticker-card max-w-sm w-full mb-0" onClick={(e) => e.stopPropagation()}>
+              <h3 className="sticker-title">Salva come nuovo template</h3>
+              <input
+                type="text"
+                autoFocus
+                className="mb-3"
+                placeholder="Nome template (es. Aperitivo standard)"
+                value={newTemplateName}
+                onChange={(e) => setNewTemplateName(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') saveAsNewTemplate() }}
+              />
+              <div className="flex gap-2 justify-end">
+                <button className="sticker-btn sticker-btn-secondary" onClick={() => setShowSaveDialog(false)}>Annulla</button>
+                <button className="sticker-btn" onClick={saveAsNewTemplate} disabled={templateSaving || !newTemplateName.trim()}>
+                  {templateSaving ? 'Salvataggio...' : 'Salva'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div className="sticker-card">
+          <h2 className="sticker-title">Dati cliente</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+            <div>
+              <label className="sticker-label">Cliente / Azienda</label>
+              <input
+                type="text"
+                placeholder="Cliente / Azienda"
+                value={client.clientName}
+                onChange={(e) => updateClient({ clientName: e.target.value })}
+              />
+            </div>
+            <div>
+              <label className="sticker-label">Email cliente</label>
+              <input
+                type="email"
+                placeholder="Email cliente"
+                value={client.clientEmail}
+                onChange={(e) => updateClient({ clientEmail: e.target.value })}
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
+            <div>
+              <label className="sticker-label">N. persone</label>
+              <input
+                type="number"
+                min={1}
+                placeholder="N. persone"
+                value={client.guestsCount}
+                onChange={(e) => updateClient({ guestsCount: e.target.value })}
+              />
+            </div>
+            <div>
+              <label className="sticker-label">Data evento</label>
+              <input
+                type="date"
+                value={client.eventDate}
+                onChange={(e) => updateClient({ eventDate: e.target.value })}
+              />
+            </div>
+            <div>
+              <label className="sticker-label">Stato</label>
+              <select
+                value={client.status}
+                onChange={(e) => updateClient({ status: e.target.value })}
+              >
+                {STATUS_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
+              </select>
+            </div>
+          </div>
+          <label className="sticker-label">Note</label>
+          <textarea
+            className="min-h-20 resize-y"
+            placeholder="Note e richieste specifiche (es. escludere un piatto, servizio a persona, foto hero da usare...)"
+            value={client.notes}
+            onChange={(e) => updateClient({ notes: e.target.value })}
           />
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
-          <input
-            className="input"
-            type="number"
-            min={1}
-            placeholder="N. persone"
-            value={client.guestsCount}
-            onChange={(e) => updateClient({ guestsCount: e.target.value })}
-          />
-          <label className="flex flex-col gap-1 text-xs text-slate-500">
-            Data evento
-            <input
-              className="input"
-              type="date"
-              value={client.eventDate}
-              onChange={(e) => updateClient({ eventDate: e.target.value })}
-            />
-          </label>
-          <select
-            className="input"
-            value={client.status}
-            onChange={(e) => updateClient({ status: e.target.value })}
-          >
-            {STATUS_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
-          </select>
-        </div>
-        <textarea
-          className="input min-h-20 resize-y"
-          placeholder="Note e richieste specifiche (es. escludere un piatto, servizio a persona, foto hero da usare...)"
-          value={client.notes}
-          onChange={(e) => updateClient({ notes: e.target.value })}
-        />
+
+        <SectionsEditor sections={sections} onChange={handleSectionsChange} catalog={catalog} rooms={rooms} />
       </div>
-
-      <SectionsEditor sections={sections} onChange={handleSectionsChange} catalog={catalog} />
     </div>
   )
 }

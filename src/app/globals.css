@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600;700&family=Archivo+Black&family=Kalam:wght@700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -55,4 +55,136 @@ h1, h2, h3, h4, .font-display {
   .badge {
     @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
   }
+}
+
+/* Stile "sticker & marker" (SKILLS-STILE.md) applicato per intero alla pagina
+   /proposte, su richiesta esplicita — deroga alla regola generale sopra che
+   riserva questo registro ai soli PDF. Sfondo giallo pieno, card con bordo nero
+   spesso e ombra piena netta, font Kalam per le etichette scritte a mano,
+   Archivo Black per i titoli display, campi color crema con bordo nero. */
+.proposte-sticker {
+  background: #F4C40F;
+  margin: -1.5rem -1rem;
+  padding: 1.5rem 1rem 4rem;
+  min-height: calc(100vh - 2rem);
+}
+@media (min-width: 768px) {
+  .proposte-sticker {
+    margin: -2rem -2rem;
+    padding: 2rem 2rem 5rem;
+  }
+}
+.proposte-sticker .sticker-card {
+  background: #FFFDF9;
+  border: 3px solid #1C1B18;
+  border-radius: 20px;
+  box-shadow: 8px 8px 0 #1C1B18;
+  padding: 24px 26px;
+  margin-bottom: 20px;
+}
+.proposte-sticker .sticker-title {
+  font-family: 'Archivo Black', Arial, sans-serif;
+  font-size: 17px;
+  color: #1C1B18;
+  margin: 0 0 16px;
+}
+.proposte-sticker .sticker-label {
+  display: block;
+  font-family: 'Kalam', cursive;
+  font-weight: 700;
+  font-size: 14px;
+  color: #1C1B18;
+  margin-bottom: 6px;
+}
+.proposte-sticker input[type=text],
+.proposte-sticker input[type=email],
+.proposte-sticker input[type=number],
+.proposte-sticker input[type=date],
+.proposte-sticker select,
+.proposte-sticker textarea {
+  width: 100%;
+  font-family: 'Poppins', 'Inter', sans-serif;
+  font-size: 14px;
+  padding: 9px 11px;
+  border: 2px solid #1C1B18;
+  border-radius: 10px;
+  background: #FBF6EC;
+  color: #1C1B18;
+}
+.proposte-sticker input:focus,
+.proposte-sticker select:focus,
+.proposte-sticker textarea:focus {
+  outline: 2px solid #E1543F;
+  outline-offset: 1px;
+}
+.proposte-sticker .sticker-btn {
+  font-family: 'Archivo Black', Arial, sans-serif;
+  font-size: 13.5px;
+  letter-spacing: .3px;
+  background: #E1543F;
+  color: white;
+  border: 3px solid #1C1B18;
+  border-radius: 14px;
+  box-shadow: 5px 5px 0 #1C1B18;
+  padding: 10px 18px;
+  cursor: pointer;
+  transition: transform .05s;
+}
+.proposte-sticker .sticker-btn:active {
+  transform: translate(3px, 3px);
+  box-shadow: 2px 2px 0 #1C1B18;
+}
+.proposte-sticker .sticker-btn-secondary {
+  background: #FBF6EC;
+  color: #1C1B18;
+}
+.proposte-sticker .sticker-eyebrow {
+  font-family: 'Kalam', cursive;
+  font-weight: 700;
+  color: #E1543F;
+}
+
+/* SectionsEditor (l'editor piatti/gruppi sotto il form) resta invariato nel markup,
+   ma eredita lo stesso trattamento sticker riscrivendo le sue classi dashboard
+   standard (.card/.input/.btn-secondary/.btn-primary) quando annidate qui dentro. */
+.proposte-sticker .card {
+  background: #FFFDF9;
+  border: 3px solid #1C1B18;
+  border-radius: 20px;
+  box-shadow: 8px 8px 0 #1C1B18;
+}
+.proposte-sticker .input {
+  font-family: 'Poppins', 'Inter', sans-serif;
+  border: 2px solid #1C1B18;
+  border-radius: 10px;
+  background: #FBF6EC;
+  color: #1C1B18;
+}
+.proposte-sticker .input:focus {
+  outline: 2px solid #E1543F;
+  outline-offset: 1px;
+  box-shadow: none;
+}
+.proposte-sticker .btn-secondary,
+.proposte-sticker .btn-primary {
+  font-family: 'Archivo Black', Arial, sans-serif;
+  font-size: 12.5px;
+  letter-spacing: .2px;
+  border: 3px solid #1C1B18;
+  border-radius: 14px;
+  box-shadow: 4px 4px 0 #1C1B18;
+  transition: transform .05s;
+}
+.proposte-sticker .btn-secondary {
+  background: #FBF6EC;
+  color: #1C1B18;
+}
+.proposte-sticker .btn-primary {
+  background: #E1543F;
+  color: white;
+}
+.proposte-sticker .btn-secondary:active,
+.proposte-sticker .btn-primary:active {
+  transform: translate(2px, 2px);
+  box-shadow: 2px 2px 0 #1C1B18;
 }

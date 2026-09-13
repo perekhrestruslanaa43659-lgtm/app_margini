@@ -974,7 +974,7 @@ function EventDetailPageInner() {
                 </div>
               )}
 
-              <SectionsEditor sections={menuSections} onChange={handleMenuSectionsChange} catalog={catalog} />
+              <SectionsEditor sections={menuSections} onChange={handleMenuSectionsChange} catalog={catalog} rooms={availableRooms} />
             </div>
           )}
 

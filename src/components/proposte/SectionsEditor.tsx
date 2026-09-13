@@ -6,7 +6,7 @@
 // uno useState interno, cosi' il chiamante decide dove/quando persistere.
 import { useMemo, useState } from 'react'
 import { Plus, Trash2, Search, GripVertical, X } from 'lucide-react'
-import type { CatalogItem } from '@/lib/supabase/types'
+import type { CatalogItem, Room } from '@/lib/supabase/types'
 import { formatCurrency } from '@/lib/margin'
 import {
   planPrice, groupPrice, dishesBySubcategory, itemEffectivePrice, itemSharedAmong, categoryMaxPrice,
@@ -68,12 +68,15 @@ interface Props {
   sections: MealSection[]
   onChange: (updater: (prev: MealSection[]) => MealSection[]) => void
   catalog: CatalogItem[]
+  /** Sale disponibili per il picker "Sala" di ogni sezione. Se assente o vuoto, il campo
+   *  resta un input di testo libero (compatibilita' con i chiamanti che non le passano). */
+  rooms?: Room[]
   /** Slot opzionale renderizzato dentro ogni card sezione, sotto l'header e prima dei servizi
    *  aggiuntivi — usato dal tab Menu evento per mostrare il margine calcolato della sezione. */
   renderSectionExtra?: (section: MealSection) => React.ReactNode
 }
 
-export function SectionsEditor({ sections, onChange, catalog, renderSectionExtra }: Props) {
+export function SectionsEditor({ sections, onChange, catalog, rooms, renderSectionExtra }: Props) {
   const [pickerFor, setPickerFor] = useState<{ sectionId: string; groupId: string } | null>(null)
   const [extraPickerFor, setExtraPickerFor] = useState<string | null>(null)
   const [pickerSearch, setPickerSearch] = useState('')
@@ -302,7 +305,14 @@ export function SectionsEditor({ sections, onChange, catalog, renderSectionExtra
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
-              <input className="input" placeholder="Sala (es. Sala Verde)" value={section.room} onChange={(e) => updateSection(section.id, { room: e.target.value })} />
+              {rooms && rooms.length > 0 ? (
+                <select className="input" value={section.room} onChange={(e) => updateSection(section.id, { room: e.target.value })}>
+                  <option value="">Sala...</option>
+                  {rooms.map((r) => <option key={r.id} value={r.name}>{r.name}</option>)}
+                </select>
+              ) : (
+                <input className="input" placeholder="Sala (es. Sala Verde)" value={section.room} onChange={(e) => updateSection(section.id, { room: e.target.value })} />
+              )}
               <input className="input" placeholder="Permanenza (es. 2 ore)" value={section.duration} onChange={(e) => updateSection(section.id, { duration: e.target.value })} />
               <input className="input" placeholder="Ora extra (es. 150€/ora)" value={section.extraHour} onChange={(e) => updateSection(section.id, { extraHour: e.target.value })} />
             </div>

@@ -202,45 +202,48 @@ export function dishesBySubcategory(group: PlanGroup): Map<string, PlanItem[]> {
 function renderItemsList(items: PlanItem[], group: PlanGroup): string {
   return items.map((it) => {
     const shared = itemSharedAmong(it, group)
-    return `
-      <div class="item">
-        <h4>${esc(it.name)}${shared && shared > 1 ? ` <span class="shared-note">(ogni ${shared} persone)</span>` : ''}</h4>
-        ${it.desc ? `<p>${esc(it.desc)}</p>` : ''}
-      </div>
-    `
+    return `<p>${esc(it.name)}${shared && shared > 1 ? ` <em>(ogni ${shared} persone)</em>` : ''}${it.desc ? ` — ${esc(it.desc)}` : ''}</p>`
   }).join('')
 }
 
-function renderGroupBody(g: PlanGroup): string {
+/** Una card per gruppo di piatti (tagliere, primi, bevande, ecc.), impilata
+ *  verticalmente sotto il prezzo unico di sezione: titolo corallo maiuscolo, tag
+ *  opzionale, divider tratteggiato, corpo testo. Il gruppo Bevande prende lo
+ *  sfondo teal pieno invece di bianco, come nel template di riferimento. */
+function renderGroupCard(g: PlanGroup): string {
   const isChoice = g.pricingMode === 'media' && g.items.length > 1
   const subcategories = isChoice ? dishesBySubcategory(g) : null
   const hasMultipleSubcats = subcategories ? subcategories.size > 1 : false
 
-  const itemsHtml = !isChoice
+  const bodyHtml = !isChoice
     ? renderItemsList(g.items, g)
     : hasMultipleSubcats
       ? Array.from(subcategories!.entries()).map(([subcat, dishes]) => `
-          <div class="section-label" style="margin-top:14px">${esc(subcat.toUpperCase())}</div>
+          <p><strong>${esc(subcat.toUpperCase())}</strong></p>
           ${renderItemsList(dishes, g)}
         `).join('')
       : renderItemsList(g.items, g)
 
+  const isBeverage = /bevand/i.test(g.label)
+
   return `
-    <div class="section-label">${esc((g.label || 'VOCI').toUpperCase())}${isChoice ? ' <span class="choice-note">(a scelta)</span>' : ''}</div>
-    ${g.tag ? `<span class="tag">${esc(g.tag)}</span>` : ''}
-    ${itemsHtml}
+    <div class="card ${isBeverage ? 'color' : 'white'}">
+      <div class="card-title-row">
+        <div class="card-title">${esc(g.label || 'Voci')}</div>
+        ${g.tag ? `<div class="tag">${esc(g.tag)}</div>` : ''}
+      </div>
+      ${isChoice ? `<div class="card-subtitle">a scelta</div>` : ''}
+      <hr class="divider">
+      <div class="card-body">${bodyHtml}</div>
+    </div>
   `
 }
 
-/** Card sticker unica per sezione (un solo piano prezzo, niente piu' fasce
- *  Classico/Preferito/Generoso affiancate): stesso trattamento "sticker & marker"
- *  di SKILLS-STILE.md — bordo nero spesso, ombra piena netta, badge prezzo a
- *  cerchio sovrapposto in alto a sinistra. */
 function renderSection(section: MealSection): string {
   const plan = section.plan
-  const groupsHtml = plan.groups.filter((g) => g.items.length > 0).map(renderGroupBody).join('')
+  const groupsHtml = plan.groups.filter((g) => g.items.length > 0).map(renderGroupCard).join('')
   const price = planPrice(plan)
-  const priceLabel = price > 0 ? price.toFixed(2).replace(/\.00$/, '') : '—'
+  const priceLabel = price > 0 ? `€${price.toFixed(2).replace(/\.00$/, '')}` : '—'
 
   const infoBadges = [
     section.duration ? `<span class="info-pill">🕐 Permanenza ${esc(section.duration)}</span>` : '',
@@ -250,14 +253,14 @@ function renderSection(section: MealSection): string {
   ].filter(Boolean).join('')
 
   const extrasCard = section.extras.length > 0 ? `
-    <div class="extras-card">
-      <div class="extras-title">Servizi aggiuntivi</div>
-      ${section.extras.map((ex) => `
-        <div class="extras-row">
-          <span>${esc(ex.name)}</span>
-          <span>${ex.price > 0 ? `€${ex.price.toFixed(2).replace(/\.00$/, '')}${ex.unit === 'a_persona' ? '/persona' : ''}` : 'su richiesta'}</span>
-        </div>
-      `).join('')}
+    <div class="card white">
+      <div class="card-title-row"><div class="card-title">Servizi aggiuntivi</div></div>
+      <hr class="divider">
+      <div class="card-body">
+        ${section.extras.map((ex) => `
+          <p>${esc(ex.name)} — ${ex.price > 0 ? `€${ex.price.toFixed(2).replace(/\.00$/, '')}${ex.unit === 'a_persona' ? '/persona' : ''}` : 'su richiesta'}</p>
+        `).join('')}
+      </div>
     </div>
   ` : ''
 
@@ -266,17 +269,11 @@ function renderSection(section: MealSection): string {
       <div class="meal-head">
         ${section.hours ? `<span class="meal-tag">${esc(section.hours)}</span>` : ''}
       </div>
-      <h2 class="meal-title">${esc(section.label.toUpperCase())}</h2>
+      <h2 class="meal-title">${esc(section.label.toUpperCase())} <span class="price">${esc(priceLabel)}</span></h2>
       ${section.meta ? `<p class="meal-meta">${esc(section.meta)}</p>` : ''}
+      ${plan.note ? `<p class="meal-meta"><em>${esc(plan.note)}</em></p>` : ''}
       ${infoBadges ? `<div class="info-strip">${infoBadges}</div>` : ''}
-      <div class="cards cards--single">
-        <div class="card">
-          <div class="price-badge"><span class="num">${esc(priceLabel)}</span><span class="cur">EURO</span></div>
-          ${plan.note ? `<p class="question">${esc(plan.note)}</p>` : ''}
-          ${groupsHtml}
-        </div>
-      </div>
-      ${extrasCard}
+      <div class="stack">${groupsHtml}${extrasCard}</div>
     </section>
   `
 }
@@ -291,19 +288,18 @@ export function buildProposalHtml(sections: MealSection[], heroPhotoUrl?: string
 <title>Proposte Eventi Doppio Malto</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Archivo+Black&family=Caveat:wght@600;700&family=Poppins:wght@400;500;600;700;800&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Poppins:wght@400;500;600;700;800&display=swap');
 
   :root {
     --yellow: #F4D000;
-    --ink: #1C1B18;
     --coral: #E1543F;
-    --green: #4E9A4A;
-    --blue: #58C6DE;
+    --teal: #3AC6DE;
+    --ink: #1C1B18;
     --cream: #FFFDF9;
+    --white: #FFFFFF;
   }
-  * { box-sizing: border-box; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
-    margin: 0;
     background: var(--yellow);
     font-family: 'Poppins', Arial, sans-serif;
     color: var(--ink);
@@ -313,28 +309,42 @@ export function buildProposalHtml(sections: MealSection[], heroPhotoUrl?: string
   .hero {
     max-width: 900px;
     margin: 0 auto;
-    padding: 40px 24px 0;
+    padding: 56px 24px 0;
     text-align: center;
   }
-  .hero .logo { height: 52px; margin-bottom: 10px; }
-  .eyebrow {
+  .hero .logo { height: 64px; margin-bottom: 10px; }
+  .hero .tagline {
     font-family: 'Caveat', cursive;
     font-weight: 700;
-    font-size: 24px;
-    margin: 10px 0 4px;
+    font-size: 22px;
+    margin-bottom: 14px;
   }
   .headline {
-    font-family: 'Archivo Black', Arial, sans-serif;
+    font-weight: 800;
     font-size: 34px;
-    line-height: 1.05;
-    margin: 6px 0 4px;
+    letter-spacing: 0.5px;
+    line-height: 1.15;
   }
   .headline .amount { color: var(--coral); }
-  .tagline {
+  .subtitle {
     max-width: 480px;
-    margin: 6px auto 24px;
+    margin: 8px auto 0;
     font-size: 14px;
+    font-weight: 600;
+    color: #3a3934;
+    line-height: 1.5;
+  }
+  .badge-pill {
+    display: inline-block;
+    margin-top: 18px;
+    background: var(--ink);
+    color: var(--white);
     font-weight: 700;
+    font-size: 12px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    padding: 10px 24px;
+    border-radius: 30px;
   }
 
   /* MEAL SECTIONS */
@@ -344,7 +354,7 @@ export function buildProposalHtml(sections: MealSection[], heroPhotoUrl?: string
     padding: 0 24px 40px;
   }
   .meal-section { margin-top: 40px; }
-  .meal-section:first-child { margin-top: 8px; }
+  .meal-section:first-child { margin-top: 28px; }
 
   .meal-head { display: flex; justify-content: center; align-items: baseline; gap: 16px; flex-wrap: wrap; margin-bottom: 4px; }
   .meal-tag {
@@ -352,8 +362,9 @@ export function buildProposalHtml(sections: MealSection[], heroPhotoUrl?: string
     padding: 3px 14px; border-radius: 999px; border: 2px solid var(--ink); background: var(--cream);
   }
   .meal-title {
-    font-family: 'Archivo Black', Arial, sans-serif; font-size: 22px; text-align: center; margin: 4px 0 0;
+    font-weight: 800; font-size: 22px; text-align: center; margin: 4px 0 0; text-transform: uppercase;
   }
+  .meal-title .price { color: var(--coral); margin-left: 8px; }
   .meal-meta { color: #3a3934; font-size: 13px; text-align: center; max-width: 62ch; margin: 6px auto 0; line-height: 1.5; }
 
   .info-strip { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 14px; }
@@ -368,91 +379,39 @@ export function buildProposalHtml(sections: MealSection[], heroPhotoUrl?: string
   .photo-wrap .frame {
     border-radius: 22px;
     overflow: hidden;
-    border: 3px solid var(--ink);
-    box-shadow: 8px 8px 0 var(--ink);
+    border: 5px solid var(--ink);
+    box-shadow: 8px 8px 0 rgba(0,0,0,0.35);
   }
   .photo-wrap img { width: 100%; display: block; }
 
-  /* CARDS */
-  .cards {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 24px;
-    align-items: start;
-    margin-top: 36px;
-  }
-  /* Un solo piano per sezione: card centrata e piu' larga, non schiacciata in una colonna stretta */
-  .cards--single {
-    grid-template-columns: minmax(0, 480px);
-    justify-content: center;
-  }
-  .card {
-    background: var(--cream);
-    border: 3px solid var(--ink);
-    border-radius: 22px;
-    box-shadow: 8px 8px 0 var(--ink);
-    padding: 50px 22px 26px;
-    position: relative;
-  }
-  .price-badge {
-    width: 92px;
-    height: 92px;
-    border-radius: 50%;
-    background: var(--coral);
-    border: 3px solid var(--ink);
-    box-shadow: 4px 4px 0 var(--ink);
-    color: white;
+  /* CARD STACK */
+  .stack {
     display: flex;
     flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    font-family: 'Archivo Black', Arial, sans-serif;
-    position: absolute;
-    top: -46px;
-    left: 22px;
+    gap: 18px;
+    margin-top: 22px;
   }
-  .price-badge .num { font-size: 26px; line-height: 1; }
-  .price-badge .cur { font-size: 9px; letter-spacing: 1px; margin-top: 2px; }
-
-  .question {
-    font-family: 'Caveat', cursive;
-    font-weight: 700;
-    color: var(--coral);
-    font-size: 18px;
-    margin: 0 0 12px;
+  .card {
+    border-radius: 20px;
+    border: 4px solid var(--ink);
+    box-shadow: 6px 6px 0 rgba(0,0,0,0.3);
+    padding: 20px 26px;
   }
-
-  .section-label {
-    font-size: 12px;
-    font-weight: 700;
-    letter-spacing: 0.6px;
-    color: #555;
-    margin: 16px 0 6px;
-  }
-  .choice-note { font-family: 'Poppins', sans-serif; font-weight: 400; letter-spacing: 0; color: #8a8a80; }
+  .card.white { background: var(--cream); }
+  .card.color { background: var(--teal); }
+  .card-title-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .card-title { font-weight: 800; font-size: 17px; color: var(--coral); text-transform: uppercase; }
+  .card-subtitle { font-style: italic; font-weight: 500; font-size: 13px; color: #8a8a80; margin-top: 2px; }
+  .divider { border: none; border-top: 2px dashed var(--ink); opacity: 0.3; margin: 12px 0 12px; }
+  .card-body p { font-size: 13.5px; line-height: 1.55; color: #3a3934; margin-bottom: 4px; }
+  .card-body p:last-child { margin-bottom: 0; }
+  .card-body em { color: #8a8a80; font-style: normal; font-size: 12px; }
+  .card-body strong { font-size: 11px; letter-spacing: 0.5px; color: #555; }
 
   .tag {
-    display: inline-block;
-    font-family: 'Caveat', cursive;
-    font-weight: 700;
-    font-size: 15px;
-    background: var(--blue);
-    border: 1.5px solid var(--ink);
-    border-radius: 14px;
-    padding: 2px 12px;
-    margin: 4px 0 10px;
+    font-size: 11px; font-weight: 700; letter-spacing: 0.4px; text-transform: uppercase;
+    color: var(--white); background: var(--ink); padding: 4px 12px; border-radius: 20px;
   }
-  .item { margin-bottom: 12px; }
-  .item h4 { margin: 0 0 2px; font-size: 14px; font-weight: 700; }
-  .item p { margin: 0; font-size: 12.5px; color: #4c4a44; line-height: 1.4; }
-  .shared-note { font-family: 'Poppins', sans-serif; font-weight: 400; font-size: 11.5px; color: #8a8a80; }
-
-  .extras-card {
-    margin-top: 32px; background: var(--cream); border: 2px dashed var(--ink); border-radius: 18px; padding: 18px 22px;
-  }
-  .extras-title { font-family: 'Archivo Black', Arial, sans-serif; font-size: 12px; margin: 0 0 8px; text-transform: uppercase; letter-spacing: 1px; }
-  .extras-row { display: flex; justify-content: space-between; font-size: 12.5px; padding: 5px 0; border-top: 1px dashed #E2DCCB; }
-  .extras-row:first-of-type { border-top: none; }
 
   .foot-note { max-width: 700px; margin: 44px auto 0; padding: 0 24px; text-align: center; color: #3a3934; font-size: 11.5px; line-height: 1.6; }
   .foot-note strong { color: var(--ink); }
@@ -461,15 +420,12 @@ export function buildProposalHtml(sections: MealSection[], heroPhotoUrl?: string
     background: var(--ink);
     border-radius: 26px 26px 0 0;
     margin-top: 36px;
-    padding: 26px 24px 30px;
+    padding: 30px 24px 34px;
     text-align: center;
   }
-  footer .logo { height: 40px; filter: brightness(0) invert(1); }
-  footer .foot-text { color: #cfcabf; font-size: 12px; margin-top: 10px; }
+  footer .logo { height: 28px; margin-bottom: 12px; filter: brightness(0) invert(1); }
+  footer .foot-text { color: #cfcabf; font-size: 12px; }
 
-  @media (max-width: 700px) {
-    .cards { grid-template-columns: 1fr; }
-  }
   @media print {
     .meal-section { page-break-inside: avoid; }
   }
@@ -479,9 +435,10 @@ export function buildProposalHtml(sections: MealSection[], heroPhotoUrl?: string
 
   <div class="hero">
     <img class="logo" src="/brand/doppio-malto-logo.jpg" alt="Doppio Malto">
-    <div class="eyebrow">Birrificio con cucina</div>
+    <div class="tagline">Birrificio con cucina</div>
     <h1 class="headline">PROPOSTE <span class="amount">EVENTI</span> DI GRUPPO</h1>
-    <p class="tagline">Formule su misura per la tua compagnia — bevanda, sfizi da condividere e la sala giusta per ogni occasione.</p>
+    <p class="subtitle">Formule su misura per la tua compagnia — bevanda, sfizi da condividere e la sala giusta per ogni occasione.</p>
+    <span class="badge-pill">Proposta commerciale</span>
   </div>
 
   ${heroPhotoUrl ? `
