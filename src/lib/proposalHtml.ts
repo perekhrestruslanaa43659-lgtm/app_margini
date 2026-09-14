@@ -294,7 +294,12 @@ function renderSection(section: MealSection, t: MenuStrings, heroPhotoUrl?: stri
  *  resta puro/senza dipendenze da Supabase (stesso pattern di FoodCostByDish). */
 export type RoomPhotoByName = Map<string, string>
 
-export function buildProposalHtml(sections: MealSection[], lang: QuoteLang = 'it', roomPhotoByName?: RoomPhotoByName): string {
+export function buildProposalHtml(
+  sections: MealSection[],
+  lang: QuoteLang = 'it',
+  roomPhotoByName?: RoomPhotoByName,
+  logoUrl: string = '/brand/doppio-malto-logo.jpg'
+): string {
   const t = menuStrings[lang]
   const sectionsHtml = sections
     .map((s) => renderSection(s, t, s.room ? roomPhotoByName?.get(s.room.trim().toLowerCase()) : undefined))
@@ -400,6 +405,8 @@ export function buildProposalHtml(sections: MealSection[], lang: QuoteLang = 'it
     overflow: hidden;
     border: 5px solid var(--ink);
     box-shadow: 8px 8px 0 rgba(0,0,0,0.35);
+    min-height: 180px;
+    background: var(--ink);
   }
   .photo-wrap img { width: 100%; display: block; }
 
@@ -453,7 +460,7 @@ export function buildProposalHtml(sections: MealSection[], lang: QuoteLang = 'it
 <body>
 
   <div class="hero">
-    <img class="logo" src="/brand/doppio-malto-logo.jpg" alt="Doppio Malto">
+    <img class="logo" src="${esc(logoUrl)}" alt="Doppio Malto">
     <div class="tagline">${esc(t.eyebrow)}</div>
     <h1 class="headline">${esc(t.heroTitlePrefix)} <span class="amount">${esc(t.heroTitleAmount)}</span> ${esc(t.heroTitleSuffix)}</h1>
     <p class="subtitle">${esc(t.heroSubtitle)}</p>
@@ -466,7 +473,7 @@ export function buildProposalHtml(sections: MealSection[], lang: QuoteLang = 'it
   </div>
 
   <footer>
-    <img class="logo" src="/brand/doppio-malto-logo.jpg" alt="Doppio Malto">
+    <img class="logo" src="${esc(logoUrl)}" alt="Doppio Malto">
     <div class="foot-text">${esc(t.footerText)}</div>
   </footer>
 

@@ -129,11 +129,15 @@ function ProposteInner() {
   }
 
   function openProposal() {
+    // URL assoluti: la pagina viene aperta come blob: URL, che non risolve in modo
+    // affidabile i path relativi (/rooms/..., /brand/...) in tutti i browser — l'immagine
+    // risultava rotta/collassata. window.location.origin ancora la stessa origin dell'app.
+    const origin = window.location.origin
     const roomPhotoByName: RoomPhotoByName = new Map()
     for (const r of rooms) {
-      if (r.photo_url) roomPhotoByName.set(r.name.trim().toLowerCase(), r.photo_url)
+      if (r.photo_url) roomPhotoByName.set(r.name.trim().toLowerCase(), `${origin}${r.photo_url}`)
     }
-    const html = buildProposalHtml(sections, lang, roomPhotoByName)
+    const html = buildProposalHtml(sections, lang, roomPhotoByName, `${origin}/brand/doppio-malto-logo.jpg`)
     const blobUrl = URL.createObjectURL(new Blob([html], { type: 'text/html' }))
     window.open(blobUrl, '_blank')
   }
