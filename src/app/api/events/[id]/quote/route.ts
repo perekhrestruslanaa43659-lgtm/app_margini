@@ -95,7 +95,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     body.depositPct ?? '',
     body.depositDays ?? ''
   )
-  const logoSrc = `${req.nextUrl.origin}/brand/doppio-malto-logo.jpg`
+  const logoSrc = `${req.nextUrl.origin}/brand/doppio-malto-logo.png`
 
   let photoSrc: string | undefined
   if (event.room_id) {

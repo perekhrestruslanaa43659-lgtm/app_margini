@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
   const clientName = body.clientName?.trim() || 'Cliente'
   const lang: QuoteLang = body.lang === 'en' ? 'en' : 'it'
 
-  const logoSrc = `${req.nextUrl.origin}/brand/doppio-malto-logo.jpg`
+  const logoSrc = `${req.nextUrl.origin}/brand/doppio-malto-logo.png`
 
   // Ogni sezione puo' avere una sala diversa (section.room, testo libero scelto nel
   // builder): costruiamo una mappa nome sala -> foto assoluta interrogando rooms,

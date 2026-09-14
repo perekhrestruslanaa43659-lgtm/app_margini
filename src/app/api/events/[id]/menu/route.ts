@@ -55,7 +55,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const lang: QuoteLang = body.lang === 'en' ? 'en' : 'it'
   const clientName = event.client_name?.trim() || event.name || 'Evento'
 
-  const logoSrc = `${req.nextUrl.origin}/brand/doppio-malto-logo.jpg`
+  const logoSrc = `${req.nextUrl.origin}/brand/doppio-malto-logo.png`
 
   let photoSrc: string | undefined
   if (event.room_id) {

@@ -158,7 +158,7 @@ export async function POST(req: NextRequest) {
     body.depositPct ?? '',
     body.depositDays ?? ''
   )
-  const logoSrc = `${req.nextUrl.origin}/brand/doppio-malto-logo.jpg`
+  const logoSrc = `${req.nextUrl.origin}/brand/doppio-malto-logo.png`
 
   const buffer = await renderToBuffer(
     ProposalQuotePdfDocument({ client, sections: body.sections, companyInfo, quoteRef, offerDate, clauses, logoSrc, lang })

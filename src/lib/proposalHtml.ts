@@ -298,7 +298,7 @@ export function buildProposalHtml(
   sections: MealSection[],
   lang: QuoteLang = 'it',
   roomPhotoByName?: RoomPhotoByName,
-  logoUrl: string = '/brand/doppio-malto-logo.jpg'
+  logoUrl: string = '/brand/doppio-malto-logo.png'
 ): string {
   const t = menuStrings[lang]
   const sectionsHtml = sections
@@ -449,17 +449,7 @@ export function buildProposalHtml(
     padding: 30px 24px 34px;
     text-align: center;
   }
-  /* Il file logo ha sfondo bianco pieno (non un PNG trasparente): un filtro
-     brightness/invert sbiancherebbe anche lo sfondo, lasciando un rettangolo bianco
-     indistinguibile. Lo mostriamo cosi' com'e', dentro un badge bianco esplicito. */
-  footer .logo-badge {
-    display: inline-block;
-    background: var(--white);
-    border-radius: 14px;
-    padding: 8px 16px;
-    margin-bottom: 12px;
-  }
-  footer .logo { height: 28px; display: block; }
+  footer .logo { height: 28px; margin-bottom: 12px; filter: brightness(0) invert(1); }
   footer .foot-text { color: #cfcabf; font-size: 12px; }
 
   @media print {
@@ -483,7 +473,7 @@ export function buildProposalHtml(
   </div>
 
   <footer>
-    <div class="logo-badge"><img class="logo" src="${esc(logoUrl)}" alt="Doppio Malto"></div>
+    <img class="logo" src="${esc(logoUrl)}" alt="Doppio Malto">
     <div class="foot-text">${esc(t.footerText)}</div>
   </footer>
 

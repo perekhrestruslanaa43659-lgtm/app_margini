@@ -87,6 +87,10 @@ const styles = StyleSheet.create({
 
   footer: { backgroundColor: INK, borderTopLeftRadius: 22, borderTopRightRadius: 22, alignItems: 'center', paddingTop: 20, paddingBottom: 24, marginTop: 10 },
   footerLogoPill: { backgroundColor: CREAM, color: INK, fontFamily: 'Poppins', fontWeight: 700, fontSize: 9, letterSpacing: 1, paddingHorizontal: 14, paddingVertical: 6, borderRadius: 18 },
+  // react-pdf non supporta filtri CSS (niente brightness/invert): il logo (nero + oro)
+  // sarebbe illeggibile su questo sfondo scuro, quindi lo mostriamo cosi' com'e' dentro
+  // un badge bianco esplicito invece di provare a "sbiancarlo".
+  footerLogoBadge: { backgroundColor: CREAM, borderRadius: 14, paddingHorizontal: 16, paddingVertical: 8 },
   footerLogoImage: { height: 34, objectFit: 'contain' },
   footerText: { fontFamily: 'Poppins', color: '#cfcabf', fontSize: 7.5, marginTop: 8 },
 })
@@ -219,8 +223,12 @@ export function ProposalMenuPdfDocument({ sections, lang = 'it', logoSrc, photoS
         </View>
 
         <View style={styles.footer}>
-          {/* eslint-disable-next-line jsx-a11y/alt-text */}
-          {logoSrc ? <Image src={logoSrc} style={styles.footerLogoImage} /> : <Text style={styles.footerLogoPill}>DOPPIO MALTO</Text>}
+          {logoSrc ? (
+            <View style={styles.footerLogoBadge}>
+              {/* eslint-disable-next-line jsx-a11y/alt-text */}
+              <Image src={logoSrc} style={styles.footerLogoImage} />
+            </View>
+          ) : <Text style={styles.footerLogoPill}>DOPPIO MALTO</Text>}
           <Text style={styles.footerText}>Prezzi IVA inclusa · doppiomalto.com</Text>
         </View>
       </Page>

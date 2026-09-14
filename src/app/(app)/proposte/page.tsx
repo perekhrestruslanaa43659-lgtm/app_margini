@@ -137,7 +137,7 @@ function ProposteInner() {
     for (const r of rooms) {
       if (r.photo_url) roomPhotoByName.set(r.name.trim().toLowerCase(), `${origin}${r.photo_url}`)
     }
-    const html = buildProposalHtml(sections, lang, roomPhotoByName, `${origin}/brand/doppio-malto-logo.jpg`)
+    const html = buildProposalHtml(sections, lang, roomPhotoByName, `${origin}/brand/doppio-malto-logo.png`)
     const blobUrl = URL.createObjectURL(new Blob([html], { type: 'text/html' }))
     window.open(blobUrl, '_blank')
   }
