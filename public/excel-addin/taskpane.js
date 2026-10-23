@@ -1,14 +1,18 @@
 /* Bot Calendario: pannello laterale di Excel per CALENDARIO EVENTI DUOMO.
  *
  * Moduli per aggiungere, modificare, spostare e cancellare eventi nel foglio
- * "programmazione eventi 2026". Tutto avviene dentro Excel tramite Office.js:
- * il pannello non fa nessuna richiesta di rete, quindi i dati non escono dal
- * file. Ogni scrittura passa da un'anteprima che l'utente conferma.
+ * "programmazione eventi 2026". Tutto avviene dentro Excel tramite Office.js.
+ * L'unica richiesta di rete va all'AI locale (Ollama su questo stesso PC) e
+ * contiene solo la frase scritta dall'utente, mai il contenuto del calendario:
+ * l'AI compila un modulo, l'utente lo controlla e conferma l'anteprima.
  */
 
 const SHEET_NAME = 'programmazione eventi 2026'
 const HEADER_ROW = 5
 const FIRST_DATA_ROW = 7
+const OLLAMA_URL = 'http://127.0.0.1:11434'
+const MODEL_KEY = 'dm-bot-calendario-modello'
+const DEFAULT_MODEL = 'qwen2.5:3b'
 
 let undoStack = []
 let busy = false
@@ -28,6 +32,11 @@ Office.onReady((info) => {
   $('search').onclick = () => guard(() => search($('q').value))
   $('q').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('search').click() })
   $('undo').onclick = () => guard(undoLast)
+  $('askGo').onclick = () => guard(() => askAI($('ask').value))
+  $('ask').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); $('askGo').click() }
+  })
+  checkAI()
 })
 
 async function guard(fn) {
@@ -48,6 +57,7 @@ async function guard(fn) {
 function setButtons() {
   $('show').disabled = busy
   $('search').disabled = busy
+  $('askGo').disabled = busy
   $('undo').disabled = busy || undoStack.length === 0
 }
 
@@ -234,7 +244,9 @@ async function search(text) {
 
 // ---------- nuovo / modifica ----------
 
-async function openForm(iso, block, isNew) {
+// prefill (dall'AI): { testi: { "chiave": valore }, sala: "sala verde" | "" }.
+// Le chiavi si abbinano ai campi per parola contenuta nell'intestazione.
+async function openForm(iso, block, isNew, prefill) {
   const data = await Excel.run(async (ctx) => {
     const g = await loadGrid(ctx)
     const r = g.findRow(iso)
@@ -254,11 +266,14 @@ async function openForm(iso, block, isNew) {
     if (f.kind === 'flag') {
       const box = el('input', { type: 'checkbox' })
       box.checked = f.text !== ''
+      if (prefill && prefill.sala) box.checked = f.name.includes(norm(prefill.sala).replace('sala ', ''))
       inputs.push({ f, get: () => box.checked })
       flags.append(el('label', {}, box, ' ' + f.name))
     } else {
       const input = el('input', { type: 'text', placeholder: placeholderFor(f.name) })
       input.value = f.text
+      const suggested = prefill && prefillFor(f.name, prefill.testi)
+      if (suggested) { input.value = suggested; input.style.borderColor = 'var(--accent)' }
       inputs.push({ f, get: () => input.value.trim() })
       textFields.push(el('div', { className: 'field' }, el('label', {}, f.name), input))
     }
@@ -300,9 +315,9 @@ function placeholderFor(name) {
 
 // ---------- sposta ----------
 
-async function openMove(iso, block) {
+async function openMove(iso, block, targetIso) {
   const dateInput = el('input', { type: 'date' })
-  dateInput.value = iso
+  dateInput.value = targetIso || iso
   const blockSelect = el('select', {},
     el('option', { value: 'auto' }, 'Primo blocco libero'),
     el('option', { value: '0' }, 'Blocco 1'),
@@ -361,6 +376,215 @@ async function confirmDelete(iso, block) {
       .filter((c) => c.oldText !== '')
   })
   await previewAndApply(`Cancella evento: ${formatDate(iso)}, blocco ${block + 1}`, changes, () => showDate(iso))
+}
+
+// ---------- richiesta in linguaggio naturale (AI locale) ----------
+
+const AI_FIELDS = ['email', 'orario', 'pax', 'budget', 'fee', 'caparra', 'servizio', 'menu']
+// Parola dell'intestazione del foglio che corrisponde a ogni campo dell'AI.
+const AI_FIELD_HEADER = { cliente: 'cliente', email: 'mail', orario: 'orario', pax: 'pax', budget: 'bdgt', fee: 'fee', caparra: 'caparra', servizio: 'modalit', menu: 'menu' }
+
+const AI_SCHEMA = {
+  type: 'object',
+  properties: {
+    azione: { type: 'string', enum: ['nuovo', 'modifica', 'sposta', 'cancella', 'mostra', 'cerca'] },
+    data: { type: 'string' },
+    nuova_data: { type: 'string' },
+    cliente: { type: 'string' },
+    sala: { type: 'string', enum: ['', 'verde', 'circolo', 'vip'] },
+    ...Object.fromEntries(AI_FIELDS.map((f) => [f, { type: 'string' }])),
+  },
+  required: ['azione'],
+}
+
+function aiSystemPrompt() {
+  const today = new Date()
+  const iso = today.toISOString().slice(0, 10)
+  const day = today.toLocaleDateString('it-IT', { weekday: 'long' })
+  return `Estrai i dati da una richiesta per il calendario eventi di un ristorante.
+Oggi è ${day} ${iso}. Date in formato AAAA-MM-GG, anno ${iso.slice(0, 4)} se non detto (se la data è già passata, l'anno dopo).
+Campi: azione (nuovo=aggiungere/mettere un evento, modifica=cambiare dati, sposta=cambiare data, cancella, mostra=vedere una data, cerca=trovare un cliente), data (data dell'evento; per sposta è la data di partenza), nuova_data (solo per sposta), cliente (nome del cliente), sala (verde/circolo/vip), email, orario (HH:MM), pax (numero persone), budget, fee, caparra, servizio (modalità di servizio), menu.
+Scrivi solo i campi detti esplicitamente nella richiesta. Non inventare.
+
+Esempio: "aggiungi Neri il 5/12 alle 13, 20 persone, sala vip, menu 30"
+{"azione":"nuovo","data":"2026-12-05","cliente":"Neri","sala":"vip","orario":"13:00","pax":"20","menu":"30"}`
+}
+
+function getModel() {
+  try { return localStorage.getItem(MODEL_KEY) || DEFAULT_MODEL } catch (e) { return DEFAULT_MODEL }
+}
+
+async function checkAI() {
+  try {
+    const res = await fetch(OLLAMA_URL + '/api/tags')
+    const data = await res.json()
+    const names = (data.models || []).map((m) => m.name)
+    if (!names.includes(getModel())) {
+      $('aiStatus').textContent = `AI locale attiva, ma manca il modello ${getModel()}: in un terminale esegui "ollama pull ${getModel()}".`
+      return
+    }
+    $('aiStatus').textContent = 'AI locale pronta.'
+    // Carica il modello in memoria adesso, così la prima richiesta è più veloce.
+    fetch(OLLAMA_URL + '/api/generate', { method: 'POST', body: JSON.stringify({ model: getModel(), keep_alive: '30m' }) }).catch(() => {})
+  } catch (e) {
+    $('aiStatus').textContent = 'AI locale non attiva su questo PC: avvia Ollama, oppure usa data e ricerca qui sotto.'
+  }
+}
+
+async function callAI(text) {
+  let res
+  try {
+    res = await fetch(OLLAMA_URL + '/api/chat', {
+      method: 'POST',
+      body: JSON.stringify({
+        model: getModel(),
+        stream: false,
+        format: AI_SCHEMA,
+        keep_alive: '30m',
+        options: { temperature: 0, num_ctx: 2048 },
+        messages: [{ role: 'system', content: aiSystemPrompt() }, { role: 'user', content: text }],
+      }),
+    })
+  } catch (e) {
+    throw new Error('Non riesco a contattare l\'AI locale (Ollama). Controlla che sia avviata su questo PC, oppure usa data e ricerca qui sotto.')
+  }
+  if (!res.ok) throw new Error('L\'AI locale ha risposto con un errore (' + res.status + ').')
+  const data = await res.json()
+  try { return JSON.parse(data.message.content) } catch (e) { throw new Error('Non ho capito la richiesta: prova a riformularla.') }
+}
+
+// Tiene solo i valori che compaiono davvero nella frase: i modelli piccoli a
+// volte inventano (es. un orario preso da una data, la sala dal nome Verdi).
+function sanitizeAI(raw, text) {
+  const t = norm(text)
+  const digits = (v) => (String(v).match(/\d+/g) || [])
+  const hasNumbers = (v) => digits(v).length > 0 && digits(v).every((d) => new RegExp(`(^|\\D)${d}(\\D|$)`).test(t))
+  const isoOk = (v) => /^\d{4}-\d{2}-\d{2}$/.test(v || '')
+
+  const out = { azione: actionFromKeywords(t) || raw.azione, data: isoOk(raw.data) ? raw.data : '', nuova_data: isoOk(raw.nuova_data) ? raw.nuova_data : '', testi: {}, sala: '' }
+
+  const cliente = String(raw.cliente || '').trim()
+  out.cliente = cliente && t.includes(norm(cliente)) ? cliente : ''
+
+  if (raw.sala && new RegExp(`\\b${raw.sala}\\b`).test(t)) out.sala = 'sala ' + raw.sala
+
+  for (const f of AI_FIELDS) {
+    const v = String(raw[f] || '').trim()
+    if (!v) continue
+    let ok
+    if (f === 'email') ok = t.includes(norm(v))
+    else if (f === 'orario') {
+      const m = v.match(/^(\d{1,2})[:.](\d{2})$/)
+      ok = !!m && (t.includes(`${+m[1]}:${m[2]}`) || t.includes(`${+m[1]}.${m[2]}`) || (m[2] === '00' && new RegExp(`\\balle (ore )?${+m[1]}\\b`).test(t)))
+    } else if (['pax', 'budget', 'fee', 'caparra', 'menu'].includes(f)) ok = hasNumbers(v) || t.includes(norm(v))
+    else ok = t.includes(norm(v))
+    if (ok) out.testi[f] = v
+  }
+  // "menu 35" scambiato per budget: se la frase parla di menu e non di budget, sposta il valore.
+  if (out.testi.budget && !out.testi.menu && /\bmen[uù]\b/.test(t) && !/\b(budget|bdgt)\b/.test(t)) {
+    out.testi.menu = out.testi.budget
+    delete out.testi.budget
+  }
+  return out
+}
+
+// Se la frase contiene parole chiave di una sola azione, vale quella: è più
+// affidabile del modello piccolo. Altrimenti decide l'AI.
+const ACTION_KEYWORDS = {
+  sposta: /\b(sposta|sposto|spostare|anticipa|posticipa|rimanda)\b/,
+  cancella: /\b(cancella|cancellare|elimina|eliminare|togli|annulla l'evento|disdici|disdetta)\b/,
+  mostra: /\b(cosa c'è|cosa c'e|che c'è|che eventi|mostra|mostrami|fammi vedere|com'è messo|libero|liberi|disponibil)/,
+  cerca: /\b(cerca|trova|quando (ha|è|viene)|dov'è)\b/,
+  nuovo: /\b(metti|mettere|aggiungi|aggiungere|inserisci|prenota|prenotazione|nuovo evento|segna)\b/,
+  modifica: /\b(cambia|cambiare|modifica|modificare|aggiorna|correggi)\b/,
+}
+
+function actionFromKeywords(t) {
+  const hits = Object.keys(ACTION_KEYWORDS).filter((a) => ACTION_KEYWORDS[a].test(t))
+  return hits.length === 1 ? hits[0] : ''
+}
+
+function prefillFor(fieldName, testi) {
+  if (!testi) return ''
+  for (const [k, v] of Object.entries(testi)) if (fieldName.includes(AI_FIELD_HEADER[k])) return v
+  return ''
+}
+
+// Trova il blocco di un cliente in una data; se data o cliente mancano,
+// prova con la ricerca sul foglio. Restituisce { iso, block } oppure null.
+async function locateEvent(iso, cliente) {
+  return Excel.run(async (ctx) => {
+    const g = await loadGrid(ctx)
+    const q = norm(cliente)
+    const candidates = []
+    for (let r = FIRST_DATA_ROW; r <= g.lastRow; r++) {
+      const d = g.rowDate(r)
+      if (iso && d !== iso) continue
+      g.blocks.forEach((b, i) => {
+        if (g.blockEmpty(r, i)) return
+        if (!q || norm(g.txt(r, b.start)).includes(q)) candidates.push({ iso: d, block: i })
+      })
+    }
+    return candidates
+  })
+}
+
+async function askAI(text) {
+  text = text.trim()
+  if (!text) throw new Error('Scrivi la richiesta.')
+  $('aiStatus').textContent = 'Sto leggendo la richiesta… (con l\'AI locale può volerci qualche secondo)'
+  const started = Date.now()
+  let req
+  try {
+    req = sanitizeAI(await callAI(text), text)
+  } finally {
+    $('aiStatus').textContent = `AI locale pronta. Ultima risposta in ${Math.round((Date.now() - started) / 1000)} s.`
+  }
+
+  const { azione, data, nuova_data, cliente } = req
+  if (azione === 'mostra') {
+    if (!data) throw new Error('Non ho capito la data: scegli la data qui sotto.')
+    return showDate(data)
+  }
+  if (azione === 'cerca') {
+    if (!cliente) throw new Error('Non ho capito chi cercare: usa la ricerca qui sotto.')
+    $('q').value = cliente
+    return search(cliente)
+  }
+  if (azione === 'nuovo') {
+    if (!data) throw new Error('Non ho capito la data dell\'evento: scrivila, es. "il 12/11".')
+    const free = await Excel.run(async (ctx) => {
+      const g = await loadGrid(ctx)
+      const r = g.findRow(data)
+      if (!r) throw new Error(`La data ${data} non c'è nel calendario.`)
+      return g.blocks.findIndex((_, i) => g.blockEmpty(r, i))
+    })
+    if (free < 0) {
+      await showDate(data)
+      throw new Error(`Il ${formatDate(data)} è già pieno: entrambi i blocchi sono occupati.`)
+    }
+    $('date').value = data
+    return openForm(data, free, true, { testi: { ...req.testi, cliente }, sala: req.sala })
+  }
+
+  // modifica / sposta / cancella: prima si trova l'evento.
+  if (!data && !cliente) throw new Error('Dimmi la data o il cliente dell\'evento.')
+  const found = await locateEvent(data, cliente)
+  if (found.length === 0) {
+    if (data) await showDate(data)
+    throw new Error(`Non trovo l'evento${cliente ? ' di ' + cliente : ''}${data ? ' il ' + formatDate(data) : ''}.`)
+  }
+  if (found.length > 1) {
+    if (data) await showDate(data)
+    else { $('q').value = cliente; await search(cliente) }
+    throw new Error('Ho trovato più eventi: scegli quello giusto qui sotto.')
+  }
+  const { iso, block } = found[0]
+  $('date').value = iso
+  if (azione === 'modifica') return openForm(iso, block, false, { testi: req.testi, sala: req.sala })
+  if (azione === 'sposta') return openMove(iso, block, nuova_data)
+  if (azione === 'cancella') return confirmDelete(iso, block)
+  throw new Error('Non ho capito cosa fare: prova a riformulare.')
 }
 
 // ---------- anteprima, scrittura, annulla ----------

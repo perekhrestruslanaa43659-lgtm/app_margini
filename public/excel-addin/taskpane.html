@@ -44,7 +44,8 @@
     button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-text); }
     button.danger { color: var(--danger); }
     button.small { font-size: 12px; padding: 3px 8px; }
-    input[type=text], input[type=date], input[type=search], select {
+    textarea { resize: vertical; }
+    input[type=text], input[type=date], input[type=search], select, textarea {
       font: inherit; color: var(--text); background: var(--bg);
       border: 1px solid var(--border); border-radius: 6px; padding: 5px 8px; width: 100%;
     }
@@ -76,6 +77,14 @@
     <button id="undo" class="small" disabled title="Ripristina le celle com'erano prima dell'ultima modifica confermata">Annulla ultima</button>
   </header>
   <main>
+    <div class="card" id="aiBox">
+      <h3>Scrivi la richiesta</h3>
+      <textarea id="ask" rows="2" placeholder="es. metti Rossi il 12/11 alle 20:30, 30 pax, sala verde, menu 35"></textarea>
+      <div class="actions" style="margin-top:6px">
+        <button id="askGo" class="primary">Compila</button>
+        <span id="aiStatus" class="hint"></span>
+      </div>
+    </div>
     <div>
       <div class="row">
         <input id="date" type="date" aria-label="Data">
@@ -90,7 +99,7 @@
     </div>
     <div id="msg"></div>
     <div id="panel"></div>
-    <p class="hint">I dati restano nel file: il pannello lavora solo dentro Excel e non invia niente a server esterni.</p>
+    <p class="hint">I dati restano nel file: il pannello lavora solo dentro Excel. La richiesta scritta va solo all'AI installata su questo PC (Ollama), mai a server esterni; il contenuto del calendario non viene mai mandato all'AI.</p>
   </main>
   <script src="taskpane.js"></script>
 </body>
